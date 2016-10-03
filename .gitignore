@@ -1,5 +1,14 @@
+# editor generated files
+\#*\#
+.\#*
+*~
+*.swap
+*.swp
+*.swo
+
 # out-of-tree build
 build/
+
 # autoconf
 m4/libtool.m4
 m4/ltoptions.m4
