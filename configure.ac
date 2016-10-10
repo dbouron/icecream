@@ -193,7 +193,7 @@ if test x"$ac_cv_func_connect" = x"no"; then
     esac
     dnl We can't just call AC_CHECK_FUNCS(connect) here, because the value
     dnl has been cached.
-    if test x"$ac_cv_lib_socket_connect" = x"yes" || 
+    if test x"$ac_cv_lib_socket_connect" = x"yes" ||
        test x"$ac_cv_lib_inet_connect" = x"yes"; then
         # ac_cv_func_connect=yes
         # don't!  it would cause AC_CHECK_FUNC to succeed next time configure is run
@@ -217,6 +217,11 @@ AC_CHECK_DECLS([snprintf, vsnprintf, vasprintf, asprintf, strndup])
 AC_CHECK_LIB(lzo2, lzo1x_1_compress, LZO_LDADD=-llzo2,
 	AC_MSG_ERROR([Could not find lzo2 library - please install lzo-devel]))
 AC_SUBST(LZO_LDADD)
+
+# Check Google test library.
+AC_CHECK_LIB(gtest_main, main, [HAVE_GTEST=1] [LGTEST_LDADD=-lgtest],
+	AC_MSG_ERROR([Could not find gtest library - please install google test library (see https://github.com/google/googletest)]))
+AC_SUBST(LGTEST_LDADD)
 
 # In DragonFlyBSD daemon needs to be linked against libkinfo.
 case $host_os in
