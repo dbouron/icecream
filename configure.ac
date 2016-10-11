@@ -218,10 +218,15 @@ AC_CHECK_LIB(lzo2, lzo1x_1_compress, LZO_LDADD=-llzo2,
 	AC_MSG_ERROR([Could not find lzo2 library - please install lzo-devel]))
 AC_SUBST(LZO_LDADD)
 
+# Check Posix thread library needed for Google test framework.
+AC_CHECK_LIB(pthread, pthread_create, [PTHREAD_LDADD=-lpthread],
+                      AC_MSG_ERROR([Could not find posix thread library - please install libpthread.so]))
+AC_SUBST(PTHREAD_LDADD)
+
 # Check Google test library.
-AC_CHECK_LIB(gtest_main, main, [HAVE_GTEST=1] [LGTEST_LDADD=-lgtest],
+AC_CHECK_LIB(gtest_main, main, [HAVE_GTEST=1] [GTEST_LDADD=-lgtest],
 	AC_MSG_ERROR([Could not find gtest library - please install google test library (see https://github.com/google/googletest)]))
-AC_SUBST(LGTEST_LDADD)
+AC_SUBST(GTEST_LDADD)
 
 # In DragonFlyBSD daemon needs to be linked against libkinfo.
 case $host_os in
@@ -356,4 +361,3 @@ PKGLIBEXECDIR="$mylibexecdir/$PACKAGE"
 AC_SUBST(PKGLIBEXECDIR)
 
 AC_OUTPUT
-
