@@ -67,19 +67,19 @@ using namespace std;
 #define MAX_MSG_SIZE 1 * 1024 * 1024
 
 /* TODO
- * buffered in/output per MsgChannel
-    + move read* into MsgChannel, create buffer-fill function
+ * buffered in/output per Channel
+    + move read* into Channel, create buffer-fill function
     + add timeouting select() there, handle it in the different
     + read* functions.
     + write* unbuffered / or per message buffer (flush in send_msg)
  * think about error handling
-    + saving errno somewhere (in MsgChannel class)
- * handle unknown messages (implement a UnknownMsg holding the content
+    + saving errno somewhere (in Channel class)
+ * handle unknown messages (implement a Unknown holding the content
     of the whole data packet?)
  */
 
 /* Tries to fill the inbuf completely.  */
-bool MsgChannel::read_a_bit()
+bool Channel::read_a_bit()
 {
     chop_input();
     size_t count = inbuflen - inofs;
@@ -126,7 +126,7 @@ bool MsgChannel::read_a_bit()
     return !error;
 }
 
-bool MsgChannel::update_state(void)
+bool Channel::update_state(void)
 {
     switch (instate) {
     case NEED_PROTO:
@@ -246,7 +246,7 @@ bool MsgChannel::update_state(void)
     return true;
 }
 
-void MsgChannel::chop_input()
+void Channel::chop_input()
 {
     /* Make buffer smaller, if there's much already read in front
        of it, or it is cheap to do.  */
@@ -260,7 +260,7 @@ void MsgChannel::chop_input()
     }
 }
 
-void MsgChannel::chop_output()
+void Channel::chop_output()
 {
     if (msgofs > 8192 || msgtogo <= 16) {
         if (msgtogo) {
@@ -271,7 +271,7 @@ void MsgChannel::chop_output()
     }
 }
 
-void MsgChannel::writefull(const void *_buf, size_t count)
+void Channel::writefull(const void *_buf, size_t count)
 {
     if (msgtogo + count >= msgbuflen) {
         /* Realloc to a multiple of 128.  */
@@ -283,7 +283,7 @@ void MsgChannel::writefull(const void *_buf, size_t count)
     msgtogo += count;
 }
 
-bool MsgChannel::flush_writebuf(bool blocking)
+bool Channel::flush_writebuf(bool blocking)
 {
     const char *buf = msgbuf + msgofs;
     bool error = false;
@@ -351,7 +351,7 @@ bool MsgChannel::flush_writebuf(bool blocking)
     return !error;
 }
 
-MsgChannel &MsgChannel::operator>>(uint32_t &buf)
+Channel &Channel::operator>>(uint32_t &buf)
 {
     if (inofs >= intogo + 4) {
         if (ptrdiff_t(inbuf + intogo) % 4) {
@@ -371,14 +371,14 @@ MsgChannel &MsgChannel::operator>>(uint32_t &buf)
     return *this;
 }
 
-MsgChannel &MsgChannel::operator<<(uint32_t i)
+Channel &Channel::operator<<(uint32_t i)
 {
     i = htonl(i);
     writefull(&i, 4);
     return *this;
 }
 
-MsgChannel &MsgChannel::operator>>(string &s)
+Channel &Channel::operator>>(string &s)
 {
     char *buf;
     // len is including the (also saved) 0 Byte
@@ -396,7 +396,7 @@ MsgChannel &MsgChannel::operator>>(string &s)
     return *this;
 }
 
-MsgChannel &MsgChannel::operator<<(const std::string &s)
+Channel &Channel::operator<<(const std::string &s)
 {
     uint32_t len = 1 + s.length();
     *this << len;
@@ -404,7 +404,7 @@ MsgChannel &MsgChannel::operator<<(const std::string &s)
     return *this;
 }
 
-MsgChannel &MsgChannel::operator>>(list<string> &l)
+Channel &Channel::operator>>(list<string> &l)
 {
     uint32_t len;
     l.clear();
@@ -423,7 +423,7 @@ MsgChannel &MsgChannel::operator>>(list<string> &l)
     return *this;
 }
 
-MsgChannel &MsgChannel::operator<<(const std::list<std::string> &l)
+Channel &Channel::operator<<(const std::list<std::string> &l)
 {
     *this << (uint32_t) l.size();
 
@@ -435,7 +435,7 @@ MsgChannel &MsgChannel::operator<<(const std::list<std::string> &l)
     return *this;
 }
 
-void MsgChannel::write_environments(const Environments &envs)
+void Channel::write_environments(const Environments &envs)
 {
     *this << envs.size();
 
@@ -445,7 +445,7 @@ void MsgChannel::write_environments(const Environments &envs)
     }
 }
 
-void MsgChannel::read_environments(Environments &envs)
+void Channel::read_environments(Environments &envs)
 {
     envs.clear();
     uint32_t count;
@@ -460,7 +460,7 @@ void MsgChannel::read_environments(Environments &envs)
     }
 }
 
-void MsgChannel::readcompressed(unsigned char **uncompressed_buf, size_t &_uclen, size_t &_clen)
+void Channel::readcompressed(unsigned char **uncompressed_buf, size_t &_uclen, size_t &_clen)
 {
     lzo_uint uncompressed_len;
     lzo_uint compressed_len;
@@ -515,7 +515,7 @@ void MsgChannel::readcompressed(unsigned char **uncompressed_buf, size_t &_uclen
     _clen = compressed_len;
 }
 
-void MsgChannel::writecompressed(const unsigned char *in_buf, size_t _in_len, size_t &_out_len)
+void Channel::writecompressed(const unsigned char *in_buf, size_t _in_len, size_t &_out_len)
 {
     lzo_uint in_len = _in_len;
     lzo_uint out_len = _out_len;
@@ -547,7 +547,7 @@ void MsgChannel::writecompressed(const unsigned char *in_buf, size_t _in_len, si
     _out_len = out_len;
 }
 
-void MsgChannel::read_line(string &line)
+void Channel::read_line(string &line)
 {
     /* XXX handle DOS and MAC line endings and null bytes as string endings.  */
     if (!text_based || inofs < intogo) {
@@ -562,7 +562,7 @@ void MsgChannel::read_line(string &line)
     }
 }
 
-void MsgChannel::write_line(const string &line)
+void Channel::write_line(const string &line)
 {
     size_t len = line.length();
     writefull(line.c_str(), len);
@@ -668,7 +668,7 @@ static bool connect_async(int remote_fd, struct sockaddr *remote_addr, size_t re
     return true;
 }
 
-MsgChannel *Service::createChannel(const string &hostname, unsigned short p, int timeout)
+Channel *Service::createChannel(const string &hostname, unsigned short p, int timeout)
 {
     int remote_fd;
     struct sockaddr_in remote_addr;
@@ -696,7 +696,7 @@ MsgChannel *Service::createChannel(const string &hostname, unsigned short p, int
     return createChannel(remote_fd, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
 }
 
-MsgChannel *Service::createChannel(const string &socket_path)
+Channel *Service::createChannel(const string &socket_path)
 {
     int remote_fd;
     struct sockaddr_un remote_addr;
@@ -732,7 +732,7 @@ static std::string shorten_filename(const std::string &str)
     return str.substr(ofs + 1);
 }
 
-bool MsgChannel::eq_ip(const MsgChannel &s) const
+bool Channel::eq_ip(const Channel &s) const
 {
     struct sockaddr_in *s1, *s2;
     s1 = (struct sockaddr_in *) addr;
@@ -741,9 +741,9 @@ bool MsgChannel::eq_ip(const MsgChannel &s) const
             && memcmp(&s1->sin_addr, &s2->sin_addr, sizeof(s1->sin_addr)) == 0);
 }
 
-MsgChannel *Service::createChannel(int fd, struct sockaddr *_a, socklen_t _l)
+Channel *Service::createChannel(int fd, struct sockaddr *_a, socklen_t _l)
 {
-    MsgChannel *c = new MsgChannel(fd, _a, _l, false);
+    Channel *c = new Channel(fd, _a, _l, false);
 
     if (!c->wait_for_protocol()) {
         delete c;
@@ -753,7 +753,7 @@ MsgChannel *Service::createChannel(int fd, struct sockaddr *_a, socklen_t _l)
     return c;
 }
 
-MsgChannel::MsgChannel(int _fd, struct sockaddr *_a, socklen_t _l, bool text)
+Channel::Channel(int _fd, struct sockaddr *_a, socklen_t _l, bool text)
     : fd(_fd)
 {
     addr_len = _l;
@@ -815,11 +815,11 @@ MsgChannel::MsgChannel(int _fd, struct sockaddr *_a, socklen_t _l, bool text)
     }
 
     if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0) {
-        log_perror("MsgChannel fcntl()");
+        log_perror("Channel fcntl()");
     }
 
     if (fcntl(fd, F_SETFD, FD_CLOEXEC) < 0) {
-        log_perror("MsgChannel fcntl() 2");
+        log_perror("Channel fcntl() 2");
     }
 
     if (text_based) {
@@ -840,7 +840,7 @@ MsgChannel::MsgChannel(int _fd, struct sockaddr *_a, socklen_t _l, bool text)
     last_talk = time(0);
 }
 
-MsgChannel::~MsgChannel()
+Channel::~Channel()
 {
     if (fd >= 0) {
         close(fd);
@@ -861,14 +861,14 @@ MsgChannel::~MsgChannel()
     }
 }
 
-string MsgChannel::dump() const
+string Channel::dump() const
 {
     return name + ": (" + char((int)instate + 'A') + " eof: " + char(eof + '0') + ")";
 }
 
 /* Wait blocking until the protocol setup for this channel is complete.
    Returns false if an error occurred.  */
-bool MsgChannel::wait_for_protocol()
+bool Channel::wait_for_protocol()
 {
     /* protocol is 0 if we couldn't send our initial protocol version.  */
     if (protocol == 0) {
@@ -906,7 +906,7 @@ bool MsgChannel::wait_for_protocol()
     return true;
 }
 
-void MsgChannel::setBulkTransfer()
+void Channel::setBulkTransfer()
 {
     if (fd < 0) {
         return;
@@ -926,7 +926,7 @@ void MsgChannel::setBulkTransfer()
 
 /* This waits indefinitely (well, TIMEOUT seconds) for a complete
    message to arrive.  Returns false if there was some error.  */
-bool MsgChannel::wait_for_msg(int timeout)
+bool Channel::wait_for_msg(int timeout)
 {
     if (has_msg()) {
         return true;
@@ -969,7 +969,7 @@ bool MsgChannel::wait_for_msg(int timeout)
     return true;
 }
 
-Msg *MsgChannel::get_msg(int timeout)
+Msg *Channel::get_msg(int timeout)
 {
     Msg *m = 0;
     enum MsgType type;
@@ -994,103 +994,103 @@ Msg *MsgChannel::get_msg(int timeout)
     }
 
     if (text_based) {
-        type = M_TEXT;
+        type = MsgType::TEXT;
     } else {
         *this >> t;
         type = (enum MsgType) t;
     }
 
     switch (type) {
-    case M_UNKNOWN:
+    case MsgType::UNKNOWN:
         return 0;
-    case M_PING:
-        m = new PingMsg;
+    case MsgType::PING:
+        m = new Ping;
         break;
-    case M_END:
-        m = new EndMsg;
+    case MsgType::END:
+        m = new End;
         break;
-    case M_GET_CS:
-        m = new GetCSMsg;
+    case MsgType::GET_CS:
+        m = new GetCS;
         break;
-    case M_USE_CS:
-        m = new UseCSMsg;
+    case MsgType::USE_CS:
+        m = new UseCS;
         break;
-    case M_COMPILE_FILE:
-        m = new CompileFileMsg(new CompileJob, true);
+    case MsgType::COMPILE_FILE:
+        m = new CompileFile(new CompileJob, true);
         break;
-    case M_FILE_CHUNK:
-        m = new FileChunkMsg;
+    case MsgType::FILE_CHUNK:
+        m = new FileChunk;
         break;
-    case M_COMPILE_RESULT:
-        m = new CompileResultMsg;
+    case MsgType::COMPILE_RESULT:
+        m = new CompileResult;
         break;
-    case M_JOB_BEGIN:
-        m = new JobBeginMsg;
+    case MsgType::JOB_BEGIN:
+        m = new JobBegin;
         break;
-    case M_JOB_DONE:
-        m = new JobDoneMsg;
+    case MsgType::JOB_DONE:
+        m = new JobDone;
         break;
-    case M_LOGIN:
-        m = new LoginMsg;
+    case MsgType::LOGIN:
+        m = new Login;
         break;
-    case M_STATS:
-        m = new StatsMsg;
+    case MsgType::STATS:
+        m = new Stats;
         break;
-    case M_GET_NATIVE_ENV:
-        m = new GetNativeEnvMsg;
+    case MsgType::GET_NATIVE_ENV:
+        m = new GetNativeEnv;
         break;
-    case M_NATIVE_ENV:
-        m = new UseNativeEnvMsg;
+    case MsgType::NATIVE_ENV:
+        m = new UseNativeEnv;
         break;
-    case M_MON_LOGIN:
-        m = new MonLoginMsg;
+    case MsgType::MON_LOGIN:
+        m = new MonLogin;
         break;
-    case M_MON_GET_CS:
-        m = new MonGetCSMsg;
+    case MsgType::MON_GET_CS:
+        m = new MonGetCS;
         break;
-    case M_MON_JOB_BEGIN:
-        m = new MonJobBeginMsg;
+    case MsgType::MON_JOB_BEGIN:
+        m = new MonJobBegin;
         break;
-    case M_MON_JOB_DONE:
-        m = new MonJobDoneMsg;
+    case MsgType::MON_JOB_DONE:
+        m = new MonJobDone;
         break;
-    case M_MON_STATS:
-        m = new MonStatsMsg;
+    case MsgType::MON_STATS:
+        m = new MonStats;
         break;
-    case M_JOB_LOCAL_BEGIN:
-        m = new JobLocalBeginMsg;
+    case MsgType::JOB_LOCAL_BEGIN:
+        m = new JobLocalBegin;
         break;
-    case M_JOB_LOCAL_DONE :
-        m = new JobLocalDoneMsg;
+    case MsgType::JOB_LOCAL_DONE :
+        m = new JobLocalDone;
         break;
-    case M_MON_LOCAL_JOB_BEGIN:
-        m = new MonLocalJobBeginMsg;
+    case MsgType::MON_LOCAL_JOB_BEGIN:
+        m = new MonLocalJobBegin;
         break;
-    case M_TRANFER_ENV:
-        m = new EnvTransferMsg;
+    case MsgType::TRANFER_ENV:
+        m = new EnvTransfer;
         break;
-    case M_TEXT:
-        m = new TextMsg;
+    case MsgType::TEXT:
+        m = new Text;
         break;
-    case M_GET_INTERNALS:
+    case MsgType::GET_INTERNALS:
         m = new GetInternalStatus;
         break;
-    case M_STATUS_TEXT:
-        m = new StatusTextMsg;
+    case MsgType::STATUS_TEXT:
+        m = new StatusText;
         break;
-    case M_CS_CONF:
-        m = new ConfCSMsg;
+    case MsgType::CS_CONF:
+        m = new ConfCS;
         break;
-    case M_VERIFY_ENV:
-        m = new VerifyEnvMsg;
+    case MsgType::VERIFY_ENV:
+        m = new VerifyEnv;
         break;
-    case M_VERIFY_ENV_RESULT:
-        m = new VerifyEnvResultMsg;
+    case MsgType::VERIFY_ENV_RESULT:
+        m = new VerifyEnvResult;
         break;
-    case M_BLACKLIST_HOST_ENV:
-        m = new BlacklistHostEnvMsg;
+    case MsgType::BLACKLIST_HOST_ENV:
+        m = new BlacklistHostEnv;
         break;
-    case M_TIMEOUT:
+    case MsgType::TIMEOUT:
         break;
     }
 
@@ -1106,7 +1106,7 @@ Msg *MsgChannel::get_msg(int timeout)
     return m;
 }
 
-bool MsgChannel::send_msg(const Msg &m, int flags)
+bool Channel::send_msg(const Msg &m, int flags)
 {
     if (instate == NEED_PROTO && !wait_for_protocol()) {
         return false;
@@ -1347,7 +1347,7 @@ void DiscoverSched::attempt_scheduler_connect()
     }
 }
 
-MsgChannel *DiscoverSched::try_get_scheduler()
+Channel *DiscoverSched::try_get_scheduler()
 {
     if (schedname.empty() || 0 != best_version) {
         socklen_t remote_len;
@@ -1472,11 +1472,11 @@ list<string> get_netnames(int timeout, int port)
     return l;
 }
 
-void Msg::fill_from_channel(MsgChannel *)
+void Msg::fill_from_channel(Channel *)
 {
 }
 
-void Msg::send_to_channel(MsgChannel *c) const
+void Msg::send_to_channel(Channel *c) const
 {
     if (c->is_text_based()) {
         return;
@@ -1485,7 +1485,7 @@ void Msg::send_to_channel(MsgChannel *c) const
     *c << (uint32_t) type;
 }
 
-void GetCSMsg::fill_from_channel(MsgChannel *c)
+void GetCS::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     c->read_environments(versions);
@@ -1519,7 +1519,7 @@ void GetCSMsg::fill_from_channel(MsgChannel *c)
     }
 }
 
-void GetCSMsg::send_to_channel(MsgChannel *c) const
+void GetCS::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     c->write_environments(versions);
@@ -1542,7 +1542,7 @@ void GetCSMsg::send_to_channel(MsgChannel *c) const
     }
 }
 
-void UseCSMsg::fill_from_channel(MsgChannel *c)
+void UseCS::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> job_id;
@@ -1559,7 +1559,7 @@ void UseCSMsg::fill_from_channel(MsgChannel *c)
     }
 }
 
-void UseCSMsg::send_to_channel(MsgChannel *c) const
+void UseCS::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << job_id;
@@ -1574,7 +1574,7 @@ void UseCSMsg::send_to_channel(MsgChannel *c) const
     }
 }
 
-void CompileFileMsg::fill_from_channel(MsgChannel *c)
+void CompileFile::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     uint32_t id, lang;
@@ -1627,7 +1627,7 @@ void CompileFileMsg::fill_from_channel(MsgChannel *c)
     }
 }
 
-void CompileFileMsg::send_to_channel(MsgChannel *c) const
+void CompileFile::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << (uint32_t) job->language();
@@ -1667,7 +1667,7 @@ void CompileFileMsg::send_to_channel(MsgChannel *c) const
 // for compilers, so even if local name was e.g. c++, remote needs to
 // be g++ (before protocol version 30 remote CS even had /usr/bin/{gcc|g++}
 // hardcoded).  For clang, the binary is just clang for both C/C++.
-string CompileFileMsg::remote_compiler_name() const
+string CompileFile::remote_compiler_name() const
 {
     if (job->compilerName().find("clang") != string::npos) {
         return "clang";
@@ -1676,14 +1676,14 @@ string CompileFileMsg::remote_compiler_name() const
     return job->language() == CompileJob::Lang_CXX ? "g++" : "gcc";
 }
 
-CompileJob *CompileFileMsg::takeJob()
+CompileJob *CompileFile::takeJob()
 {
     assert(deleteit);
     deleteit = false;
     return job;
 }
 
-void FileChunkMsg::fill_from_channel(MsgChannel *c)
+void FileChunk::fill_from_channel(Channel *c)
 {
     if (del_buf) {
         delete [] buffer;
@@ -1696,20 +1696,20 @@ void FileChunkMsg::fill_from_channel(MsgChannel *c)
     c->readcompressed(&buffer, len, compressed);
 }
 
-void FileChunkMsg::send_to_channel(MsgChannel *c) const
+void FileChunk::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     c->writecompressed(buffer, len, compressed);
 }
 
-FileChunkMsg::~FileChunkMsg()
+FileChunk::~FileChunk()
 {
     if (del_buf) {
         delete [] buffer;
     }
 }
 
-void CompileResultMsg::fill_from_channel(MsgChannel *c)
+void CompileResult::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     uint32_t _status = 0;
@@ -1727,7 +1727,7 @@ void CompileResultMsg::fill_from_channel(MsgChannel *c)
     }
 }
 
-void CompileResultMsg::send_to_channel(MsgChannel *c) const
+void CompileResult::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << err;
@@ -1739,21 +1739,21 @@ void CompileResultMsg::send_to_channel(MsgChannel *c) const
     }
 }
 
-void JobBeginMsg::fill_from_channel(MsgChannel *c)
+void JobBegin::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> job_id;
     *c >> stime;
 }
 
-void JobBeginMsg::send_to_channel(MsgChannel *c) const
+void JobBegin::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << job_id;
     *c << stime;
 }
 
-void JobLocalBeginMsg::fill_from_channel(MsgChannel *c)
+void JobLocalBegin::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> stime;
@@ -1761,7 +1761,7 @@ void JobLocalBeginMsg::fill_from_channel(MsgChannel *c)
     *c >> id;
 }
 
-void JobLocalBeginMsg::send_to_channel(MsgChannel *c) const
+void JobLocalBegin::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << stime;
@@ -1769,20 +1769,20 @@ void JobLocalBeginMsg::send_to_channel(MsgChannel *c) const
     *c << id;
 }
 
-void JobLocalDoneMsg::fill_from_channel(MsgChannel *c)
+void JobLocalDone::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> job_id;
 }
 
-void JobLocalDoneMsg::send_to_channel(MsgChannel *c) const
+void JobLocalDone::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << job_id;
 }
 
-JobDoneMsg::JobDoneMsg(int id, int exit, unsigned int _flags)
-    : Msg(M_JOB_DONE)
+JobDone::JobDone(int id, int exit, unsigned int _flags)
+    : Msg(MsgType::JOB_DONE)
     , exitcode(exit)
     , flags(_flags)
     , job_id(id)
@@ -1797,7 +1797,7 @@ JobDoneMsg::JobDoneMsg(int id, int exit, unsigned int _flags)
     out_uncompressed = 0;
 }
 
-void JobDoneMsg::fill_from_channel(MsgChannel *c)
+void JobDone::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     uint32_t _exitcode = 255;
@@ -1815,7 +1815,7 @@ void JobDoneMsg::fill_from_channel(MsgChannel *c)
     exitcode = (int) _exitcode;
 }
 
-void JobDoneMsg::send_to_channel(MsgChannel *c) const
+void JobDone::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << job_id;
@@ -1831,8 +1831,8 @@ void JobDoneMsg::send_to_channel(MsgChannel *c) const
     *c << flags;
 }
 
-LoginMsg::LoginMsg(unsigned int myport, const std::string &_nodename, const std::string _host_platform)
-    : Msg(M_LOGIN)
+Login::Login(unsigned int myport, const std::string &_nodename, const std::string _host_platform)
+    : Msg(MsgType::LOGIN)
     , port(myport)
     , max_kids(0)
     , noremote(false)
@@ -1848,7 +1848,7 @@ LoginMsg::LoginMsg(unsigned int myport, const std::string &_nodename, const std:
 #endif
 }
 
-void LoginMsg::fill_from_channel(MsgChannel *c)
+void Login::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> port;
@@ -1868,7 +1868,7 @@ void LoginMsg::fill_from_channel(MsgChannel *c)
     noremote = (net_noremote != 0);
 }
 
-void LoginMsg::send_to_channel(MsgChannel *c) const
+void Login::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << port;
@@ -1883,7 +1883,7 @@ void LoginMsg::send_to_channel(MsgChannel *c) const
     }
 }
 
-void ConfCSMsg::fill_from_channel(MsgChannel *c)
+void ConfCS::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> max_scheduler_pong;
@@ -1892,7 +1892,7 @@ void ConfCSMsg::fill_from_channel(MsgChannel *c)
     *c >> bench_source;
 }
 
-void ConfCSMsg::send_to_channel(MsgChannel *c) const
+void ConfCS::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << max_scheduler_pong;
@@ -1901,7 +1901,7 @@ void ConfCSMsg::send_to_channel(MsgChannel *c) const
     *c << bench_source;
 }
 
-void StatsMsg::fill_from_channel(MsgChannel *c)
+void Stats::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> load;
@@ -1911,7 +1911,7 @@ void StatsMsg::fill_from_channel(MsgChannel *c)
     *c >> freeMem;
 }
 
-void StatsMsg::send_to_channel(MsgChannel *c) const
+void Stats::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << load;
@@ -1921,7 +1921,7 @@ void StatsMsg::send_to_channel(MsgChannel *c) const
     *c << freeMem;
 }
 
-void GetNativeEnvMsg::fill_from_channel(MsgChannel *c)
+void GetNativeEnv::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
 
@@ -1931,7 +1931,7 @@ void GetNativeEnvMsg::fill_from_channel(MsgChannel *c)
     }
 }
 
-void GetNativeEnvMsg::send_to_channel(MsgChannel *c) const
+void GetNativeEnv::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
 
@@ -1941,33 +1941,33 @@ void GetNativeEnvMsg::send_to_channel(MsgChannel *c) const
     }
 }
 
-void UseNativeEnvMsg::fill_from_channel(MsgChannel *c)
+void UseNativeEnv::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> nativeVersion;
 }
 
-void UseNativeEnvMsg::send_to_channel(MsgChannel *c) const
+void UseNativeEnv::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << nativeVersion;
 }
 
-void EnvTransferMsg::fill_from_channel(MsgChannel *c)
+void EnvTransfer::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> name;
     *c >> target;
 }
 
-void EnvTransferMsg::send_to_channel(MsgChannel *c) const
+void EnvTransfer::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << name;
     *c << target;
 }
 
-void MonGetCSMsg::fill_from_channel(MsgChannel *c)
+void MonGetCS::fill_from_channel(Channel *c)
 {
     if (IS_PROTOCOL_29(c)) {
         Msg::fill_from_channel(c);
@@ -1976,28 +1976,28 @@ void MonGetCSMsg::fill_from_channel(MsgChannel *c)
         *c >> _lang;
         lang = static_cast<CompileJob::Language>(_lang);
     } else {
-        GetCSMsg::fill_from_channel(c);
+        GetCS::fill_from_channel(c);
     }
 
     *c >> job_id;
     *c >> clientid;
 }
 
-void MonGetCSMsg::send_to_channel(MsgChannel *c) const
+void MonGetCS::send_to_channel(Channel *c) const
 {
     if (IS_PROTOCOL_29(c)) {
         Msg::send_to_channel(c);
         *c << shorten_filename(filename);
         *c << (uint32_t) lang;
     } else {
-        GetCSMsg::send_to_channel(c);
+        GetCS::send_to_channel(c);
     }
 
     *c << job_id;
     *c << clientid;
 }
 
-void MonJobBeginMsg::fill_from_channel(MsgChannel *c)
+void MonJobBegin::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> job_id;
@@ -2005,7 +2005,7 @@ void MonJobBeginMsg::fill_from_channel(MsgChannel *c)
     *c >> hostid;
 }
 
-void MonJobBeginMsg::send_to_channel(MsgChannel *c) const
+void MonJobBegin::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << job_id;
@@ -2013,7 +2013,7 @@ void MonJobBeginMsg::send_to_channel(MsgChannel *c) const
     *c << hostid;
 }
 
-void MonLocalJobBeginMsg::fill_from_channel(MsgChannel *c)
+void MonLocalJobBegin::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> hostid;
@@ -2022,7 +2022,7 @@ void MonLocalJobBeginMsg::fill_from_channel(MsgChannel *c)
     *c >> file;
 }
 
-void MonLocalJobBeginMsg::send_to_channel(MsgChannel *c) const
+void MonLocalJobBegin::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << hostid;
@@ -2031,57 +2031,57 @@ void MonLocalJobBeginMsg::send_to_channel(MsgChannel *c) const
     *c << shorten_filename(file);
 }
 
-void MonStatsMsg::fill_from_channel(MsgChannel *c)
+void MonStats::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> hostid;
     *c >> statmsg;
 }
 
-void MonStatsMsg::send_to_channel(MsgChannel *c) const
+void MonStats::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << hostid;
     *c << statmsg;
 }
 
-void TextMsg::fill_from_channel(MsgChannel *c)
+void Text::fill_from_channel(Channel *c)
 {
     c->read_line(text);
 }
 
-void TextMsg::send_to_channel(MsgChannel *c) const
+void Text::send_to_channel(Channel *c) const
 {
     c->write_line(text);
 }
 
-void StatusTextMsg::fill_from_channel(MsgChannel *c)
+void StatusText::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> text;
 }
 
-void StatusTextMsg::send_to_channel(MsgChannel *c) const
+void StatusText::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << text;
 }
 
-void VerifyEnvMsg::fill_from_channel(MsgChannel *c)
+void VerifyEnv::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> environment;
     *c >> target;
 }
 
-void VerifyEnvMsg::send_to_channel(MsgChannel *c) const
+void VerifyEnv::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << environment;
     *c << target;
 }
 
-void VerifyEnvResultMsg::fill_from_channel(MsgChannel *c)
+void VerifyEnvResult::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     uint32_t read_ok;
@@ -2089,13 +2089,13 @@ void VerifyEnvResultMsg::fill_from_channel(MsgChannel *c)
     ok = read_ok != 0;
 }
 
-void VerifyEnvResultMsg::send_to_channel(MsgChannel *c) const
+void VerifyEnvResult::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << uint32_t(ok);
 }
 
-void BlacklistHostEnvMsg::fill_from_channel(MsgChannel *c)
+void BlacklistHostEnv::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
     *c >> environment;
@@ -2103,7 +2103,7 @@ void BlacklistHostEnvMsg::fill_from_channel(MsgChannel *c)
     *c >> hostname;
 }
 
-void BlacklistHostEnvMsg::send_to_channel(MsgChannel *c) const
+void BlacklistHostEnv::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
     *c << environment;
