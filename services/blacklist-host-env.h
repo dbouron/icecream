@@ -58,4 +58,4 @@ namespace icecream
     } // services
 } // icecream
 
-#endif /*!ICECREAM_BLACKLIST_HOST_ENV_H*/
+#endif /* !ICECREAM_BLACKLIST_HOST_ENV_H */

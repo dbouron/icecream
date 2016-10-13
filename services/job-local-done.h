@@ -45,4 +45,4 @@ namespace icecream
     } // services
 } // icecream
 
-#endif /*!ICECREAM_JOB_LOCAL_DONE_H*/
+#endif /* !ICECREAM_JOB_LOCAL_DONE_H */

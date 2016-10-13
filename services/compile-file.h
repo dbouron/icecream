@@ -57,4 +57,4 @@ namespace icecream
     } // services
 } // icecream
 
-#endif /*!ICECREAM_COMPILE_FILE_H*/
+#endif /* !ICECREAM_COMPILE_FILE_H */

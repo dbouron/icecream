@@ -46,4 +46,4 @@ namespace icecream
     } // services
 } // icecream
 
-#endif /*!ICECREAM_GET_INTERNAL_STATUS_H*/
+#endif /* !ICECREAM_GET_INTERNAL_STATUS_H */

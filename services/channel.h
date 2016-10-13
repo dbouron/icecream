@@ -140,4 +140,4 @@ namespace icecream
     } // services
 } // icecream
 
-#endif /*!ICECREAM_CHANNEL_H*/
+#endif /* !ICECREAM_CHANNEL_H */

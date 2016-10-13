@@ -65,4 +65,4 @@ namespace icecream
     } // services
 } // icecream
 
-#endif /*!ICECREAM_USE_CS_H*/
+#endif /* !ICECREAM_USE_CS_H */

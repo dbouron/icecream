@@ -63,4 +63,4 @@ namespace icecream
     } // services
 } // icecream
 
-#endif /*!ICECREAM_FILE_CHUNK_H*/
+#endif /* !ICECREAM_FILE_CHUNK_H */

@@ -39,4 +39,4 @@ namespace icecream
     } // services
 } // icecream
 
-#endif /*!ICECREAM_PING_H*/
+#endif /* !ICECREAM_PING_H */

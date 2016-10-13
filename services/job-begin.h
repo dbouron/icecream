@@ -51,4 +51,4 @@ namespace icecream
     } // services
 } // icecream
 
-#endif /*!ICECREAM_JOB_BEGIN_H*/
+#endif /* !ICECREAM_JOB_BEGIN_H */

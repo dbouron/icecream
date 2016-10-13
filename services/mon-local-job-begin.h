@@ -58,4 +58,4 @@ namespace icecream
         };
     } // services
 } // icecream
-#endif /*!ICECREAM_MON_LOCAL_JOB_BEGIN_H*/
+#endif /* !ICECREAM_MON_LOCAL_JOB_BEGIN_H */

@@ -48,4 +48,4 @@ namespace icecream
     } // services
 } // icecream
 
-#endif /*!ICECREAM_MSG_H*/
+#endif /* !ICECREAM_MSG_H */

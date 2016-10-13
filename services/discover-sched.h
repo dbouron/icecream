@@ -98,4 +98,4 @@ namespace icecream
     } // services
 } // icecream
 
-#endif /*!ICECREAM_DISCOVER_SCHED_H*/
+#endif /* !ICECREAM_DISCOVER_SCHED_H */
