@@ -1,0 +1,143 @@
+/* -*- mode: C++; indent-tabs-mode: nil; c-basic-offset: 4; fill-column: 99; -*- */
+/* vim: set ts=4 sw=4 et tw=99:  */
+/*
+    This file is part of Icecream.
+
+    Copyright (c) 2004 Michael Matz <matz@suse.de>
+                  2004 Stephan Kulow <coolo@suse.de>
+                  2007 Dirk Mueller <dmueller@suse.de>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
+
+#ifndef ICECREAM_CHANNEL_H
+# define ICECREAM_CHANNEL_H
+
+namespace icecream
+{
+    namespace services
+    {
+        class Channel {
+        public:
+            enum SendFlags {
+                SendBlocking = 1 << 0,
+                SendNonBlocking = 1 << 1,
+                SendBulkOnly = 1 << 2
+            };
+
+            virtual ~Channel();
+
+            void setBulkTransfer();
+
+            std::string dump() const;
+            // NULL  <--> channel closed or timeout
+            Msg *get_msg(int timeout = 10);
+
+            // false <--> error (msg not send)
+            bool send_msg(const Msg &, int SendFlags = SendBlocking);
+
+            bool has_msg(void) const {
+                return eof || instate == HAS_MSG;
+            }
+
+            bool read_a_bit(void);
+
+            bool at_eof(void) const {
+                return instate != HAS_MSG && eof;
+            }
+
+            bool is_text_based(void) const {
+                return text_based;
+            }
+
+            void readcompressed(unsigned char **buf, size_t &_uclen, size_t &_clen);
+            void writecompressed(const unsigned char *in_buf, size_t _in_len,
+                                 size_t &_out_len);
+            void write_environments(const Environments &envs);
+            void read_environments(Environments &envs);
+            void read_line(std::string &line);
+            void write_line(const std::string &line);
+
+            bool eq_ip(const Channel &s) const;
+
+            Channel &operator>>(uint32_t &);
+            Channel &operator>>(std::string &);
+            Channel &operator>>(std::list<std::string> &);
+
+            Channel &operator<<(uint32_t);
+            Channel &operator<<(const std::string &);
+            Channel &operator<<(const std::list<std::string> &);
+
+            // our filedesc
+            int fd;
+
+            // the minimum protocol version between me and him
+            int protocol;
+
+            std::string name;
+            time_t last_talk;
+
+        protected:
+            Channel(int _fd, struct sockaddr *, socklen_t, bool text = false);
+
+            bool wait_for_protocol();
+            // returns false if there was an error sending something
+            bool flush_writebuf(bool blocking);
+            void writefull(const void *_buf, size_t count);
+            // returns false if there was an error in the protocol setup
+            bool update_state(void);
+            void chop_input(void);
+            void chop_output(void);
+            bool wait_for_msg(int timeout);
+
+            char *msgbuf;
+            size_t msgbuflen;
+            size_t msgofs;
+            size_t msgtogo;
+            char *inbuf;
+            size_t inbuflen;
+            size_t inofs;
+            size_t intogo;
+
+            enum {
+                NEED_PROTO, NEED_LEN, FILL_BUF, HAS_MSG
+            } instate;
+
+            uint32_t inmsglen;
+            bool eof;
+            bool text_based;
+
+        private:
+            friend class Service;
+
+            // deep copied
+            struct sockaddr *addr;
+            socklen_t addr_len;
+        };
+
+        // just convenient functions to create Channels
+        class Service {
+        public:
+            static Channel *createChannel(const std::string &host, unsigned short p,
+                                          int timeout);
+            static Channel *createChannel(const std::string &domain_socket);
+            static Channel *createChannel(int remote_fd, struct sockaddr *, socklen_t);
+        };
+
+    } // services
+} // icecream
+
+#endif /*!ICECREAM_CHANNEL_H*/
