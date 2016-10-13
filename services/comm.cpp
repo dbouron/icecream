@@ -1499,12 +1499,12 @@ void GetCS::fill_from_channel(Channel *c)
     *c >> client_id;
     preferred_host = string();
 
-    if (IS_PROTOCOL_22(c)) {
+    if (is_protocol<22>()(C)) {
         *c >> preferred_host;
     }
 
     minimal_host_version = 0;
-    if (IS_PROTOCOL_31(c)) {
+    if (is_protocol<31>()(C)) {
         uint32_t ign;
         *c >> ign;
         // Versions 31-33 had this as a separate field, now set a minimal
@@ -1512,7 +1512,7 @@ void GetCS::fill_from_channel(Channel *c)
         if (ign != 0 && minimal_host_version < 31)
             minimal_host_version = 31;
     }
-    if (IS_PROTOCOL_34(c)) {
+    if (is_protocol<34>()(C)) {
         uint32_t version;
         *c >> version;
         minimal_host_version = max( minimal_host_version, int( version ));
@@ -1530,14 +1530,14 @@ void GetCS::send_to_channel(Channel *c) const
     *c << arg_flags;
     *c << client_id;
 
-    if (IS_PROTOCOL_22(c)) {
+    if (is_protocol<22>()(C)) {
         *c << preferred_host;
     }
 
-    if (IS_PROTOCOL_31(c)) {
+    if (is_protocol<31>()(C)) {
         *c << uint32_t(minimal_host_version >= 31 ? 1 : 0);
     }
-    if (IS_PROTOCOL_34(c)) {
+    if (is_protocol<34>()(C)) {
         *c << minimal_host_version;
     }
 }
@@ -1552,7 +1552,7 @@ void UseCS::fill_from_channel(Channel *c)
     *c >> got_env;
     *c >> client_id;
 
-    if (IS_PROTOCOL_28(c)) {
+    if (is_protocol<28>()(C)) {
         *c >> matched_job_id;
     } else {
         matched_job_id = 0;
@@ -1569,7 +1569,7 @@ void UseCS::send_to_channel(Channel *c) const
     *c << got_env;
     *c << client_id;
 
-    if (IS_PROTOCOL_28(c)) {
+    if (is_protocol<28>()(C)) {
         *c << matched_job_id;
     }
 }
@@ -1604,12 +1604,12 @@ void CompileFile::fill_from_channel(Channel *c)
     *c >> target;
     job->setTargetPlatform(target);
 
-    if (IS_PROTOCOL_30(c)) {
+    if (is_protocol<30>()(C)) {
         string compilerName;
         *c >> compilerName;
         job->setCompilerName(compilerName);
     }
-    if( IS_PROTOCOL_34(c)) {
+    if( is_protocol<34>()(C)) {
         string inputFile;
         string workingDirectory;
         *c >> inputFile;
@@ -1617,7 +1617,7 @@ void CompileFile::fill_from_channel(Channel *c)
         job->setInputFile(inputFile);
         job->setWorkingDirectory(workingDirectory);
     }
-    if (IS_PROTOCOL_35(c)) {
+    if (is_protocol<35>()(C)) {
         string outputFile;
         uint32_t dwarfFissionEnabled = 0;
         *c >> outputFile;
@@ -1633,7 +1633,7 @@ void CompileFile::send_to_channel(Channel *c) const
     *c << (uint32_t) job->language();
     *c << job->jobID();
 
-    if (IS_PROTOCOL_30(c)) {
+    if (is_protocol<30>()(C)) {
         *c << job->remoteFlags();
     } else {
         if (job->compilerName().find("clang") != string::npos) {
@@ -1650,14 +1650,14 @@ void CompileFile::send_to_channel(Channel *c) const
     *c << job->environmentVersion();
     *c << job->targetPlatform();
 
-    if (IS_PROTOCOL_30(c)) {
+    if (is_protocol<30>()(C)) {
         *c << remote_compiler_name();
     }
-    if( IS_PROTOCOL_34(c)) {
+    if( is_protocol<34>()(C)) {
         *c << job->inputFile();
         *c << job->workingDirectory();
     }
-    if (IS_PROTOCOL_35(c)) {
+    if (is_protocol<35>()(C)) {
         *c << job->outputFile();
         *c << (uint32_t) job->dwarfFissionEnabled();
     }
@@ -1720,7 +1720,7 @@ void CompileResult::fill_from_channel(Channel *c)
     uint32_t was = 0;
     *c >> was;
     was_out_of_memory = was;
-    if (IS_PROTOCOL_35(c)) {
+    if (is_protocol<35>()(C)) {
         uint32_t dwo = 0;
         *c >> dwo;
         have_dwo_file = dwo;
@@ -1734,7 +1734,7 @@ void CompileResult::send_to_channel(Channel *c) const
     *c << out;
     *c << status;
     *c << (uint32_t) was_out_of_memory;
-    if (IS_PROTOCOL_35(c)) {
+    if (is_protocol<35>()(C)) {
         *c << (uint32_t) have_dwo_file;
     }
 }
@@ -1861,7 +1861,7 @@ void Login::fill_from_channel(Channel *c)
     chroot_possible = net_chroot_possible != 0;
     uint32_t net_noremote = 0;
 
-    if (IS_PROTOCOL_26(c)) {
+    if (is_protocol<26>()(C)) {
         *c >> net_noremote;
     }
 
@@ -1878,7 +1878,7 @@ void Login::send_to_channel(Channel *c) const
     *c << host_platform;
     *c << chroot_possible;
 
-    if (IS_PROTOCOL_26(c)) {
+    if (is_protocol<26>()(C)) {
         *c << noremote;
     }
 }
@@ -1925,7 +1925,7 @@ void GetNativeEnv::fill_from_channel(Channel *c)
 {
     Msg::fill_from_channel(c);
 
-    if (IS_PROTOCOL_32(c)) {
+    if (is_protocol<32>()(C)) {
         *c >> compiler;
         *c >> extrafiles;
     }
@@ -1935,7 +1935,7 @@ void GetNativeEnv::send_to_channel(Channel *c) const
 {
     Msg::send_to_channel(c);
 
-    if (IS_PROTOCOL_32(c)) {
+    if (is_protocol<32>()(C)) {
         *c << compiler;
         *c << extrafiles;
     }
@@ -1969,7 +1969,7 @@ void EnvTransfer::send_to_channel(Channel *c) const
 
 void MonGetCS::fill_from_channel(Channel *c)
 {
-    if (IS_PROTOCOL_29(c)) {
+    if (is_protocol<29>()(C)) {
         Msg::fill_from_channel(c);
         *c >> filename;
         uint32_t _lang;
@@ -1985,7 +1985,7 @@ void MonGetCS::fill_from_channel(Channel *c)
 
 void MonGetCS::send_to_channel(Channel *c) const
 {
-    if (IS_PROTOCOL_29(c)) {
+    if (is_protocol<29>()(C)) {
         Msg::send_to_channel(c);
         *c << shorten_filename(filename);
         *c << (uint32_t) lang;
