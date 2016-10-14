@@ -6,6 +6,7 @@
     Copyright (c) 2004 Michael Matz <matz@suse.de>
                   2004 Stephan Kulow <coolo@suse.de>
                   2007 Dirk Mueller <dmueller@suse.de>
+                  2016 Dimitri Bouron <bouron.d@gmail.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -23,37 +24,32 @@
 */
 
 
-#ifndef ICECREAM_BLACKLIST_HOST_ENV_H
-# define ICECREAM_BLACKLIST_HOST_ENV_H
+#ifndef ICECREAM_BLACKLIST_HOST_ENV_HXX
+# define ICECREAM_BLACKLIST_HOST_ENV_HXX
 
-# include <string>
-
-# include "msg.h"
+# include "nsg.h"
 
 namespace icecream
 {
     namespace services
     {
-        class BlacklistHostEnv : public Msg
+        inline
+        const std::string BlacklistHostEnv::environment_get() const
         {
-        public:
-            BlacklistHostEnv();
-            BlacklistHostEnv(const std::string &target,
-                             const std::string &environment,
-                             const std::string &hostname);
+            return environment_;
+        }
 
-            virtual void fill_from_channel(Channel *c);
-            virtual void send_to_channel(Channel *c) const;
+        inline
+        const std::string BlacklistHostEnv::target_get() const
+        {
+            return target_;
+        }
 
-            const std::string environment_get() const;
-            const std::string target_get() const;
-            const std::string hostname_get() const;
-
-        private:
-            std::string environment_;
-            std::string target_;
-            std::string hostname_;
-        };
+        inline
+        const std::string BlacklistHostEnv::hostname_get() const
+        {
+            return hostname_;
+        }
     } // services
 } // icecream
 

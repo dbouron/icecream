@@ -29,5 +29,19 @@ namespace icecream
 {
     namespace services
     {
+        BlacklistHostEnv::BlacklistHostEnv()
+            : Msg(MsgType::BLACKLIST_HOST_ENV)
+        {
+        }
+
+        BlacklistHostEnv::BlacklistHostEnv(const std::string &target,
+                                           const std::string &environment,
+                                           const std::string &hostname)
+            : Msg(MsgType::BLACKLIST_HOST_ENV)
+            , environment_(environment)
+            , target_(target)
+            , hostname_(hostname)
+        {
+        }
     } // services
 } // icecream
