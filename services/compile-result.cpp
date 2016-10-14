@@ -29,5 +29,36 @@ namespace icecream
 {
     namespace services
     {
+        void CompileResult::fill_from_channel(Channel *c)
+        {
+            Msg::fill_from_channel(c);
+            uint32_t _status = 0;
+            *c >> err;
+            *c >> out;
+            *c >> _status;
+            status = _status;
+            uint32_t was = 0;
+            *c >> was;
+            was_out_of_memory = was;
+            if (is_protocol<35>()(C))
+            {
+                uint32_t dwo = 0;
+                *c >> dwo;
+                have_dwo_file = dwo;
+            }
+        }
+
+        void CompileResult::send_to_channel(Channel *c) const
+        {
+            Msg::send_to_channel(c);
+            *c << err;
+            *c << out;
+            *c << status;
+            *c << (uint32_t) was_out_of_memory;
+            if (is_protocol<35>()(C))
+            {
+                *c << (uint32_t) have_dwo_file;
+            }
+        }
     } // services
 } // icecream

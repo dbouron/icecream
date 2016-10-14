@@ -29,5 +29,26 @@ namespace icecream
 {
     namespace services
     {
+        void GetNativeEnv::fill_from_channel(Channel *c)
+        {
+            Msg::fill_from_channel(c);
+
+            if (is_protocol<32>()(C))
+            {
+                *c >> compiler;
+                *c >> extrafiles;
+            }
+        }
+
+        void GetNativeEnv::send_to_channel(Channel *c) const
+        {
+            Msg::send_to_channel(c);
+
+            if (is_protocol<32>()(C))
+            {
+                *c << compiler;
+                *c << extrafiles;
+            }
+        }
     } // services
 } // icecream

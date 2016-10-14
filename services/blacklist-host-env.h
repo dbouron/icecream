@@ -57,4 +57,6 @@ namespace icecream
     } // services
 } // icecream
 
+# include "blacklist-host-env.hxx"
+
 #endif /* !ICECREAM_BLACKLIST_HOST_ENV_H */

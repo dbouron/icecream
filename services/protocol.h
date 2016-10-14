@@ -68,7 +68,7 @@ namespace iceream
          ** is_protocol<MIN_PROTOCOL_VERSION - 1, std::true_type>()()
          ** \endcode
          **
-         ** On another hand, it could be useful for making exemption.
+         ** On the other hand, it could be useful for making exemption.
          */
         template <uint32_t N>
         struct is_protocol

@@ -29,5 +29,14 @@ namespace icecream
 {
     namespace services
     {
+        void Text::fill_from_channel(Channel *c)
+        {
+            c->read_line(text);
+        }
+
+        void Text::send_to_channel(Channel *c) const
+        {
+            c->write_line(text);
+        }
     } // services
 } // icecream

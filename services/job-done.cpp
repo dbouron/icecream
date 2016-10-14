@@ -29,5 +29,54 @@ namespace icecream
 {
     namespace services
     {
+        JobDone::JobDone(int id, int exit, unsigned int _flags)
+                : Msg(MsgType::JOB_DONE)
+                , exitcode(exit)
+                , flags(_flags)
+                , job_id(id)
+        {
+            real_msec = 0;
+            user_msec = 0;
+            sys_msec = 0;
+            pfaults = 0;
+            in_compressed = 0;
+            in_uncompressed = 0;
+            out_compressed = 0;
+            out_uncompressed = 0;
+        }
+
+        void JobDone::fill_from_channel(Channel *c)
+        {
+            Msg::fill_from_channel(c);
+            uint32_t _exitcode = 255;
+            *c >> job_id;
+            *c >> _exitcode;
+            *c >> real_msec;
+            *c >> user_msec;
+            *c >> sys_msec;
+            *c >> pfaults;
+            *c >> in_compressed;
+            *c >> in_uncompressed;
+            *c >> out_compressed;
+            *c >> out_uncompressed;
+            *c >> flags;
+            exitcode = (int) _exitcode;
+        }
+
+        void JobDone::send_to_channel(Channel *c) const
+        {
+            Msg::send_to_channel(c);
+            *c << job_id;
+            *c << (uint32_t) exitcode;
+            *c << real_msec;
+            *c << user_msec;
+            *c << sys_msec;
+            *c << pfaults;
+            *c << in_compressed;
+            *c << in_uncompressed;
+            *c << out_compressed;
+            *c << out_uncompressed;
+            *c << flags;
+        }
     } // services
 } // icecream

@@ -29,5 +29,40 @@ namespace icecream
 {
     namespace services
     {
+        void MonGetCS::fill_from_channel(Channel *c)
+        {
+            if (is_protocol<29>()(C))
+            {
+                Msg::fill_from_channel(c);
+                *c >> filename;
+                uint32_t _lang;
+                *c >> _lang;
+                lang = static_cast<CompileJob::Language>(_lang);
+            }
+            else
+            {
+                GetCS::fill_from_channel(c);
+            }
+
+            *c >> job_id;
+            *c >> clientid;
+        }
+
+        void MonGetCS::send_to_channel(Channel *c) const
+        {
+            if (is_protocol<29>()(C))
+            {
+                Msg::send_to_channel(c);
+                *c << shorten_filename(filename);
+                *c << (uint32_t) lang;
+            }
+            else
+            {
+                GetCS::send_to_channel(c);
+            }
+
+            *c << job_id;
+            *c << clientid;
+        }
     } // services
 } // icecream

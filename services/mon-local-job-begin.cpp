@@ -29,5 +29,22 @@ namespace icecream
 {
     namespace services
     {
+        void MonLocalJobBegin::fill_from_channel(Channel *c)
+        {
+            Msg::fill_from_channel(c);
+            *c >> hostid;
+            *c >> job_id;
+            *c >> stime;
+            *c >> file;
+        }
+
+        void MonLocalJobBegin::send_to_channel(Channel *c) const
+        {
+            Msg::send_to_channel(c);
+            *c << hostid;
+            *c << job_id;
+            *c << stime;
+            *c << shorten_filename(file);
+        }
     } // services
 } // icecream

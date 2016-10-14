@@ -78,521 +78,31 @@ using namespace std;
     of the whole data packet?)
  */
 
-/* Tries to fill the inbuf completely.  */
-bool Channel::read_a_bit()
-{
-    chop_input();
-    size_t count = inbuflen - inofs;
 
-    if (count < 128) {
-        inbuflen = (inbuflen + 128 + 127) & ~(size_t) 127;
-        inbuf = (char *) realloc(inbuf, inbuflen);
-        count = inbuflen - inofs;
-    }
-
-    char *buf = inbuf + inofs;
-    bool error = false;
-
-    while (count) {
-        if (eof) {
-            break;
-        }
-
-        ssize_t ret = read(fd, buf, count);
-
-        if (ret > 0) {
-            count -= ret;
-            buf += ret;
-        } else if (ret < 0 && errno == EINTR) {
-            continue;
-        } else if (ret < 0) {
-            // EOF or some error
-            if (errno != EAGAIN) {
-                error = true;
-            }
-        } else if (ret == 0) {
-            eof = true;
-        }
-
-        break;
-    }
-
-    inofs = buf - inbuf;
-
-    if (!update_state()) {
-        error = true;
-    }
-
-    return !error;
-}
-
-bool Channel::update_state(void)
-{
-    switch (instate) {
-    case NEED_PROTO:
-
-        while (inofs - intogo >= 4) {
-            if (protocol == 0) {
-                return false;
-            }
-
-            uint32_t remote_prot = 0;
-            unsigned char vers[4];
-            //readuint32 (remote_prot);
-            memcpy(vers, inbuf + intogo, 4);
-            intogo += 4;
-
-            for (int i = 0; i < 4; ++i) {
-                remote_prot |= vers[i] << (i * 8);
-            }
-
-            if (protocol == -1) {
-                /* The first time we read the remote protocol.  */
-                protocol = 0;
-
-                if (remote_prot < MIN_PROTOCOL_VERSION || remote_prot > (1 << 20)) {
-                    remote_prot = 0;
-                    return false;
-                }
-
-                if (remote_prot > PROTOCOL_VERSION) {
-                    remote_prot = PROTOCOL_VERSION;    // ours is smaller
-                }
-
-                for (int i = 0; i < 4; ++i) {
-                    vers[i] = remote_prot >> (i * 8);
-                }
-
-                writefull(vers, 4);
-
-                if (!flush_writebuf(true)) {
-                    return false;
-                }
-
-                protocol = -1 - remote_prot;
-            } else if (protocol < -1) {
-                /* The second time we read the remote protocol.  */
-                protocol = - (protocol + 1);
-
-                if ((int)remote_prot != protocol) {
-                    protocol = 0;
-                    return false;
-                }
-
-                instate = NEED_LEN;
-                /* Don't consume bytes from messages.  */
-                break;
-            } else {
-                trace() << "NEED_PROTO but protocol > 0" << endl;
-            }
-        }
-
-        /* FALLTHROUGH if the protocol setup was complete (instate was changed
-        to NEED_LEN then).  */
-        if (instate != NEED_LEN) {
-            break;
-        }
-
-    case NEED_LEN:
-
-        if (text_based) {
-            // Skip any leading whitespace
-            for (; inofs < intogo; ++inofs)
-                if (inbuf[inofs] >= ' ') {
-                    break;
-                }
-
-            // Skip until next newline
-            for (inmsglen = 0; inmsglen < inofs - intogo; ++inmsglen)
-                if (inbuf[intogo + inmsglen] < ' ') {
-                    instate = HAS_MSG;
-                    break;
-                }
-
-            break;
-        } else if (inofs - intogo >= 4) {
-            (*this) >> inmsglen;
-
-            if (inmsglen > MAX_MSG_SIZE) {
-                return false;
-            }
-
-            if (inbuflen - intogo < inmsglen) {
-                inbuflen = (inmsglen + intogo + 127) & ~(size_t)127;
-                inbuf = (char *) realloc(inbuf, inbuflen);
-            }
-
-            instate = FILL_BUF;
-            /* FALLTHROUGH */
-        } else {
-            break;
-        }
-
-    case FILL_BUF:
-
-        if (inofs - intogo >= inmsglen) {
-            instate = HAS_MSG;
-        }
-        /* FALLTHROUGH */
-        else {
-            break;
-        }
-
-    case HAS_MSG:
-        /* handled elsewere */
-        break;
-    }
-
-    return true;
-}
-
-void Channel::chop_input()
-{
-    /* Make buffer smaller, if there's much already read in front
-       of it, or it is cheap to do.  */
-    if (intogo > 8192 || inofs - intogo <= 16) {
-        if (inofs - intogo != 0) {
-            memmove(inbuf, inbuf + intogo, inofs - intogo);
-        }
-
-        inofs -= intogo;
-        intogo = 0;
-    }
-}
-
-void Channel::chop_output()
-{
-    if (msgofs > 8192 || msgtogo <= 16) {
-        if (msgtogo) {
-            memmove(msgbuf, msgbuf + msgofs, msgtogo);
-        }
-
-        msgofs = 0;
-    }
-}
-
-void Channel::writefull(const void *_buf, size_t count)
-{
-    if (msgtogo + count >= msgbuflen) {
-        /* Realloc to a multiple of 128.  */
-        msgbuflen = (msgtogo + count + 127) & ~(size_t)127;
-        msgbuf = (char *) realloc(msgbuf, msgbuflen);
-    }
-
-    memcpy(msgbuf + msgtogo, _buf, count);
-    msgtogo += count;
-}
-
-bool Channel::flush_writebuf(bool blocking)
-{
-    const char *buf = msgbuf + msgofs;
-    bool error = false;
-
-    while (msgtogo) {
-#ifdef MSG_NOSIGNAL
-        ssize_t ret = send(fd, buf, msgtogo, MSG_NOSIGNAL);
-#else
-        void (*oldsigpipe)(int);
-
-        oldsigpipe = signal(SIGPIPE, SIG_IGN);
-        ssize_t ret = send(fd, buf, msgtogo, 0);
-        signal(SIGPIPE, oldsigpipe);
-#endif
-
-        if (ret < 0) {
-            if (errno == EINTR) {
-                continue;
-            }
-
-            /* If we want to write blocking, but couldn't write anything,
-               select on the fd.  */
-            if (blocking && errno == EAGAIN) {
-                int ready;
-
-                for (;;) {
-                    fd_set write_set;
-                    FD_ZERO(&write_set);
-                    FD_SET(fd, &write_set);
-                    struct timeval tv;
-                    tv.tv_sec = 20;
-                    tv.tv_usec = 0;
-                    ready = select(fd + 1, NULL, &write_set, NULL, &tv);
-
-                    if (ready < 0 && errno == EINTR) {
-                        continue;
-                    }
-
-                    break;
-                }
-
-                /* socket ready now for writing ? */
-                if (ready > 0) {
-                    continue;
-                }
-
-                /* Timeout or real error --> error.  */
-            }
-
-            log_perror("flush_writebuf() failed");
-            error = true;
-            break;
-        } else if (ret == 0) {
-            // EOF while writing --> error
-            error = true;
-            break;
-        }
-
-        msgtogo -= ret;
-        buf += ret;
-    }
-
-    msgofs = buf - msgbuf;
-    chop_output();
-    return !error;
-}
-
-Channel &Channel::operator>>(uint32_t &buf)
-{
-    if (inofs >= intogo + 4) {
-        if (ptrdiff_t(inbuf + intogo) % 4) {
-            uint32_t t_buf[1];
-            memcpy(t_buf, inbuf + intogo, 4);
-            buf = t_buf[0];
-        } else {
-            buf = *(uint32_t *)(inbuf + intogo);
-        }
-
-        intogo += 4;
-        buf = ntohl(buf);
-    } else {
-        buf = 0;
-    }
-
-    return *this;
-}
-
-Channel &Channel::operator<<(uint32_t i)
-{
-    i = htonl(i);
-    writefull(&i, 4);
-    return *this;
-}
-
-Channel &Channel::operator>>(string &s)
-{
-    char *buf;
-    // len is including the (also saved) 0 Byte
-    uint32_t len;
-    *this >> len;
-
-    if (!len || len > inofs - intogo) {
-        s = "";
-    } else {
-        buf = inbuf + intogo;
-        intogo += len;
-        s = buf;
-    }
-
-    return *this;
-}
-
-Channel &Channel::operator<<(const std::string &s)
-{
-    uint32_t len = 1 + s.length();
-    *this << len;
-    writefull(s.c_str(), len);
-    return *this;
-}
-
-Channel &Channel::operator>>(list<string> &l)
-{
-    uint32_t len;
-    l.clear();
-    *this >> len;
-
-    while (len--) {
-        string s;
-        *this >> s;
-        l.push_back(s);
-
-        if (inofs == intogo) {
-            break;
-        }
-    }
-
-    return *this;
-}
-
-Channel &Channel::operator<<(const std::list<std::string> &l)
-{
-    *this << (uint32_t) l.size();
-
-    for (list<string>::const_iterator it = l.begin();
-            it != l.end(); ++it) {
-        *this << *it;
-    }
-
-    return *this;
-}
-
-void Channel::write_environments(const Environments &envs)
-{
-    *this << envs.size();
-
-    for (Environments::const_iterator it = envs.begin(); it != envs.end(); ++it) {
-        *this << it->first;
-        *this << it->second;
-    }
-}
-
-void Channel::read_environments(Environments &envs)
-{
-    envs.clear();
-    uint32_t count;
-    *this >> count;
-
-    for (unsigned int i = 0; i < count; i++) {
-        string plat;
-        string vers;
-        *this >> plat;
-        *this >> vers;
-        envs.push_back(make_pair(plat, vers));
-    }
-}
-
-void Channel::readcompressed(unsigned char **uncompressed_buf, size_t &_uclen, size_t &_clen)
-{
-    lzo_uint uncompressed_len;
-    lzo_uint compressed_len;
-    uint32_t tmp;
-    *this >> tmp;
-    uncompressed_len = tmp;
-    *this >> tmp;
-    compressed_len = tmp;
-
-    /* If there was some input, but nothing compressed,
-       or lengths are bigger than the whole chunk message
-       or we don't have everything to uncompress, there was an error.  */
-    if (uncompressed_len > MAX_MSG_SIZE
-            || compressed_len > (inofs - intogo)
-            || (uncompressed_len && !compressed_len)
-            || inofs < intogo + compressed_len) {
-        log_error() << "failure in readcompressed() length checking" << endl;
-        *uncompressed_buf = 0;
-        uncompressed_len = 0;
-        _uclen = uncompressed_len;
-        _clen = compressed_len;
-        return;
-    }
-
-    *uncompressed_buf = new unsigned char[uncompressed_len];
-
-    if (uncompressed_len && compressed_len) {
-        const lzo_byte *compressed_buf = (lzo_byte *)(inbuf + intogo);
-        lzo_voidp wrkmem = (lzo_voidp) malloc(LZO1X_MEM_COMPRESS);
-        int ret = lzo1x_decompress(compressed_buf, compressed_len,
-                                   *uncompressed_buf, &uncompressed_len, wrkmem);
-        free(wrkmem);
-
-        if (ret != LZO_E_OK) {
-            /* This should NEVER happen.
-            Remove the buffer, and indicate there is nothing in it,
-            but don't reset the compressed_len, so our caller know,
-            that there actually was something read in.  */
-            log_error() << "internal error - decompression of data from " << dump().c_str()
-                        << " failed: " << ret << endl;
-            delete [] *uncompressed_buf;
-            *uncompressed_buf = 0;
-            uncompressed_len = 0;
-        }
-    }
-
-    /* Read over everything used, _also_ if there was some error.
-       If we couldn't decode it now, it won't get better in the future,
-       so just ignore this hunk.  */
-    intogo += compressed_len;
-    _uclen = uncompressed_len;
-    _clen = compressed_len;
-}
-
-void Channel::writecompressed(const unsigned char *in_buf, size_t _in_len, size_t &_out_len)
-{
-    lzo_uint in_len = _in_len;
-    lzo_uint out_len = _out_len;
-    out_len = in_len + in_len / 64 + 16 + 3;
-    *this << in_len;
-    size_t msgtogo_old = msgtogo;
-    *this << (uint32_t) 0;
-
-    if (msgtogo + out_len >= msgbuflen) {
-        /* Realloc to a multiple of 128.  */
-        msgbuflen = (msgtogo + out_len + 127) & ~(size_t)127;
-        msgbuf = (char *) realloc(msgbuf, msgbuflen);
-    }
-
-    lzo_byte *out_buf = (lzo_byte *)(msgbuf + msgtogo);
-    lzo_voidp wrkmem = (lzo_voidp) malloc(LZO1X_MEM_COMPRESS);
-    int ret = lzo1x_1_compress(in_buf, in_len, out_buf, &out_len, wrkmem);
-    free(wrkmem);
-
-    if (ret != LZO_E_OK) {
-        /* this should NEVER happen */
-        log_error() << "internal error - compression failed: " << ret << endl;
-        out_len = 0;
-    }
-
-    uint32_t _olen = htonl(out_len);
-    memcpy(msgbuf + msgtogo_old, &_olen, 4);
-    msgtogo += out_len;
-    _out_len = out_len;
-}
-
-void Channel::read_line(string &line)
-{
-    /* XXX handle DOS and MAC line endings and null bytes as string endings.  */
-    if (!text_based || inofs < intogo) {
-        line = "";
-    } else {
-        line = string(inbuf + intogo, inmsglen);
-        intogo += inmsglen;
-
-        while (intogo < inofs && inbuf[intogo] < ' ') {
-            intogo++;
-        }
-    }
-}
-
-void Channel::write_line(const string &line)
-{
-    size_t len = line.length();
-    writefull(line.c_str(), len);
-
-    if (line[len - 1] != '\n') {
-        char c = '\n';
-        writefull(&c, 1);
-    }
-}
 
 static int prepare_connect(const string &hostname, unsigned short p,
-                           struct sockaddr_in &remote_addr)
+        struct sockaddr_in &remote_addr)
 {
     int remote_fd;
     int i = 1;
 
-    if ((remote_fd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+    if ((remote_fd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
+    {
         log_perror("socket()");
         return -1;
     }
 
     struct hostent *host = gethostbyname(hostname.c_str());
 
-    if (!host) {
+    if (!host)
+    {
         log_perror("Unknown host");
         close(remote_fd);
         return -1;
     }
 
-    if (host->h_length != 4) {
+    if (host->h_length != 4)
+    {
         log_error() << "Invalid address length" << endl;
         close(remote_fd);
         return -1;
@@ -607,22 +117,24 @@ static int prepare_connect(const string &hostname, unsigned short p,
     return remote_fd;
 }
 
-static bool connect_async(int remote_fd, struct sockaddr *remote_addr, size_t remote_size,
-                          int timeout)
+static bool connect_async(int remote_fd, struct sockaddr *remote_addr,
+        size_t remote_size, int timeout)
 {
     fcntl(remote_fd, F_SETFL, O_NONBLOCK);
 
     // code majorly derived from lynx's http connect (GPL)
     int status = connect(remote_fd, remote_addr, remote_size);
 
-    if ((status < 0) && (errno == EINPROGRESS || errno == EAGAIN)) {
+    if ((status < 0) && (errno == EINPROGRESS || errno == EAGAIN))
+    {
         struct timeval select_timeout;
         fd_set writefds;
         int ret;
 
-        do {
+        do
+        {
             /* we select for a specific time and if that succeeds, we connect one
-               final time. Everything else we ignore */
+             final time. Everything else we ignore */
 
             select_timeout.tv_sec = timeout;
             select_timeout.tv_usec = 0;
@@ -630,62 +142,77 @@ static bool connect_async(int remote_fd, struct sockaddr *remote_addr, size_t re
             FD_SET(remote_fd, &writefds);
             ret = select(remote_fd + 1, NULL, &writefds, NULL, &select_timeout);
 
-            if (ret < 0 && errno == EINTR) {
+            if (ret < 0 && errno == EINTR)
+            {
                 continue;
             }
 
             break;
         } while (1);
 
-        if (ret > 0) {
+        if (ret > 0)
+        {
             /*
-            **  Extra check here for connection success, if we try to
-            **  connect again, and get EISCONN, it means we have a
-            **  successful connection.  But don't check with SOCKS.
-            */
+             **  Extra check here for connection success, if we try to
+             **  connect again, and get EISCONN, it means we have a
+             **  successful connection.  But don't check with SOCKS.
+             */
             status = connect(remote_fd, remote_addr, remote_size);
 
-            if ((status < 0) && (errno == EISCONN)) {
+            if ((status < 0) && (errno == EISCONN))
+            {
                 status = 0;
             }
         }
     }
 
-    if (status < 0) {
+    if (status < 0)
+    {
         /*
-        **  The connect attempt failed or was interrupted,
-        **  so close up the socket.
-        */
+         **  The connect attempt failed or was interrupted,
+         **  so close up the socket.
+         */
         close(remote_fd);
         return false;
-    } else {
+    }
+    else
+    {
         /*
-        **  Make the socket blocking again on good connect.
-        */
+         **  Make the socket blocking again on good connect.
+         */
         fcntl(remote_fd, F_SETFL, 0);
     }
 
     return true;
 }
 
-Channel *Service::createChannel(const string &hostname, unsigned short p, int timeout)
+Channel *Service::createChannel(const string &hostname, unsigned short p,
+        int timeout)
 {
     int remote_fd;
     struct sockaddr_in remote_addr;
 
-    if ((remote_fd = prepare_connect(hostname, p, remote_addr)) < 0) {
+    if ((remote_fd = prepare_connect(hostname, p, remote_addr)) < 0)
+    {
         return 0;
     }
 
-    if (timeout) {
-        if (!connect_async(remote_fd, (struct sockaddr *) &remote_addr, sizeof(remote_addr), timeout)) {
+    if (timeout)
+    {
+        if (!connect_async(remote_fd, (struct sockaddr *) &remote_addr,
+                sizeof(remote_addr), timeout))
+        {
             return 0;    // remote_fd is already closed
         }
-    } else {
+    }
+    else
+    {
         int i = 2048;
         setsockopt(remote_fd, SOL_SOCKET, SO_SNDBUF, &i, sizeof(i));
 
-        if (connect(remote_fd, (struct sockaddr *) &remote_addr, sizeof(remote_addr)) < 0) {
+        if (connect(remote_fd, (struct sockaddr *) &remote_addr,
+                sizeof(remote_addr)) < 0)
+        {
             close(remote_fd);
             trace() << "connect failed on " << hostname << endl;
             return 0;
@@ -693,7 +220,8 @@ Channel *Service::createChannel(const string &hostname, unsigned short p, int ti
     }
 
     trace() << "connected to " << hostname << endl;
-    return createChannel(remote_fd, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
+    return createChannel(remote_fd, (struct sockaddr *) &remote_addr,
+            sizeof(remote_addr));
 }
 
 Channel *Service::createChannel(const string &socket_path)
@@ -701,30 +229,37 @@ Channel *Service::createChannel(const string &socket_path)
     int remote_fd;
     struct sockaddr_un remote_addr;
 
-    if ((remote_fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+    if ((remote_fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
+    {
         log_perror("socket()");
         return 0;
     }
 
     remote_addr.sun_family = AF_UNIX;
-    strncpy(remote_addr.sun_path, socket_path.c_str(), sizeof(remote_addr.sun_path) - 1);
+    strncpy(remote_addr.sun_path, socket_path.c_str(),
+            sizeof(remote_addr.sun_path) - 1);
 
-    if (connect(remote_fd, (struct sockaddr *) &remote_addr, sizeof(remote_addr)) < 0) {
+    if (connect(remote_fd, (struct sockaddr *) &remote_addr,
+            sizeof(remote_addr)) < 0)
+    {
         close(remote_fd);
         trace() << "connect failed on " << socket_path << endl;
         return 0;
     }
 
     trace() << "connected to " << socket_path << endl;
-    return createChannel(remote_fd, (struct sockaddr *)&remote_addr, sizeof(remote_addr));
+    return createChannel(remote_fd, (struct sockaddr *) &remote_addr,
+            sizeof(remote_addr));
 }
 
 static std::string shorten_filename(const std::string &str)
 {
     std::string::size_type ofs = str.rfind('/');
 
-    for (int i = 2; i--;) {
-        if (ofs != string::npos) {
+    for (int i = 2; i--;)
+    {
+        if (ofs != string::npos)
+        {
             ofs = str.rfind('/', ofs - 1);
         }
     }
@@ -732,404 +267,7 @@ static std::string shorten_filename(const std::string &str)
     return str.substr(ofs + 1);
 }
 
-bool Channel::eq_ip(const Channel &s) const
-{
-    struct sockaddr_in *s1, *s2;
-    s1 = (struct sockaddr_in *) addr;
-    s2 = (struct sockaddr_in *) s.addr;
-    return (addr_len == s.addr_len
-            && memcmp(&s1->sin_addr, &s2->sin_addr, sizeof(s1->sin_addr)) == 0);
-}
 
-Channel *Service::createChannel(int fd, struct sockaddr *_a, socklen_t _l)
-{
-    Channel *c = new Channel(fd, _a, _l, false);
-
-    if (!c->wait_for_protocol()) {
-        delete c;
-        c = 0;
-    }
-
-    return c;
-}
-
-Channel::Channel(int _fd, struct sockaddr *_a, socklen_t _l, bool text)
-    : fd(_fd)
-{
-    addr_len = _l;
-
-    if (addr_len && _a) {
-        addr = (struct sockaddr *)malloc(addr_len);
-        memcpy(addr, _a, addr_len);
-        char buf[16384] = "";
-        if(addr->sa_family == AF_UNIX)
-            name = reinterpret_cast<sockaddr_un*>(addr)->sun_path;
-        else {
-            if(int error = getnameinfo(addr, addr_len, buf, sizeof(buf), NULL, 0, NI_NUMERICHOST))
-                log_error() << "getnameinfo(): " << error << endl;
-            name = buf;
-        }
-    } else {
-        addr = 0;
-        name = "";
-    }
-
-    // not using new/delete because of the need of realloc()
-    msgbuf = (char *) malloc(128);
-    msgbuflen = 128;
-    msgofs = 0;
-    msgtogo = 0;
-    inbuf = (char *) malloc(128);
-    inbuflen = 128;
-    inofs = 0;
-    intogo = 0;
-    eof = false;
-    text_based = text;
-
-    int on = 1;
-
-    if (!setsockopt(_fd, SOL_SOCKET, SO_KEEPALIVE, (char *) &on, sizeof(on))) {
-#if defined( TCP_KEEPIDLE )
-        int keepidle = TCP_KEEPIDLE;
-#else
-        int keepidle = TCPCTL_KEEPIDLE;
-#endif
-
-        int sec;
-        sec = MAX_SCHEDULER_PING - 3 * MAX_SCHEDULER_PONG;
-        setsockopt(_fd, IPPROTO_TCP, keepidle, (char *) &sec, sizeof(sec));
-
-#if defined( TCP_KEEPINTVL )
-        int keepintvl = TCP_KEEPINTVL;
-#else
-        int keepintvl = TCPCTL_KEEPINTVL;
-#endif
-
-        sec = MAX_SCHEDULER_PONG;
-        setsockopt(_fd, IPPROTO_TCP, keepintvl, (char *) &sec, sizeof(sec));
-
-#ifdef TCP_KEEPCNT
-        sec = 3;
-        setsockopt(_fd, IPPROTO_TCP, TCP_KEEPCNT, (char *) &sec, sizeof(sec));
-#endif
-    }
-
-    if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0) {
-        log_perror("Channel fcntl()");
-    }
-
-    if (fcntl(fd, F_SETFD, FD_CLOEXEC) < 0) {
-        log_perror("Channel fcntl() 2");
-    }
-
-    if (text_based) {
-        instate = NEED_LEN;
-        protocol = PROTOCOL_VERSION;
-    } else {
-        instate = NEED_PROTO;
-        protocol = -1;
-        unsigned char vers[4] = {PROTOCOL_VERSION, 0, 0, 0};
-        //writeuint32 ((uint32_t) PROTOCOL_VERSION);
-        writefull(vers, 4);
-
-        if (!flush_writebuf(true)) {
-            protocol = 0;    // unusable
-        }
-    }
-
-    last_talk = time(0);
-}
-
-Channel::~Channel()
-{
-    if (fd >= 0) {
-        close(fd);
-    }
-
-    fd = -1;
-
-    if (msgbuf) {
-        free(msgbuf);
-    }
-
-    if (inbuf) {
-        free(inbuf);
-    }
-
-    if (addr) {
-        free(addr);
-    }
-}
-
-string Channel::dump() const
-{
-    return name + ": (" + char((int)instate + 'A') + " eof: " + char(eof + '0') + ")";
-}
-
-/* Wait blocking until the protocol setup for this channel is complete.
-   Returns false if an error occurred.  */
-bool Channel::wait_for_protocol()
-{
-    /* protocol is 0 if we couldn't send our initial protocol version.  */
-    if (protocol == 0) {
-        return false;
-    }
-
-    while (instate == NEED_PROTO) {
-        fd_set set;
-        FD_ZERO(&set);
-        FD_SET(fd, &set);
-        struct timeval tv;
-        tv.tv_sec = 5;
-        tv.tv_usec = 0;
-        int ret = select(fd + 1, &set, NULL, NULL, &tv);
-
-        if (ret < 0 && errno == EINTR) {
-            continue;
-        }
-
-        if (ret == 0) {
-            log_error() << "no response from local daemon within timeout." << endl;
-            return false; /* timeout. Consider it a fatal error. */
-        }
-
-        if (ret < 0) {
-            log_perror("select in wait_for_protocol()");
-            return false;
-        }
-
-        if (!read_a_bit() || eof) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-void Channel::setBulkTransfer()
-{
-    if (fd < 0) {
-        return;
-    }
-
-    int i = 0;
-    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *) &i, sizeof(i));
-
-    // would be nice but not portable across non-linux
-#ifdef __linux__
-    i = 1;
-    setsockopt(fd, IPPROTO_TCP, TCP_CORK, (char *) &i, sizeof(i));
-#endif
-    i = 65536;
-    setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &i, sizeof(i));
-}
-
-/* This waits indefinitely (well, TIMEOUT seconds) for a complete
-   message to arrive.  Returns false if there was some error.  */
-bool Channel::wait_for_msg(int timeout)
-{
-    if (has_msg()) {
-        return true;
-    }
-
-    if (!read_a_bit()) {
-        trace() << "!read_a_bit\n";
-        return false;
-    }
-
-    if (timeout <= 0) {
-        trace() << "timeout <= 0\n";
-        return has_msg();
-    }
-
-    while (!has_msg()) {
-        fd_set read_set;
-        FD_ZERO(&read_set);
-        FD_SET(fd, &read_set);
-        struct timeval tv;
-        tv.tv_sec = timeout;
-        tv.tv_usec = 0;
-
-        if (select(fd + 1, &read_set, NULL, NULL, &tv) <= 0) {
-            if (errno == EINTR) {
-                continue;
-            }
-
-            /* Either timeout or real error.  For this function also
-               a timeout is an error.  */
-            return false;
-        }
-
-        if (!read_a_bit()) {
-            trace() << "!read_a_bit 2\n";
-            return false;
-        }
-    }
-
-    return true;
-}
-
-Msg *Channel::get_msg(int timeout)
-{
-    Msg *m = 0;
-    enum MsgType type;
-    uint32_t t;
-
-    if (!wait_for_msg(timeout)) {
-        trace() << "!wait_for_msg()\n";
-        return 0;
-    }
-
-    /* If we've seen the EOF, and we don't have a complete message,
-       then we won't see it anymore.  Return that to the caller.
-       Don't use has_msg() here, as it returns true for eof.  */
-    if (at_eof()) {
-        trace() << "saw eof without complete msg! " << instate << endl;
-        return 0;
-    }
-
-    if (!has_msg()) {
-        trace() << "saw eof without msg! " << eof << " " << instate << endl;
-        return 0;
-    }
-
-    if (text_based) {
-        type = MsgType::TEXT;
-    } else {
-        *this >> t;
-        type = (enum MsgType) t;
-    }
-
-    switch (type) {
-    case MsgType::UNKNOWN:
-        return 0;
-    case MsgType::PING:
-        m = new Ping;
-        break;
-    case MsgType::END:
-        m = new End;
-        break;
-    case MsgType::GET_CS:
-        m = new GetCS;
-        break;
-    case MsgType::USE_CS:
-        m = new UseCS;
-        break;
-    case MsgType::COMPILE_FILE:
-        m = new CompileFile(new CompileJob, true);
-        break;
-    case MsgType::FILE_CHUNK:
-        m = new FileChunk;
-        break;
-    case MsgType::COMPILE_RESULT:
-        m = new CompileResult;
-        break;
-    case MsgType::JOB_BEGIN:
-        m = new JobBegin;
-        break;
-    case MsgType::JOB_DONE:
-        m = new JobDone;
-        break;
-    case MsgType::LOGIN:
-        m = new Login;
-        break;
-    case MsgType::STATS:
-        m = new Stats;
-        break;
-    case MsgType::GET_NATIVE_ENV:
-        m = new GetNativeEnv;
-        break;
-    case MsgType::NATIVE_ENV:
-        m = new UseNativeEnv;
-        break;
-    case MsgType::MON_LOGIN:
-        m = new MonLogin;
-        break;
-    case MsgType::MON_GET_CS:
-        m = new MonGetCS;
-        break;
-    case MsgType::MON_JOB_BEGIN:
-        m = new MonJobBegin;
-        break;
-    case MsgType::MON_JOB_DONE:
-        m = new MonJobDone;
-        break;
-    case MsgType::MON_STATS:
-        m = new MonStats;
-        break;
-    case MsgType::JOB_LOCAL_BEGIN:
-        m = new JobLocalBegin;
-        break;
-    case MsgType::JOB_LOCAL_DONE :
-        m = new JobLocalDone;
-        break;
-    case MsgType::MON_LOCAL_JOB_BEGIN:
-        m = new MonLocalJobBegin;
-        break;
-    case MsgType::TRANFER_ENV:
-        m = new EnvTransfer;
-        break;
-    case MsgType::TEXT:
-        m = new Text;
-        break;
-    case MsgType::GET_INTERNALS:
-        m = new GetInternalStatus;
-        break;
-    case MsgType::STATUS_TEXT:
-        m = new StatusText;
-        break;
-    case MsgType::CS_CONF:
-        m = new ConfCS;
-        break;
-    case MsgType::VERIFY_ENV:
-        m = new VerifyEnv;
-        break;
-    case MsgType::VERIFY_ENV_RESULT:
-        m = new VerifyEnvResult;
-        break;
-    case MsgType::BLACKLIST_HOST_ENV:
-        m = new BlacklistHostEnv;
-        break;
-    case MsgType::TIMEOUT:
-        break;
-    }
-
-    if (!m) {
-        trace() << "no message type" << endl;
-        return 0;
-    }
-
-    m->fill_from_channel(this);
-    instate = NEED_LEN;
-    update_state();
-
-    return m;
-}
-
-bool Channel::send_msg(const Msg &m, int flags)
-{
-    if (instate == NEED_PROTO && !wait_for_protocol()) {
-        return false;
-    }
-
-    chop_output();
-    size_t msgtogo_old = msgtogo;
-
-    if (text_based) {
-        m.send_to_channel(this);
-    } else {
-        *this << (uint32_t) 0;
-        m.send_to_channel(this);
-        uint32_t len = htonl(msgtogo - msgtogo_old - 4);
-        memcpy(msgbuf + msgtogo_old, &len, 4);
-    }
-
-    if ((flags & SendBulkOnly) && msgtogo < 4096) {
-        return true;
-    }
-
-    return flush_writebuf((flags & SendBlocking));
-}
 
 #include "getifaddrs.h"
 #include <net/if.h>
@@ -1141,12 +279,14 @@ static int open_send_broadcast(int port, const char* buf, int size)
     int ask_fd;
     struct sockaddr_in remote_addr;
 
-    if ((ask_fd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+    if ((ask_fd = socket(PF_INET, SOCK_DGRAM, 0)) < 0)
+    {
         log_perror("open_send_broadcast socket");
         return -1;
     }
 
-    if (fcntl(ask_fd, F_SETFD, FD_CLOEXEC) < 0) {
+    if (fcntl(ask_fd, F_SETFD, FD_CLOEXEC) < 0)
+    {
         log_perror("open_send_broadcast fcntl");
         close(ask_fd);
         return -1;
@@ -1154,7 +294,9 @@ static int open_send_broadcast(int port, const char* buf, int size)
 
     int optval = 1;
 
-    if (setsockopt(ask_fd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) < 0) {
+    if (setsockopt(ask_fd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval))
+            < 0)
+    {
         log_perror("open_send_broadcast setsockopt");
         close(ask_fd);
         return -1;
@@ -1164,42 +306,52 @@ static int open_send_broadcast(int port, const char* buf, int size)
 
     int ret = kde_getifaddrs(&addrs);
 
-    if (ret < 0) {
+    if (ret < 0)
+    {
         return ret;
     }
 
-    for (struct kde_ifaddrs *addr = addrs; addr != NULL; addr = addr->ifa_next) {
+    for (struct kde_ifaddrs *addr = addrs; addr != NULL; addr = addr->ifa_next)
+    {
         /*
          * See if this interface address is IPv4...
          */
 
         if (addr->ifa_addr == NULL || addr->ifa_addr->sa_family != AF_INET
-                || addr->ifa_netmask == NULL || addr->ifa_name == NULL) {
+                || addr->ifa_netmask == NULL || addr->ifa_name == NULL)
+        {
             continue;
         }
 
-        if (ntohl(((struct sockaddr_in *) addr->ifa_addr)->sin_addr.s_addr) == 0x7f000001) {
+        if (ntohl(((struct sockaddr_in *) addr->ifa_addr)->sin_addr.s_addr)
+                == 0x7f000001)
+        {
             trace() << "ignoring localhost " << addr->ifa_name << endl;
             continue;
         }
 
-        if ((addr->ifa_flags & IFF_POINTOPOINT) || !(addr->ifa_flags & IFF_BROADCAST)) {
+        if ((addr->ifa_flags & IFF_POINTOPOINT)
+                || !(addr->ifa_flags & IFF_BROADCAST))
+        {
             log_info() << "ignoring tunnels " << addr->ifa_name << endl;
             continue;
         }
 
-        if (addr->ifa_broadaddr) {
-            log_info() << "broadcast "
-                       << addr->ifa_name << " "
-                       << inet_ntoa(((sockaddr_in *)addr->ifa_broadaddr)->sin_addr)
-                       << endl;
+        if (addr->ifa_broadaddr)
+        {
+            log_info() << "broadcast " << addr->ifa_name << " "
+                    << inet_ntoa(
+                            ((sockaddr_in *) addr->ifa_broadaddr)->sin_addr)
+                    << endl;
 
             remote_addr.sin_family = AF_INET;
             remote_addr.sin_port = htons(port);
-            remote_addr.sin_addr = ((sockaddr_in *)addr->ifa_broadaddr)->sin_addr;
+            remote_addr.sin_addr =
+                    ((sockaddr_in *) addr->ifa_broadaddr)->sin_addr;
 
-            if (sendto(ask_fd, buf, size, 0, (struct sockaddr *)&remote_addr,
-                       sizeof(remote_addr)) != size) {
+            if (sendto(ask_fd, buf, size, 0, (struct sockaddr *) &remote_addr,
+                    sizeof(remote_addr)) != size)
+            {
                 log_perror("open_send_broadcast sendto");
             }
         }
@@ -1212,9 +364,8 @@ static int open_send_broadcast(int port, const char* buf, int size)
 #define BROAD_BUFLEN 32
 #define BROAD_BUFLEN_OLD 16
 
-static bool
-get_broad_answer(int ask_fd, int timeout, char *buf2, struct sockaddr_in *remote_addr,
-                 socklen_t *remote_len)
+static bool get_broad_answer(int ask_fd, int timeout, char *buf2,
+        struct sockaddr_in *remote_addr, socklen_t *remote_len)
 {
     char buf = PROTOCOL_VERSION;
     fd_set read_set;
@@ -1225,9 +376,11 @@ get_broad_answer(int ask_fd, int timeout, char *buf2, struct sockaddr_in *remote
     tv.tv_usec = 1000 * (timeout % 1000);
     errno = 0;
 
-    if (select(ask_fd + 1, &read_set, NULL, NULL, &tv) <= 0) {
+    if (select(ask_fd + 1, &read_set, NULL, NULL, &tv) <= 0)
+    {
         /* Normally this is a timeout, i.e. no scheduler there.  */
-        if (errno) {
+        if (errno)
+        {
             log_perror("waiting for scheduler");
         }
 
@@ -1236,14 +389,17 @@ get_broad_answer(int ask_fd, int timeout, char *buf2, struct sockaddr_in *remote
 
     *remote_len = sizeof(struct sockaddr_in);
 
-    int len = recvfrom(ask_fd, buf2, BROAD_BUFLEN, 0, (struct sockaddr *) remote_addr, remote_len);
-    if (len != BROAD_BUFLEN && len != BROAD_BUFLEN_OLD) {
+    int len = recvfrom(ask_fd, buf2, BROAD_BUFLEN, 0,
+            (struct sockaddr *) remote_addr, remote_len);
+    if (len != BROAD_BUFLEN && len != BROAD_BUFLEN_OLD)
+    {
         log_perror("get_broad_answer recvfrom()");
         return false;
     }
 
     if ((len == BROAD_BUFLEN_OLD && buf2[0] != buf + 1) // PROTOCOL <= 32 scheduler
-        || (len == BROAD_BUFLEN && buf2[0] != buf + 2)) { // PROTOCOL >= 33 scheduler
+    || (len == BROAD_BUFLEN && buf2[0] != buf + 2))
+    { // PROTOCOL >= 33 scheduler
         log_error() << "wrong answer" << endl;
         return false;
     }
@@ -1252,9 +408,11 @@ get_broad_answer(int ask_fd, int timeout, char *buf2, struct sockaddr_in *remote
     return true;
 }
 
-static void get_broad_data(const char* buf, const char** name, int* version, time_t* start_time)
+static void get_broad_data(const char* buf, const char** name, int* version,
+        time_t* start_time)
 {
-    if (buf[0] == PROTOCOL_VERSION + 1) {
+    if (buf[0] == PROTOCOL_VERSION + 1)
+    {
         // Scheduler version 32 or older, didn't send us its version, assume it's 32.
         if (name != NULL)
             *name = buf + 1;
@@ -1262,855 +420,42 @@ static void get_broad_data(const char* buf, const char** name, int* version, tim
             *version = 32;
         if (start_time != NULL)
             *start_time = 0; // Unknown too.
-    } else if(buf[0] == PROTOCOL_VERSION + 2) {
-        if (version != NULL) {
+    }
+    else if (buf[0] == PROTOCOL_VERSION + 2)
+    {
+        if (version != NULL)
+        {
             uint32_t tmp_version;
             memcpy(&tmp_version, buf + 1, sizeof(uint32_t));
             *version = tmp_version;
         }
-        if (start_time != NULL) {
+        if (start_time != NULL)
+        {
             uint64_t tmp_time;
             memcpy(&tmp_time, buf + 1 + sizeof(uint32_t), sizeof(uint64_t));
             *start_time = tmp_time;
         }
         if (name != NULL)
             *name = buf + 1 + sizeof(uint32_t) + sizeof(uint64_t);
-    } else {
+    }
+    else
+    {
         abort();
     }
 }
 
-DiscoverSched::DiscoverSched(const std::string &_netname, int _timeout,
-                             const std::string &_schedname, int port)
-    : netname(_netname)
-    , schedname(_schedname)
-    , timeout(_timeout)
-    , ask_fd(-1)
-    , sport(port)
-    , best_version(0)
-    , best_start_time(0)
-    , multiple(false)
-{
-    time0 = time(0);
 
-    if (schedname.empty()) {
-        const char *get = getenv("USE_SCHEDULER");
 
-        if (get) {
-            string scheduler = get;
-            size_t colon = scheduler.rfind( ':' );
-            if( colon == string::npos ) {
-                schedname = scheduler;
-            } else {
-                schedname = scheduler.substr(0, colon);
-                sport = atoi( scheduler.substr( colon + 1 ).c_str());
-            }
-        }
-    }
 
-    if (netname.empty()) {
-        netname = "ICECREAM";
-    }
-    if (sport == 0 ) {
-        sport = 8765;
-    }
 
-    if (!schedname.empty()) {
-        netname = ""; // take whatever the machine is giving us
-        attempt_scheduler_connect();
-    } else {
-        char buf = PROTOCOL_VERSION;
-        ask_fd = open_send_broadcast(sport, &buf, 1);
-    }
-}
 
-DiscoverSched::~DiscoverSched()
-{
-    if (ask_fd >= 0) {
-        close(ask_fd);
-    }
-}
 
-bool DiscoverSched::timed_out()
-{
-    return (time(0) - time0 >= timeout);
-}
 
-void DiscoverSched::attempt_scheduler_connect()
-{
 
-    time0 = time(0) + MAX_SCHEDULER_PONG;
-    log_info() << "scheduler is on " << schedname << ":" << sport << " (net " << netname << ")" << endl;
 
-    if ((ask_fd = prepare_connect(schedname, sport, remote_addr)) >= 0) {
-        fcntl(ask_fd, F_SETFL, O_NONBLOCK);
-    }
-}
 
-Channel *DiscoverSched::try_get_scheduler()
-{
-    if (schedname.empty() || 0 != best_version) {
-        socklen_t remote_len;
-        char buf2[BROAD_BUFLEN];
-        /* Try to get the scheduler with the newest version, and if there
-           are several with the same version, choose the one that's been running
-           for the longest time. It should work like this (and it won't work
-           perfectly if there are schedulers and/or daemons with old (<33) version):
 
-           Whenever a daemon starts, it broadcasts for a scheduler. Schedulers all
-           see the broadcast and respond with their version, start time and netname.
-           Here we select the best one.
-           If a new scheduler is started, it'll broadcast its version and all
-           other schedulers will drop their daemon connections if they have an older
-           version. If the best scheduler quits, all daemons will get their connections
-           closed and will re-discover and re-connect.
-        */
 
-        /* Read/test all packages arrived until now.  */
-        while (get_broad_answer(ask_fd, 0/*timeout*/, buf2,
-                                (struct sockaddr_in *) &remote_addr, &remote_len)) {
-            int version;
-            time_t start_time;
-            const char* name;
-            get_broad_data(buf2, &name, &version, &start_time);
-            if (strcasecmp(netname.c_str(), name) == 0) {
-                if (version < 33) {
-                    log_info() << "Suitable scheduler found at " << inet_ntoa(remote_addr.sin_addr)
-                        << ":" << ntohs(remote_addr.sin_port) << " (unknown version)" << endl;
-                } else {
-                    log_info() << "Suitable scheduler found at " << inet_ntoa(remote_addr.sin_addr)
-                        << ":" << ntohs(remote_addr.sin_port) << " (version: " << version << ")" << endl;
-                }
-                if (best_version != 0)
-                    multiple = true;
-                if (best_version < version || (best_version == version && best_start_time > start_time)) {
-                    schedname = inet_ntoa(remote_addr.sin_addr);
-                    sport = ntohs(remote_addr.sin_port);
-                    best_version = version;
-                    best_start_time = start_time;
-                }
-            }
-        }
 
-        if (timed_out()) {
-            if (best_version == 0) {
-                return 0;
-            }
-            if (multiple)
-                log_info() << "Selecting scheduler at " << schedname << ":" << sport << endl;
 
-            close(ask_fd);
-            ask_fd = -1;
-            attempt_scheduler_connect();
-
-            if (ask_fd >= 0) {
-                int status = connect(ask_fd, (struct sockaddr *) &remote_addr, sizeof(remote_addr));
-
-                if (status == 0 || (status < 0 && (errno == EISCONN || errno == EINPROGRESS))) {
-                    int fd = ask_fd;
-                    ask_fd = -1;
-                    return Service::createChannel(fd,
-                                                  (struct sockaddr *) &remote_addr, sizeof(remote_addr));
-                }
-            }
-        }
-    }
-    else if (ask_fd >= 0) {
-        int status = connect(ask_fd, (struct sockaddr *) &remote_addr, sizeof(remote_addr));
-
-        if (status == 0 || (status < 0 && errno == EISCONN)) {
-            int fd = ask_fd;
-            ask_fd = -1;
-            return Service::createChannel(fd,
-                                          (struct sockaddr *) &remote_addr, sizeof(remote_addr));
-        }
-    }
-
-    return 0;
-}
-
-bool DiscoverSched::broadcastData(int port, const char* buf, int len)
-{
-    int fd = open_send_broadcast(port, buf, len);
-    if (fd >= 0) {
-        close(fd);
-        return true;
-    }
-    return false;
-}
-
-list<string> get_netnames(int timeout, int port)
-{
-    list<string> l;
-    int ask_fd;
-    struct sockaddr_in remote_addr;
-    socklen_t remote_len;
-    time_t time0 = time(0);
-
-    char buf = PROTOCOL_VERSION;
-    ask_fd = open_send_broadcast(port, &buf, 1);
-
-    do {
-        char buf2[BROAD_BUFLEN];
-        bool first = true;
-        /* Wait at least two seconds to give all schedulers a chance to answer
-           (unless that'd be longer than the timeout).*/
-        time_t timeout_time = time(NULL) + min(2 + 1, timeout);
-
-        /* Read/test all arriving packages.  */
-        while (get_broad_answer(ask_fd, first ? timeout : 0, buf2,
-                                &remote_addr, &remote_len)
-               && time(NULL) < timeout_time) {
-            first = false;
-            const char* name;
-            get_broad_data(buf2, &name, NULL, NULL);
-            l.push_back(name);
-        }
-    } while (time(0) - time0 < (timeout / 1000));
-
-    close(ask_fd);
-    return l;
-}
-
-void Msg::fill_from_channel(Channel *)
-{
-}
-
-void Msg::send_to_channel(Channel *c) const
-{
-    if (c->is_text_based()) {
-        return;
-    }
-
-    *c << (uint32_t) type;
-}
-
-void GetCS::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    c->read_environments(versions);
-    *c >> filename;
-    uint32_t _lang;
-    *c >> _lang;
-    *c >> count;
-    *c >> target;
-    lang = static_cast<CompileJob::Language>(_lang);
-    *c >> arg_flags;
-    *c >> client_id;
-    preferred_host = string();
-
-    if (is_protocol<22>()(C)) {
-        *c >> preferred_host;
-    }
-
-    minimal_host_version = 0;
-    if (is_protocol<31>()(C)) {
-        uint32_t ign;
-        *c >> ign;
-        // Versions 31-33 had this as a separate field, now set a minimal
-        // remote version if needed.
-        if (ign != 0 && minimal_host_version < 31)
-            minimal_host_version = 31;
-    }
-    if (is_protocol<34>()(C)) {
-        uint32_t version;
-        *c >> version;
-        minimal_host_version = max( minimal_host_version, int( version ));
-    }
-}
-
-void GetCS::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    c->write_environments(versions);
-    *c << shorten_filename(filename);
-    *c << (uint32_t) lang;
-    *c << count;
-    *c << target;
-    *c << arg_flags;
-    *c << client_id;
-
-    if (is_protocol<22>()(C)) {
-        *c << preferred_host;
-    }
-
-    if (is_protocol<31>()(C)) {
-        *c << uint32_t(minimal_host_version >= 31 ? 1 : 0);
-    }
-    if (is_protocol<34>()(C)) {
-        *c << minimal_host_version;
-    }
-}
-
-void UseCS::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> job_id;
-    *c >> port;
-    *c >> hostname;
-    *c >> host_platform;
-    *c >> got_env;
-    *c >> client_id;
-
-    if (is_protocol<28>()(C)) {
-        *c >> matched_job_id;
-    } else {
-        matched_job_id = 0;
-    }
-}
-
-void UseCS::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << job_id;
-    *c << port;
-    *c << hostname;
-    *c << host_platform;
-    *c << got_env;
-    *c << client_id;
-
-    if (is_protocol<28>()(C)) {
-        *c << matched_job_id;
-    }
-}
-
-void CompileFile::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    uint32_t id, lang;
-    list<string> _l1, _l2;
-    string version;
-    *c >> lang;
-    *c >> id;
-    *c >> _l1;
-    *c >> _l2;
-    *c >> version;
-    job->setLanguage((CompileJob::Language) lang);
-    job->setJobID(id);
-    ArgumentsList l;
-
-    for (list<string>::const_iterator it = _l1.begin(); it != _l1.end(); ++it) {
-        l.append(*it, Arg_Remote);
-    }
-
-    for (list<string>::const_iterator it = _l2.begin(); it != _l2.end(); ++it) {
-        l.append(*it, Arg_Rest);
-    }
-
-    job->setFlags(l);
-    job->setEnvironmentVersion(version);
-
-    string target;
-    *c >> target;
-    job->setTargetPlatform(target);
-
-    if (is_protocol<30>()(C)) {
-        string compilerName;
-        *c >> compilerName;
-        job->setCompilerName(compilerName);
-    }
-    if( is_protocol<34>()(C)) {
-        string inputFile;
-        string workingDirectory;
-        *c >> inputFile;
-        *c >> workingDirectory;
-        job->setInputFile(inputFile);
-        job->setWorkingDirectory(workingDirectory);
-    }
-    if (is_protocol<35>()(C)) {
-        string outputFile;
-        uint32_t dwarfFissionEnabled = 0;
-        *c >> outputFile;
-        *c >> dwarfFissionEnabled;
-        job->setOutputFile(outputFile);
-        job->setDwarfFissionEnabled(dwarfFissionEnabled);
-    }
-}
-
-void CompileFile::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << (uint32_t) job->language();
-    *c << job->jobID();
-
-    if (is_protocol<30>()(C)) {
-        *c << job->remoteFlags();
-    } else {
-        if (job->compilerName().find("clang") != string::npos) {
-            // Hack for compilerwrapper.
-            std::list<std::string> flags = job->remoteFlags();
-            flags.push_front("clang");
-            *c << flags;
-        } else {
-            *c << job->remoteFlags();
-        }
-    }
-
-    *c << job->restFlags();
-    *c << job->environmentVersion();
-    *c << job->targetPlatform();
-
-    if (is_protocol<30>()(C)) {
-        *c << remote_compiler_name();
-    }
-    if( is_protocol<34>()(C)) {
-        *c << job->inputFile();
-        *c << job->workingDirectory();
-    }
-    if (is_protocol<35>()(C)) {
-        *c << job->outputFile();
-        *c << (uint32_t) job->dwarfFissionEnabled();
-    }
-}
-
-// Environments created by icecc-create-env always use the same binary name
-// for compilers, so even if local name was e.g. c++, remote needs to
-// be g++ (before protocol version 30 remote CS even had /usr/bin/{gcc|g++}
-// hardcoded).  For clang, the binary is just clang for both C/C++.
-string CompileFile::remote_compiler_name() const
-{
-    if (job->compilerName().find("clang") != string::npos) {
-        return "clang";
-    }
-
-    return job->language() == CompileJob::Lang_CXX ? "g++" : "gcc";
-}
-
-CompileJob *CompileFile::takeJob()
-{
-    assert(deleteit);
-    deleteit = false;
-    return job;
-}
-
-void FileChunk::fill_from_channel(Channel *c)
-{
-    if (del_buf) {
-        delete [] buffer;
-    }
-
-    buffer = 0;
-    del_buf = true;
-
-    Msg::fill_from_channel(c);
-    c->readcompressed(&buffer, len, compressed);
-}
-
-void FileChunk::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    c->writecompressed(buffer, len, compressed);
-}
-
-FileChunk::~FileChunk()
-{
-    if (del_buf) {
-        delete [] buffer;
-    }
-}
-
-void CompileResult::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    uint32_t _status = 0;
-    *c >> err;
-    *c >> out;
-    *c >> _status;
-    status = _status;
-    uint32_t was = 0;
-    *c >> was;
-    was_out_of_memory = was;
-    if (is_protocol<35>()(C)) {
-        uint32_t dwo = 0;
-        *c >> dwo;
-        have_dwo_file = dwo;
-    }
-}
-
-void CompileResult::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << err;
-    *c << out;
-    *c << status;
-    *c << (uint32_t) was_out_of_memory;
-    if (is_protocol<35>()(C)) {
-        *c << (uint32_t) have_dwo_file;
-    }
-}
-
-void JobBegin::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> job_id;
-    *c >> stime;
-}
-
-void JobBegin::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << job_id;
-    *c << stime;
-}
-
-void JobLocalBegin::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> stime;
-    *c >> outfile;
-    *c >> id;
-}
-
-void JobLocalBegin::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << stime;
-    *c << outfile;
-    *c << id;
-}
-
-void JobLocalDone::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> job_id;
-}
-
-void JobLocalDone::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << job_id;
-}
-
-JobDone::JobDone(int id, int exit, unsigned int _flags)
-    : Msg(MsgType::JOB_DONE)
-    , exitcode(exit)
-    , flags(_flags)
-    , job_id(id)
-{
-    real_msec = 0;
-    user_msec = 0;
-    sys_msec = 0;
-    pfaults = 0;
-    in_compressed = 0;
-    in_uncompressed = 0;
-    out_compressed = 0;
-    out_uncompressed = 0;
-}
-
-void JobDone::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    uint32_t _exitcode = 255;
-    *c >> job_id;
-    *c >> _exitcode;
-    *c >> real_msec;
-    *c >> user_msec;
-    *c >> sys_msec;
-    *c >> pfaults;
-    *c >> in_compressed;
-    *c >> in_uncompressed;
-    *c >> out_compressed;
-    *c >> out_uncompressed;
-    *c >> flags;
-    exitcode = (int) _exitcode;
-}
-
-void JobDone::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << job_id;
-    *c << (uint32_t) exitcode;
-    *c << real_msec;
-    *c << user_msec;
-    *c << sys_msec;
-    *c << pfaults;
-    *c << in_compressed;
-    *c << in_uncompressed;
-    *c << out_compressed;
-    *c << out_uncompressed;
-    *c << flags;
-}
-
-Login::Login(unsigned int myport, const std::string &_nodename, const std::string _host_platform)
-    : Msg(MsgType::LOGIN)
-    , port(myport)
-    , max_kids(0)
-    , noremote(false)
-    , chroot_possible(false)
-    , nodename(_nodename)
-    , host_platform(_host_platform)
-{
-#ifdef HAVE_LIBCAP_NG
-    chroot_possible = capng_have_capability(CAPNG_EFFECTIVE, CAP_SYS_CHROOT);
-#else
-    // check if we're root
-    chroot_possible = (geteuid() == 0);
-#endif
-}
-
-void Login::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> port;
-    *c >> max_kids;
-    c->read_environments(envs);
-    *c >> nodename;
-    *c >> host_platform;
-    uint32_t net_chroot_possible = 0;
-    *c >> net_chroot_possible;
-    chroot_possible = net_chroot_possible != 0;
-    uint32_t net_noremote = 0;
-
-    if (is_protocol<26>()(C)) {
-        *c >> net_noremote;
-    }
-
-    noremote = (net_noremote != 0);
-}
-
-void Login::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << port;
-    *c << max_kids;
-    c->write_environments(envs);
-    *c << nodename;
-    *c << host_platform;
-    *c << chroot_possible;
-
-    if (is_protocol<26>()(C)) {
-        *c << noremote;
-    }
-}
-
-void ConfCS::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> max_scheduler_pong;
-    *c >> max_scheduler_ping;
-    string bench_source; // unused, kept for backwards compatibility
-    *c >> bench_source;
-}
-
-void ConfCS::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << max_scheduler_pong;
-    *c << max_scheduler_ping;
-    string bench_source;
-    *c << bench_source;
-}
-
-void Stats::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> load;
-    *c >> loadAvg1;
-    *c >> loadAvg5;
-    *c >> loadAvg10;
-    *c >> freeMem;
-}
-
-void Stats::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << load;
-    *c << loadAvg1;
-    *c << loadAvg5;
-    *c << loadAvg10;
-    *c << freeMem;
-}
-
-void GetNativeEnv::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-
-    if (is_protocol<32>()(C)) {
-        *c >> compiler;
-        *c >> extrafiles;
-    }
-}
-
-void GetNativeEnv::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-
-    if (is_protocol<32>()(C)) {
-        *c << compiler;
-        *c << extrafiles;
-    }
-}
-
-void UseNativeEnv::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> nativeVersion;
-}
-
-void UseNativeEnv::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << nativeVersion;
-}
-
-void EnvTransfer::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> name;
-    *c >> target;
-}
-
-void EnvTransfer::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << name;
-    *c << target;
-}
-
-void MonGetCS::fill_from_channel(Channel *c)
-{
-    if (is_protocol<29>()(C)) {
-        Msg::fill_from_channel(c);
-        *c >> filename;
-        uint32_t _lang;
-        *c >> _lang;
-        lang = static_cast<CompileJob::Language>(_lang);
-    } else {
-        GetCS::fill_from_channel(c);
-    }
-
-    *c >> job_id;
-    *c >> clientid;
-}
-
-void MonGetCS::send_to_channel(Channel *c) const
-{
-    if (is_protocol<29>()(C)) {
-        Msg::send_to_channel(c);
-        *c << shorten_filename(filename);
-        *c << (uint32_t) lang;
-    } else {
-        GetCS::send_to_channel(c);
-    }
-
-    *c << job_id;
-    *c << clientid;
-}
-
-void MonJobBegin::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> job_id;
-    *c >> stime;
-    *c >> hostid;
-}
-
-void MonJobBegin::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << job_id;
-    *c << stime;
-    *c << hostid;
-}
-
-void MonLocalJobBegin::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> hostid;
-    *c >> job_id;
-    *c >> stime;
-    *c >> file;
-}
-
-void MonLocalJobBegin::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << hostid;
-    *c << job_id;
-    *c << stime;
-    *c << shorten_filename(file);
-}
-
-void MonStats::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> hostid;
-    *c >> statmsg;
-}
-
-void MonStats::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << hostid;
-    *c << statmsg;
-}
-
-void Text::fill_from_channel(Channel *c)
-{
-    c->read_line(text);
-}
-
-void Text::send_to_channel(Channel *c) const
-{
-    c->write_line(text);
-}
-
-void StatusText::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> text;
-}
-
-void StatusText::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << text;
-}
-
-void VerifyEnv::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> environment;
-    *c >> target;
-}
-
-void VerifyEnv::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << environment;
-    *c << target;
-}
-
-void VerifyEnvResult::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    uint32_t read_ok;
-    *c >> read_ok;
-    ok = read_ok != 0;
-}
-
-void VerifyEnvResult::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << uint32_t(ok);
-}
-
-void BlacklistHostEnv::fill_from_channel(Channel *c)
-{
-    Msg::fill_from_channel(c);
-    *c >> environment;
-    *c >> target;
-    *c >> hostname;
-}
-
-void BlacklistHostEnv::send_to_channel(Channel *c) const
-{
-    Msg::send_to_channel(c);
-    *c << environment;
-    *c << target;
-    *c << hostname;
-}
-
-/*
-vim:cinoptions={.5s,g0,p5,t0,(0,^-0.5s,n-0.5s:tw=78:cindent:sw=4:
-*/
+/* vim:cinoptions={.5s,g0,p5,t0,(0,^-0.5s,n-0.5s:tw=78:cindent:sw=4: */

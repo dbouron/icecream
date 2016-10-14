@@ -43,5 +43,21 @@ namespace icecream
             , hostname_(hostname)
         {
         }
+
+        void BlacklistHostEnv::fill_from_channel(Channel *c)
+        {
+            Msg::fill_from_channel(c);
+            *c >> environment_;
+            *c >> target_;
+            *c >> hostname_;
+        }
+
+        void BlacklistHostEnv::send_to_channel(Channel *c) const
+        {
+            Msg::send_to_channel(c);
+            *c << environment_;
+            *c << target_;
+            *c << hostname_;
+        }
     } // services
 } // icecream

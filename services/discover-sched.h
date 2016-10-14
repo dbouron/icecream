@@ -31,45 +31,52 @@ namespace icecream
     namespace services
     {
         // this class is also used by icecream-monitor
-        class DiscoverSched {
+        class DiscoverSched
+        {
         public:
             /* Connect to a scheduler waiting max. TIMEOUT seconds.
-               schedname can be the hostname of a box running a scheduler, to avoid
-               broadcasting, port can be specified explicitly */
-            DiscoverSched(const std::string &_netname = std::string(), int _timeout = 2,
-                          const std::string &_schedname = std::string(), int port = 0);
+             schedname can be the hostname of a box running a scheduler, to avoid
+             broadcasting, port can be specified explicitly */
+            DiscoverSched(const std::string &_netname = std::string(),
+                    int _timeout = 2, const std::string &_schedname =
+                            std::string(), int port = 0);
             ~DiscoverSched();
 
             bool timed_out();
 
-            int listen_fd() const {
+            int listen_fd() const
+            {
                 return schedname.empty() ? ask_fd : -1;
             }
 
-            int connect_fd() const {
+            int connect_fd() const
+            {
                 return schedname.empty() ? -1 : ask_fd;
             }
 
             // compat for icecream monitor
-            int get_fd() const {
+            int get_fd() const
+            {
                 return listen_fd();
             }
 
             /* Attempt to get a conenction to the scheduler.
 
-               Continue to call this while it returns NULL and timed_out()
-               returns false. If this returns NULL you should wait for either
-               more data on listen_fd() (use select), or a timeout of your own.
-            */
+             Continue to call this while it returns NULL and timed_out()
+             returns false. If this returns NULL you should wait for either
+             more data on listen_fd() (use select), or a timeout of your own.
+             */
             Channel *try_get_scheduler();
 
             // Returns the hostname of the scheduler - set by constructor or by try_get_scheduler
-            std::string schedulerName() const {
+            std::string schedulerName() const
+            {
                 return schedname;
             }
 
             // Returns the network name of the scheduler - set by constructor or by try_get_scheduler
-            std::string networkName() const {
+            std::string networkName() const
+            {
                 return netname;
             }
 
@@ -90,7 +97,6 @@ namespace icecream
 
             void attempt_scheduler_connect();
         };
-
 
         /* Return a list of all reachable netnames.  We wait max. WAITTIME
            milliseconds for answers.  */

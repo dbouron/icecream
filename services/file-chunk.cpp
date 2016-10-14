@@ -29,5 +29,32 @@ namespace icecream
 {
     namespace services
     {
+        FileChunk::~FileChunk()
+        {
+            if (del_buf)
+            {
+                delete[] buffer;
+            }
+        }
+
+        void FileChunk::fill_from_channel(Channel *c)
+        {
+            if (del_buf)
+            {
+                delete[] buffer;
+            }
+
+            buffer = 0;
+            del_buf = true;
+
+            Msg::fill_from_channel(c);
+            c->readcompressed(&buffer, len, compressed);
+        }
+
+        void FileChunk::send_to_channel(Channel *c) const
+        {
+            Msg::send_to_channel(c);
+            c->writecompressed(buffer, len, compressed);
+        }
     } // services
 } // icecream

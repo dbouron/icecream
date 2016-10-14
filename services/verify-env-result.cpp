@@ -29,5 +29,18 @@ namespace icecream
 {
     namespace services
     {
+        void VerifyEnvResult::fill_from_channel(Channel *c)
+        {
+            Msg::fill_from_channel(c);
+            uint32_t read_ok;
+            *c >> read_ok;
+            ok = read_ok != 0;
+        }
+
+        void VerifyEnvResult::send_to_channel(Channel *c) const
+        {
+            Msg::send_to_channel(c);
+            *c << uint32_t(ok);
+        }
     } // services
 } // icecream

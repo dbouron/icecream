@@ -29,5 +29,29 @@ namespace icecream
 {
     namespace services
     {
+        ConfCS::ConfCS()
+                : Msg(MsgType::CS_CONF)
+                , max_scheduler_pong(MAX_SCHEDULER_PONG)
+                , max_scheduler_ping(MAX_SCHEDULER_PING)
+        {
+        }
+
+        void ConfCS::fill_from_channel(Channel *c)
+        {
+            Msg::fill_from_channel(c);
+            *c >> max_scheduler_pong;
+            *c >> max_scheduler_ping;
+            std::string bench_source; // unused, kept for backwards compatibility
+            *c >> bench_source;
+        }
+
+        void ConfCS::send_to_channel(Channel *c) const
+        {
+            Msg::send_to_channel(c);
+            *c << max_scheduler_pong;
+            *c << max_scheduler_ping;
+            std::string bench_source;
+            *c << bench_source;
+        }
     } // services
 } // icecream

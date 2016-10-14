@@ -29,5 +29,40 @@ namespace icecream
 {
     namespace services
     {
+        void UseCS::fill_from_channel(Channel *c)
+        {
+            Msg::fill_from_channel(c);
+            *c >> job_id;
+            *c >> port;
+            *c >> hostname;
+            *c >> host_platform;
+            *c >> got_env;
+            *c >> client_id;
+
+            if (is_protocol<28>()(C))
+            {
+                *c >> matched_job_id;
+            }
+            else
+            {
+                matched_job_id = 0;
+            }
+        }
+
+        void UseCS::send_to_channel(Channel *c) const
+        {
+            Msg::send_to_channel(c);
+            *c << job_id;
+            *c << port;
+            *c << hostname;
+            *c << host_platform;
+            *c << got_env;
+            *c << client_id;
+
+            if (is_protocol<28>()(C))
+            {
+                *c << matched_job_id;
+            }
+        }
     } // services
 } // icecream

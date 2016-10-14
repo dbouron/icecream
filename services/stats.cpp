@@ -29,5 +29,24 @@ namespace icecream
 {
     namespace services
     {
+        void Stats::fill_from_channel(Channel *c)
+        {
+            Msg::fill_from_channel(c);
+            *c >> load;
+            *c >> loadAvg1;
+            *c >> loadAvg5;
+            *c >> loadAvg10;
+            *c >> freeMem;
+        }
+
+        void Stats::send_to_channel(Channel *c) const
+        {
+            Msg::send_to_channel(c);
+            *c << load;
+            *c << loadAvg1;
+            *c << loadAvg5;
+            *c << loadAvg10;
+            *c << freeMem;
+        }
     } // services
 } // icecream

@@ -29,5 +29,18 @@ namespace icecream
 {
     namespace services
     {
+        void Msg::fill_from_channel(Channel *)
+        {
+        }
+
+        void Msg::send_to_channel(Channel *c) const
+        {
+            if (c->is_text_based())
+            {
+                return;
+            }
+
+            *c << (uint32_t) type;
+        }
     } // services
 } // icecream

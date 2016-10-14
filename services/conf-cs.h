@@ -26,6 +26,8 @@
 #ifndef ICECREAM_CONF_CS_H
 # define ICECREAM_CONF_CS_H
 
+# include "msg.h"
+
 namespace icecream
 {
     namespace services
@@ -33,12 +35,7 @@ namespace icecream
         class ConfCS : public Msg
         {
         public:
-            ConfCS()
-                    : Msg(MsgType::CS_CONF), max_scheduler_pong(
-                            MAX_SCHEDULER_PONG), max_scheduler_ping(
-                            MAX_SCHEDULER_PING)
-            {
-            }
+            ConfCS();
 
             virtual void fill_from_channel(Channel *c);
             virtual void send_to_channel(Channel *c) const;

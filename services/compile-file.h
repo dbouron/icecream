@@ -26,26 +26,33 @@
 #ifndef ICECREAM_COMPILE_FILE_H
 # define ICECREAM_COMPILE_FILE_H
 
+# include <memory>
+# include <list>
+# include <string>
+# include <cassert>
+
+# include "msg.h"
+# include "protocol.h"
+
 namespace icecream
 {
     namespace services
     {
-        class CompileFile : public Msg {
+        class CompileFile : public Msg
+        {
         public:
             CompileFile(CompileJob *j, bool delete_job = false)
                 : Msg(MsgType::COMPILE_FILE)
                 , deleteit(delete_job)
-                , job(j) {
+                , job(j)
+            {
             }
 
-            ~CompileFile() {
-                if (deleteit) {
-                    delete job;
-                }
-            }
+            ~CompileFile();
 
             virtual void fill_from_channel(Channel *c);
             virtual void send_to_channel(Channel *c) const;
+
             CompileJob *takeJob();
 
         private:
