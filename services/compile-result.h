@@ -26,6 +26,11 @@
 #ifndef ICECREAM_COMPILE_RESULT_H
 # define ICECREAM_COMPILE_RESULT_H
 
+# include <string>
+
+# include "msg.h"
+# include "protocol.h"
+
 namespace icecream
 {
     namespace services

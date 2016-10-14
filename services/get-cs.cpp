@@ -29,6 +29,31 @@ namespace icecream
 {
     namespace services
     {
+        GetCS::GetCS()
+            : Msg(MsgType::GET_CS)
+            , count(1)
+            , arg_flags(0)
+            , client_id(0)
+        {
+        }
+
+        GetCS::GetCS(const Environments &envs, const std::string &f,
+                     CompileJob::Language _lang, unsigned int _count,
+                     std::string _target, unsigned int _arg_flags,
+                     const std::string &host, int _minimal_host_version)
+            : Msg(MsgType::GET_CS)
+            , versions(envs)
+            , filename(f)
+            , lang(_lang)
+            , count(_count)
+            , target(_target)
+            , arg_flags(_arg_flags)
+            , client_id(0)
+            , preferred_host(host)
+            , minimal_host_version(_minimal_host_version)
+        {
+        }
+
         void GetCS::fill_from_channel(Channel *c)
         {
             Msg::fill_from_channel(c);
@@ -41,15 +66,15 @@ namespace icecream
             lang = static_cast<CompileJob::Language>(_lang);
             *c >> arg_flags;
             *c >> client_id;
-            preferred_host = string();
+            preferred_host = std::string{};
 
-            if (is_protocol<22>()(C))
+            if (is_protocol<22>()(*c))
             {
                 *c >> preferred_host;
             }
 
             minimal_host_version = 0;
-            if (is_protocol<31>()(C))
+            if (is_protocol<31>()(*c))
             {
                 uint32_t ign;
                 *c >> ign;
@@ -58,11 +83,11 @@ namespace icecream
                 if (ign != 0 && minimal_host_version < 31)
                     minimal_host_version = 31;
             }
-            if (is_protocol<34>()(C))
+            if (is_protocol<34>()(*c))
             {
                 uint32_t version;
                 *c >> version;
-                minimal_host_version = max(minimal_host_version, int(version));
+                minimal_host_version = std::max(minimal_host_version, int(version));
             }
         }
 
@@ -77,16 +102,16 @@ namespace icecream
             *c << arg_flags;
             *c << client_id;
 
-            if (is_protocol<22>()(C))
+            if (is_protocol<22>()(*c))
             {
                 *c << preferred_host;
             }
 
-            if (is_protocol<31>()(C))
+            if (is_protocol<31>()(*c))
             {
                 *c << uint32_t(minimal_host_version >= 31 ? 1 : 0);
             }
-            if (is_protocol<34>()(C))
+            if (is_protocol<34>()(*c))
             {
                 *c << minimal_host_version;
             }

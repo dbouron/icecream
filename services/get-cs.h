@@ -26,32 +26,27 @@
 #ifndef ICECREAM_GET_CS_H
 # define ICECREAM_GET_CS_H
 
+# include <string>
+# include <algorithm>
+
+# include "msg.h"
+# include "comm.h"
+# include "job.h"
+# include "protocol.h"
+# include "network.h"
+
 namespace icecream
 {
     namespace services
     {
-        class GetCS: public Msg {
+        class GetCS : public Msg
+        {
         public:
-            GetCS() :
-                Msg(MsgType::GET_CS), count(1), arg_flags(0), client_id(0) {
-            }
-
+            GetCS();
             GetCS(const Environments &envs, const std::string &f,
                   CompileJob::Language _lang, unsigned int _count,
                   std::string _target, unsigned int _arg_flags,
-                  const std::string &host, int _minimal_host_version)
-                : Msg(MsgType::GET_CS)
-                , versions(envs)
-                , filename(f)
-                , lang(_lang)
-                , count(_count)
-                , target(_target)
-                , arg_flags(_arg_flags)
-                , client_id(0)
-                , preferred_host(host)
-                , minimal_host_version(_minimal_host_version)
-            {
-            }
+                  const std::string &host, int _minimal_host_version);
 
             virtual void fill_from_channel(Channel *c);
             virtual void send_to_channel(Channel *c) const;

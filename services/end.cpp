@@ -29,5 +29,13 @@ namespace icecream
 {
     namespace services
     {
+        End::End()
+            : Msg(MsgType::END)
+        {
+        }
+
+        End::~End()
+        {
+        }
     } // services
 } // icecream

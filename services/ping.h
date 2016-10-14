@@ -26,15 +26,17 @@
 #ifndef ICECREAM_PING_H
 # define ICECREAM_PING_H
 
+# include "msg.h"
+
 namespace icecream
 {
     namespace services
     {
-        class Ping: public Msg {
+        class Ping : public Msg
+        {
         public:
-            Ping() :
-                Msg(MsgType::PING) {
-            }
+            Ping();
+            virtual ~Ping();
         };
     } // services
 } // icecream

@@ -29,6 +29,15 @@ namespace icecream
 {
     namespace services
     {
+        Msg::Msg(MsgType t)
+            : type(t)
+        {
+        }
+
+        Msg::~Msg()
+        {
+        }
+
         void Msg::fill_from_channel(Channel *)
         {
         }

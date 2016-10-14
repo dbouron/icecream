@@ -30,7 +30,7 @@ namespace icecream
     namespace services
     {
 
-        CompileFile::CompileFile(CompileJob *j, bool delete_job = false)
+        CompileFile::CompileFile(CompileJob *j, bool delete_job)
             : Msg(MsgType::COMPILE_FILE)
             , deleteit(delete_job)
             , job(j)
@@ -60,14 +60,14 @@ namespace icecream
             job->setJobID(id);
             ArgumentsList l;
 
-            for (std::list<std::string>::const_iterator it = _l1.begin(); it != _l1.end(); ++it)
+            for (const auto &cit : _l1)
             {
-                l.append(*it, Arg_Remote);
+                l.append(cit, Arg_Remote);
             }
 
-            for (std::list<std::string>::const_iterator it = _l2.begin(); it != _l2.end(); ++it)
+            for (const auto &cit : _l2)
             {
-                l.append(*it, Arg_Rest);
+                l.append(cit, Arg_Rest);
             }
 
             job->setFlags(l);
@@ -77,13 +77,13 @@ namespace icecream
             *c >> target;
             job->setTargetPlatform(target);
 
-            if (is_protocol<30>()(C))
+            if (is_protocol<30>()(*c))
             {
                 std::string compilerName;
                 *c >> compilerName;
                 job->setCompilerName(compilerName);
             }
-            if (is_protocol<34>()(C))
+            if (is_protocol<34>()(*c))
             {
                 std::string inputFile;
                 std::string workingDirectory;
@@ -92,7 +92,7 @@ namespace icecream
                 job->setInputFile(inputFile);
                 job->setWorkingDirectory(workingDirectory);
             }
-            if (is_protocol<35>()(C))
+            if (is_protocol<35>()(*c))
             {
                 std::string outputFile;
                 uint32_t dwarfFissionEnabled = 0;
@@ -109,7 +109,7 @@ namespace icecream
             *c << (uint32_t) job->language();
             *c << job->jobID();
 
-            if (is_protocol<30>()(C))
+            if (is_protocol<30>()(*c))
             {
                 *c << job->remoteFlags();
             }
@@ -118,7 +118,7 @@ namespace icecream
                 if (job->compilerName().find("clang") != std::string::npos)
                 {
                     // Hack for compilerwrapper.
-                    std::std::list < std::std::string > flags = job->remoteFlags();
+                    std::list <std::string> flags = job->remoteFlags();
                     flags.push_front("clang");
                     *c << flags;
                 }
@@ -132,16 +132,16 @@ namespace icecream
             *c << job->environmentVersion();
             *c << job->targetPlatform();
 
-            if (is_protocol<30>()(C))
+            if (is_protocol<30>()(*c))
             {
                 *c << remote_compiler_name();
             }
-            if (is_protocol<34>()(C))
+            if (is_protocol<34>()(*c))
             {
                 *c << job->inputFile();
                 *c << job->workingDirectory();
             }
-            if (is_protocol<35>()(C))
+            if (is_protocol<35>()(*c))
             {
                 *c << job->outputFile();
                 *c << (uint32_t) job->dwarfFissionEnabled();

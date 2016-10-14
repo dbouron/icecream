@@ -25,6 +25,13 @@
 #ifndef ICECREAM_GET_NATIVE_ENV_H
 # define ICECREAM_GET_NATIVE_ENV_H
 
+# include <list>
+# include <string>
+
+# include "msg.h"
+# include "comm.h"
+# include "protocol.h"
+
 namespace icecream
 {
     namespace services

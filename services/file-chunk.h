@@ -26,25 +26,32 @@
 #ifndef ICECREAM_FILE_CHUNK_H
 # define ICECREAM_FILE_CHUNK_H
 
+# include <string>
+
+# include "msg.h"
+
 namespace icecream
 {
     namespace services
     {
-        class FileChunk : public Msg {
+        class FileChunk : public Msg
+        {
         public:
             FileChunk(unsigned char *_buffer, size_t _len)
                 : Msg(MsgType::FILE_CHUNK)
                 , buffer(_buffer)
                 , len(_len)
-                , del_buf(false) {
-            }
+                , del_buf(false)
+                {
+                }
 
             FileChunk()
                 : Msg(MsgType::FILE_CHUNK)
                 , buffer(0)
                 , len(0)
-                , del_buf(true) {
-            }
+                , del_buf(true)
+                {
+                }
 
             ~FileChunk();
 

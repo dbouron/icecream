@@ -29,6 +29,14 @@ namespace icecream
 {
     namespace services
     {
+        class Service
+        {
+        public:
+            Channel *Service::createChannel(const string &hostname,
+                                            unsigned short p,
+                                            int timeout);
+            Channel *Service::createChannel(const string &socket_path);
+        };
     } // services
 } // icecream
 #endif /* !ICECREAM_SERVICE_H */

@@ -29,5 +29,71 @@ namespace icecream
 {
     namespace services
     {
+        Channel *Service::createChannel(const string &hostname,
+                                        unsigned short p,
+                                        int timeout)
+        {
+            int remote_fd;
+            struct sockaddr_in remote_addr;
+
+            if ((remote_fd = prepare_connect(hostname, p, remote_addr)) < 0)
+            {
+                return 0;
+            }
+
+            if (timeout)
+            {
+                if (!connect_async(remote_fd, (struct sockaddr *) &remote_addr,
+                                   sizeof(remote_addr), timeout))
+                {
+                    return 0;    // remote_fd is already closed
+                }
+            }
+            else
+            {
+                int i = 2048;
+                setsockopt(remote_fd, SOL_SOCKET, SO_SNDBUF, &i, sizeof(i));
+
+                if (connect(remote_fd, (struct sockaddr *) &remote_addr,
+                            sizeof(remote_addr)) < 0)
+                {
+                    close(remote_fd);
+                    trace() << "connect failed on " << hostname << endl;
+                    return 0;
+                }
+            }
+
+            trace() << "connected to " << hostname << endl;
+            return createChannel(remote_fd, (struct sockaddr *) &remote_addr,
+                                 sizeof(remote_addr));
+        }
+
+        Channel *Service::createChannel(const string &socket_path)
+        {
+            int remote_fd;
+            struct sockaddr_un remote_addr;
+
+            if ((remote_fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
+            {
+                log_perror("socket()");
+                return 0;
+            }
+
+            remote_addr.sun_family = AF_UNIX;
+            strncpy(remote_addr.sun_path, socket_path.c_str(),
+                    sizeof(remote_addr.sun_path) - 1);
+
+            if (connect(remote_fd, (struct sockaddr *) &remote_addr,
+                        sizeof(remote_addr)) < 0)
+            {
+                close(remote_fd);
+                trace() << "connect failed on " << socket_path << endl;
+                return 0;
+            }
+
+            trace() << "connected to " << socket_path << endl;
+            return createChannel(remote_fd, (struct sockaddr *) &remote_addr,
+                                 sizeof(remote_addr));
+        }
     } // services
 } // icecream

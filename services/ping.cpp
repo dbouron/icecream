@@ -29,5 +29,13 @@ namespace icecream
 {
     namespace services
     {
+        Ping::Ping()
+            : Msg(MsgType::PING)
+        {
+        }
+
+        Ping::~Ping()
+        {
+        }
     } // services
 } // icecream

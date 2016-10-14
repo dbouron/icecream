@@ -26,15 +26,17 @@
 #ifndef ICECREAM_END_H
 # define ICECREAM_END_H
 
+# include "msg.h"
+
 namespace icecream
 {
     namespace services
     {
-        class End: public Msg {
+        class End : public Msg
+        {
         public:
-            End() :
-                Msg(MsgType::END) {
-            }
+            End();
+            virtual ~End();
         };
     } // services
 } // icecream

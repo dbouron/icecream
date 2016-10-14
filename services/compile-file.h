@@ -41,12 +41,7 @@ namespace icecream
         class CompileFile : public Msg
         {
         public:
-            CompileFile(CompileJob *j, bool delete_job = false)
-                : Msg(MsgType::COMPILE_FILE)
-                , deleteit(delete_job)
-                , job(j)
-            {
-            }
+            CompileFile(CompileJob *j, bool delete_job = false);
 
             ~CompileFile();
 

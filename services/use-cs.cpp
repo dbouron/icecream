@@ -39,7 +39,7 @@ namespace icecream
             *c >> got_env;
             *c >> client_id;
 
-            if (is_protocol<28>()(C))
+            if (is_protocol<28>()(*c))
             {
                 *c >> matched_job_id;
             }
@@ -59,7 +59,7 @@ namespace icecream
             *c << got_env;
             *c << client_id;
 
-            if (is_protocol<28>()(C))
+            if (is_protocol<28>()(*c))
             {
                 *c << matched_job_id;
             }

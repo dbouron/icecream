@@ -26,6 +26,17 @@
 #ifndef ICECREAM_DISCOVER_SCHED_H
 # define ICECREAM_DISCOVER_SCHED_H
 
+# include <string>
+# include <list>
+# include <algorithm>
+
+# include "logging.h"
+# include "job.h"
+# include "channel.h"
+# include "protocol.h"
+# include "network.h"
+# include "comm.h"
+
 namespace icecream
 {
     namespace services

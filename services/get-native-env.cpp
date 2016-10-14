@@ -33,7 +33,7 @@ namespace icecream
         {
             Msg::fill_from_channel(c);
 
-            if (is_protocol<32>()(C))
+            if (is_protocol<32>()(*c))
             {
                 *c >> compiler;
                 *c >> extrafiles;
@@ -44,7 +44,7 @@ namespace icecream
         {
             Msg::send_to_channel(c);
 
-            if (is_protocol<32>()(C))
+            if (is_protocol<32>()(*c))
             {
                 *c << compiler;
                 *c << extrafiles;

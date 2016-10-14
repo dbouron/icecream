@@ -26,24 +26,26 @@
 #ifndef ICECREAM_MSG_H
 # define ICECREAM_MSG_H
 
+# include "channel.h"
+# include "comm.h"
+
 namespace icecream
 {
     namespace services
     {
         class Channel;
 
-        class Msg {
+        class Msg
+        {
         public:
-            Msg(enum MsgType t) :
-                type(t) {
-            }
-            virtual ~Msg() {
-            }
+            Msg(MsgType t);
+
+            virtual ~Msg();
 
             virtual void fill_from_channel(Channel *c);
             virtual void send_to_channel(Channel *c) const;
 
-            enum MsgType type;
+            MsgType type;
         };
     } // services
 } // icecream

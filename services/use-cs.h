@@ -26,6 +26,11 @@
 #ifndef ICECREAM_USE_CS_H
 # define ICECREAM_USE_CS_H
 
+# include <string>
+
+# include "msg.h"
+# include "protocol.h"
+
 namespace icecream
 {
     namespace services
@@ -37,6 +42,7 @@ namespace icecream
                 Msg(MsgType::USE_CS)
             {
             }
+
             UseCS(std::string platform, std::string host, unsigned int p,
                   unsigned int id, bool gotit, unsigned int _client_id,
                   unsigned int matched_host_jobs)

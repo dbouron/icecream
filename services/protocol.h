@@ -29,7 +29,9 @@
 
 # include <type_traits>
 
-namespace iceream
+# include "channel.h"
+
+namespace icecream
 {
     namespace services
     {
@@ -77,7 +79,7 @@ namespace iceream
             using bool_t =
                 typename std::enable_if<MIN_PROTOCOL_VERSION <= N, bool>::type;
 
-            bool_t operator(const MsgChannel &) const;
+            bool_t operator()(const Channel &) const;
         };
     } // services
 } // icecream

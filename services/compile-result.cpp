@@ -40,7 +40,7 @@ namespace icecream
             uint32_t was = 0;
             *c >> was;
             was_out_of_memory = was;
-            if (is_protocol<35>()(C))
+            if (is_protocol<35>()(*c))
             {
                 uint32_t dwo = 0;
                 *c >> dwo;
@@ -55,7 +55,7 @@ namespace icecream
             *c << out;
             *c << status;
             *c << (uint32_t) was_out_of_memory;
-            if (is_protocol<35>()(C))
+            if (is_protocol<35>()(*c))
             {
                 *c << (uint32_t) have_dwo_file;
             }

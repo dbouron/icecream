@@ -27,13 +27,13 @@
 #ifndef ICECREAM_PROTOCOL_H
 # define ICECREAM_PROTOCOL_H
 
-namespace iceream
+namespace icecream
 {
     namespace services
     {
         template <uint32_t N>
         inline
-        is_protocol<N>::operator(const MsgChannel &c) const
+        bool_t is_protocol<N>::operator()(const Channel &c) const
         {
             return c->protocol >= N;
         }

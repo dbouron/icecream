@@ -29,8 +29,8 @@ namespace icecream
 {
     namespace services
     {
-        DiscoverSched::DiscoverSched(const std::std::string &_netname, int _timeout,
-                const std::std::string &_schedname, int port)
+        DiscoverSched::DiscoverSched(const std::string &_netname, int _timeout,
+                const std::string &_schedname, int port)
                 : netname(_netname)
                 , schedname(_schedname)
                 , timeout(_timeout)
@@ -101,7 +101,7 @@ namespace icecream
 
             time0 = time(0) + MAX_SCHEDULER_PONG;
             log_info() << "scheduler is on " << schedname << ":" << sport << " (net "
-                    << netname << ")" << endl;
+                    << netname << ")" << std::endl;
 
             if ((ask_fd = prepare_connect(schedname, sport, remote_addr)) >= 0)
             {
@@ -144,14 +144,14 @@ namespace icecream
                             log_info() << "Suitable scheduler found at "
                                     << inet_ntoa(remote_addr.sin_addr) << ":"
                                     << ntohs(remote_addr.sin_port)
-                                    << " (unknown version)" << endl;
+                                    << " (unknown version)" << std::endl;
                         }
                         else
                         {
                             log_info() << "Suitable scheduler found at "
                                     << inet_ntoa(remote_addr.sin_addr) << ":"
                                     << ntohs(remote_addr.sin_port) << " (version: "
-                                    << version << ")" << endl;
+                                    << version << ")" << std::endl;
                         }
                         if (best_version != 0)
                             multiple = true;
@@ -175,7 +175,7 @@ namespace icecream
                     }
                     if (multiple)
                         log_info() << "Selecting scheduler at " << schedname << ":"
-                                << sport << endl;
+                                << sport << std::endl;
 
                     close (ask_fd);
                     ask_fd = -1;
@@ -244,7 +244,7 @@ namespace icecream
                 bool first = true;
                 /* Wait at least two seconds to give all schedulers a chance to answer
                  (unless that'd be longer than the timeout).*/
-                time_t timeout_time = time(NULL) + min(2 + 1, timeout);
+                time_t timeout_time = time(NULL) + std::min(2 + 1, timeout);
 
                 /* Read/test all arriving packages.  */
                 while (get_broad_answer(ask_fd, first ? timeout : 0, buf2, &remote_addr,

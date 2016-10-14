@@ -22,14 +22,30 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+/** \todo
+ ** + buffered in/output per Channel
+ **    + move read* into Channel, create buffer-fill function
+ **    + add timeouting select() there, handle it in the different
+ **    + read* functions.
+ **    + write* unbuffered / or per message buffer (flush in send_msg)
+ ** + think about error handling
+ **    + saving errno somewhere (in Channel class)
+ ** + handle unknown messages (implement a Unknown holding the content
+ **   of the whole data packet?)
+ */
 
 #ifndef ICECREAM_CHANNEL_H
 # define ICECREAM_CHANNEL_H
+
+# include "comm.h"
+# include "msg.h"
 
 namespace icecream
 {
     namespace services
     {
+        class Msg;
+
         class Channel {
         public:
             enum SendFlags {
