@@ -26,6 +26,8 @@
 #ifndef ICECREAM_ENV_TRANSFER_H
 # define ICECREAM_ENV_TRANSFER_H
 
+# include "msg.h"
+
 namespace icecream
 {
     namespace services

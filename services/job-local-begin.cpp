@@ -42,7 +42,7 @@ namespace icecream
             Msg::send_to_channel(c);
             *c << stime;
             *c << outfile;
-            *c << id
+            *c << id;
         }
     } // services
 } // icecream

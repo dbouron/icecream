@@ -26,6 +26,9 @@
 #ifndef ICECREAM_MON_GET_CS_H
 # define ICECREAM_MON_GET_CS_H
 
+# include "get-cs.h"
+# include "protocol.h"
+
 namespace icecream
 {
     namespace services

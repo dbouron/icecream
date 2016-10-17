@@ -26,6 +26,8 @@
 #ifndef ICECREAM_MON_LOGIN_H
 # define ICECREAM_MON_LOGIN_H
 
+# include "msg.h"
+
 namespace icecream
 {
     namespace services

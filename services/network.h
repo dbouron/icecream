@@ -26,7 +26,10 @@
 # define ICECREAM_NETWORK_H
 
 # include <string>
+# include <iostream>
+# include <cstdint>
 
+# include <unistd.h>
 # include <config.h>
 # include <signal.h>
 # include <sys/types.h>
@@ -46,14 +49,18 @@
 # include <netdb.h>
 # include <unistd.h>
 # include <errno.h>
-# include <string>
-# include <iostream>
 # include <assert.h>
 # include <lzo/lzo1x.h>
 # include <stdio.h>
 # ifdef HAVE_LIBCAP_NG
 #  include <cap-ng.h>
 # endif
+# include <net/if.h>
+# include <sys/ioctl.h>
+
+# include "getifaddrs.h"
+# include "logging.h"
+# include "protocol.h"
 
 namespace icecream
 {

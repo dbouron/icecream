@@ -27,7 +27,7 @@
 #ifndef ICECREAM_BLACKLIST_HOST_ENV_HXX
 # define ICECREAM_BLACKLIST_HOST_ENV_HXX
 
-# include "nsg.h"
+# include "blacklist-host-env.h"
 
 namespace icecream
 {

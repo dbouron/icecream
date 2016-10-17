@@ -26,6 +26,8 @@
 #ifndef ICECREAM_JOB_LOCAL_BEGIN_H
 # define ICECREAM_JOB_LOCAL_BEGIN_H
 
+# include "msg.h"
+
 namespace icecream
 {
     namespace services
@@ -45,18 +47,6 @@ namespace icecream
             std::string outfile;
             uint32_t stime;
             uint32_t id;
-        };
-
-        class JobLocalDone: public Msg {
-        public:
-            JobLocalDone(unsigned int id = 0) :
-                Msg(MsgType::JOB_LOCAL_DONE), job_id(id) {
-            }
-
-            virtual void fill_from_channel(Channel *c);
-            virtual void send_to_channel(Channel *c) const;
-
-            uint32_t job_id;
         };
     } // services
 } // icecream

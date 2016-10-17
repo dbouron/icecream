@@ -31,7 +31,7 @@ namespace icecream
     {
         void MonGetCS::fill_from_channel(Channel *c)
         {
-            if (is_protocol<29>()(C))
+            if (is_protocol<29>()(*c))
             {
                 Msg::fill_from_channel(c);
                 *c >> filename;
@@ -50,7 +50,7 @@ namespace icecream
 
         void MonGetCS::send_to_channel(Channel *c) const
         {
-            if (is_protocol<29>()(C))
+            if (is_protocol<29>()(*c))
             {
                 Msg::send_to_channel(c);
                 *c << shorten_filename(filename);

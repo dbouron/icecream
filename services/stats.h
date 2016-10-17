@@ -26,6 +26,8 @@
 #ifndef ICECREAM_STATS_H
 # define ICECREAM_STATS_H
 
+# include "msg.h"
+
 namespace icecream
 {
     namespace services

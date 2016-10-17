@@ -22,8 +22,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-
-#include "login.h"
+# include "login.h"
 
 namespace icecream
 {
@@ -61,7 +60,7 @@ namespace icecream
             chroot_possible = net_chroot_possible != 0;
             uint32_t net_noremote = 0;
 
-            if (is_protocol<26>()(C))
+            if (is_protocol<26>()(*c))
             {
                 *c >> net_noremote;
             }
@@ -79,7 +78,7 @@ namespace icecream
             *c << host_platform;
             *c << chroot_possible;
 
-            if (is_protocol<26>()(C))
+            if (is_protocol<26>()(*c))
             {
                 *c << noremote;
             }

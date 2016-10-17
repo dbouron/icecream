@@ -26,6 +26,8 @@
 #ifndef ICECREAM_VERIFY_ENV_H
 # define ICECREAM_VERIFY_ENV_H
 
+# include "msg.h"
+
 namespace icecream
 {
     namespace services

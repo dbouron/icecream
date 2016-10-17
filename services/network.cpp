@@ -22,16 +22,13 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef ICECREAM_NETWORK_H
-# define ICECREAM_NETWORK_H
-
 # include "network.h"
 
 namespace icecream
 {
     namespace services
     {
-        int prepare_connect(const string &hostname, unsigned short p,
+        int prepare_connect(const std::string &hostname, unsigned short p,
                             struct sockaddr_in &remote_addr)
         {
             int remote_fd;
@@ -54,7 +51,7 @@ namespace icecream
 
             if (host->h_length != 4)
             {
-                log_error() << "Invalid address length" << endl;
+                log_error() << "Invalid address length" << std::endl;
                 close(remote_fd);
                 return -1;
             }
@@ -145,7 +142,7 @@ namespace icecream
 
             for (int i = 2; i--;)
             {
-                if (ofs != string::npos)
+                if (ofs != std::string::npos)
                 {
                     ofs = str.rfind('/', ofs - 1);
                 }
@@ -153,12 +150,6 @@ namespace icecream
 
             return str.substr(ofs + 1);
         }
-
-
-
-#include "getifaddrs.h"
-#include <net/if.h>
-#include <sys/ioctl.h>
 
 /* Returns a filedesc. or a negative value for errors.  */
          int open_send_broadcast(int port, const char* buf, int size)
@@ -213,14 +204,14 @@ namespace icecream
                 if (ntohl(((struct sockaddr_in *) addr->ifa_addr)->sin_addr.s_addr)
                     == 0x7f000001)
                 {
-                    trace() << "ignoring localhost " << addr->ifa_name << endl;
+                    trace() << "ignoring localhost " << addr->ifa_name << std::endl;
                     continue;
                 }
 
                 if ((addr->ifa_flags & IFF_POINTOPOINT)
                     || !(addr->ifa_flags & IFF_BROADCAST))
                 {
-                    log_info() << "ignoring tunnels " << addr->ifa_name << endl;
+                    log_info() << "ignoring tunnels " << addr->ifa_name << std::endl;
                     continue;
                 }
 
@@ -229,7 +220,7 @@ namespace icecream
                     log_info() << "broadcast " << addr->ifa_name << " "
                                << inet_ntoa(
                                    ((sockaddr_in *) addr->ifa_broadaddr)->sin_addr)
-                               << endl;
+                               << std::endl;
 
                     remote_addr.sin_family = AF_INET;
                     remote_addr.sin_port = htons(port);
@@ -247,9 +238,6 @@ namespace icecream
             kde_freeifaddrs(addrs);
             return ask_fd;
         }
-
-#define BROAD_BUFLEN 32
-#define BROAD_BUFLEN_OLD 16
 
          bool get_broad_answer(int ask_fd, int timeout, char *buf2,
                                      struct sockaddr_in *remote_addr, socklen_t *remote_len)
@@ -287,7 +275,7 @@ namespace icecream
             if ((len == BROAD_BUFLEN_OLD && buf2[0] != buf + 1) // PROTOCOL <= 32 scheduler
                 || (len == BROAD_BUFLEN && buf2[0] != buf + 2))
             { // PROTOCOL >= 33 scheduler
-                log_error() << "wrong answer" << endl;
+                log_error() << "wrong answer" << std::endl;
                 return false;
             }
 
@@ -332,5 +320,3 @@ namespace icecream
         }
     } // services
 } // icecream
-
-#endif /* !ICECREAM_NETWORK_H */

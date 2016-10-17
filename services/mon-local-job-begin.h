@@ -26,6 +26,9 @@
 #ifndef ICECREAM_MON_LOCAL_JOB_BEGIN_H
 # define ICECREAM_MON_LOCAL_JOB_BEGIN_H
 
+# include "msg.h"
+# include "network.h"
+
 namespace icecream
 {
     namespace services

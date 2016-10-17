@@ -26,6 +26,12 @@
 #ifndef ICECREAM_LOGIN_H
 # define ICECREAM_LOGIN_H
 
+# include <sys/types.h>
+# include <unistd.h>
+
+# include "msg.h"
+# include "protocol.h"
+
 namespace icecream
 {
     namespace services
