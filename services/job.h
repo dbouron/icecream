@@ -45,28 +45,30 @@ namespace icecream
             Rest
         };
 
+        enum class Language
+        {
+                C,
+                CXX,
+                OBJC,
+                Custom
+        };
+
+        enum class Flag
+        {
+            None = 0,
+            g = 0x1,
+            g3 = 0x2,
+            O = 0x4,
+            O2 = 0x8,
+            Ol2 = 0x10
+        };
+
         /// Alias for argument list.
         using ArgumentList = std::list<std::pair<std::string, ArgumentType>>;
 
         class CompileJob
         {
         public:
-            typedef enum {
-                Lang_C,
-                Lang_CXX,
-                Lang_OBJC,
-                Lang_Custom
-            } Language;
-
-            typedef enum {
-                Flag_None = 0,
-                Flag_g = 0x1,
-                Flag_g3 = 0x2,
-                Flag_O = 0x4,
-                Flag_O2 = 0x8,
-                Flag_Ol2 = 0x10
-            } Flag;
-
             CompileJob()
                 : m_id(0)
                 , m_dwarf_fission(false)
@@ -205,46 +207,9 @@ namespace icecream
             std::string m_target_platform;
             bool m_dwarf_fission;
         };
-
-        inline void appendList(std::list<std::string> &list, const std::list<std::string> &toadd)
-        {
-            // Cannot splice since toadd is a reference-to-const
-            list.insert(list.end(), toadd.begin(), toadd.end());
-        }
-
-        inline std::ostream &operator<<( std::ostream &output,
-                                         const CompileJob::Language &l )
-        {
-            switch (l) {
-            case CompileJob::Lang_CXX:
-                output << "C++";
-                break;
-            case CompileJob::Lang_C:
-                output << "C";
-                break;
-            case CompileJob::Lang_Custom:
-                output << "<custom>";
-                break;
-            case CompileJob::Lang_OBJC:
-                output << "ObjC";
-                break;
-            }
-            return output;
-        }
-
-        inline std::string concat_args(const std::list<std::string> &args)
-        {
-            std::stringstream str;
-            str << "'";
-
-            for (std::list<std::string>::const_iterator it = args.begin(); it != args.end();) {
-                str << *it++;
-                if (it != args.end())
-                    str << ", ";
-            }
-            return str.str() + "'";
-        }
     } // services
 } // icecream
+
+# include "job.hxx"
 
 #endif

@@ -44,7 +44,7 @@ namespace icecream
         public:
             GetCS();
             GetCS(const Environments &envs, const std::string &f,
-                  CompileJob::Language _lang, unsigned int _count,
+                  Language _lang, unsigned int _count,
                   std::string _target, unsigned int _arg_flags,
                   const std::string &host, int _minimal_host_version);
 
@@ -53,7 +53,7 @@ namespace icecream
 
             Environments versions;
             std::string filename;
-            CompileJob::Language lang;
+            Language lang;
             uint32_t count; // the number of UseCS messages to answer with - usually 1
             std::string target;
             uint32_t arg_flags;

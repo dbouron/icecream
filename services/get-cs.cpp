@@ -38,7 +38,7 @@ namespace icecream
         }
 
         GetCS::GetCS(const Environments &envs, const std::string &f,
-                     CompileJob::Language _lang, unsigned int _count,
+                     Language _lang, unsigned int _count,
                      std::string _target, unsigned int _arg_flags,
                      const std::string &host, int _minimal_host_version)
             : Msg(MsgType::GET_CS)
@@ -63,7 +63,7 @@ namespace icecream
             *c >> _lang;
             *c >> count;
             *c >> target;
-            lang = static_cast<CompileJob::Language>(_lang);
+            lang = static_cast<Language>(_lang);
             *c >> arg_flags;
             *c >> client_id;
             preferred_host = std::string{};

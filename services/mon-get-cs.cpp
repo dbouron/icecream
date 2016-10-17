@@ -37,7 +37,7 @@ namespace icecream
                 *c >> filename;
                 uint32_t _lang;
                 *c >> _lang;
-                lang = static_cast<CompileJob::Language>(_lang);
+                lang = static_cast<Language>(_lang);
             }
             else
             {

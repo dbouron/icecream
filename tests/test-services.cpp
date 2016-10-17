@@ -54,7 +54,7 @@ public:
     void SetUp(const std::initializer_list<std::string> l)
     {
         for (const auto &e : l)
-            arguments_list_.push_back(std::make_pair(e, Argument_Type::Arg_Unspecified));
+            arguments_list_.push_back(std::make_pair(e, ArgumentType::Unspecified));
         compile_job_.setFlags(arguments_list_);
     }
 

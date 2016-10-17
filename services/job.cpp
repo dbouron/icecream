@@ -30,9 +30,11 @@ namespace icecream
         {
             std::list<std::string> args;
 
-            for (ArgumentList::const_iterator it = m_flags.begin(); it != m_flags.end(); ++it) {
-                if (it->second == argumentType) {
-                    args.push_back(it->first);
+            for (const auto &cit : m_flags)
+            {
+                if (cit.second == argumentType)
+                {
+                    args.push_back(cit.first);
                 }
             }
 
@@ -58,8 +60,9 @@ namespace icecream
         {
             std::list<std::string> args;
 
-            for (ArgumentList::const_iterator it = m_flags.begin(); it != m_flags.end(); ++it) {
-                args.push_back(it->first);
+            for (const auto &cit : m_flags)
+            {
+                args.push_back(cit.first);
             }
 
             return args;
@@ -72,10 +75,11 @@ namespace icecream
 
         unsigned int CompileJob::argumentFlags() const
         {
-            unsigned int result = Flag_None;
+            unsigned int result = Flag::None;
 
-            for (ArgumentList::const_iterator it = m_flags.begin(); it != m_flags.end(); ++it) {
-                const std::string arg = it->first;
+            for (const auto &cit : m_flags)
+            {
+                const auto arg = cit.first;
 
                 if (arg.at(0) == '-') {
                     if (arg.length() == 1) {
@@ -84,26 +88,26 @@ namespace icecream
 
                     if (arg.at(1) == 'g') {
                         if (arg.length() > 2 && arg.at(2) == '3') {
-                            result &= ~Flag_g;
-                            result |= Flag_g3;
+                            result &= ~Flag::g;
+                            result |= Flag::g3;
                         } else {
-                            result &= ~Flag_g3;
-                            result |= Flag_g;
+                            result &= ~Flag::g3;
+                            result |= Flag::g;
                         }
                     } else if (arg.at(1) == 'O') {
-                        result &= ~(Flag_O | Flag_O2 | Flag_Ol2);
+                        result &= ~(Flag::O | Flag::O2 | Flag::Ol2);
 
                         if (arg.length() == 2) {
-                            result |= Flag_O;
+                            result |= Flag::O;
                         } else {
                             assert(arg.length() > 2);
 
                             if (arg.at(2) == '2') {
-                                result |= Flag_O2;
+                                result |= Flag::O2;
                             } else if (arg.at(2) == '1') {
-                                result |= Flag_O;
+                                result |= Flag::O;
                             } else if (arg.at(2) != '0') {
-                                result |= Flag_Ol2;
+                                result |= Flag::Ol2;
                             }
                         }
                     }

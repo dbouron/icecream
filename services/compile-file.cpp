@@ -56,7 +56,7 @@ namespace icecream
             *c >> _l1;
             *c >> _l2;
             *c >> version;
-            job->setLanguage((CompileJob::Language) lang);
+            job->setLanguage((Language) lang);
             job->setJobID(id);
             ArgumentList l;
 
@@ -159,7 +159,7 @@ namespace icecream
                 return "clang";
             }
 
-            return job->language() == CompileJob::Lang_CXX ? "g++" : "gcc";
+            return job->language() == Language::CXX ? "g++" : "gcc";
         }
 
         CompileJob *CompileFile::takeJob()
