@@ -58,16 +58,16 @@ namespace icecream
             *c >> version;
             job->setLanguage((CompileJob::Language) lang);
             job->setJobID(id);
-            ArgumentsList l;
+            ArgumentList l;
 
             for (const auto &cit : _l1)
             {
-                l.append(cit, Arg_Remote);
+                l.push_back(std::make_pair(cit, ArgumentType::Remote));
             }
 
             for (const auto &cit : _l2)
             {
-                l.append(cit, Arg_Rest);
+                l.push_back(std::make_pair(cit, ArgumentType::Rest));
             }
 
             job->setFlags(l);
