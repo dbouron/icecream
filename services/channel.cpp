@@ -29,6 +29,130 @@ namespace icecream
 {
     namespace services
     {
+        Channel::Channel(int _fd, struct sockaddr *_a, socklen_t _l, bool text)
+            : fd(_fd)
+        {
+            addr_len = _l;
+
+            if (addr_len && _a)
+            {
+                addr = (struct sockaddr *) malloc(addr_len);
+                memcpy(addr, _a, addr_len);
+                char buf[16384] = "";
+                if (addr->sa_family == AF_UNIX)
+                    name = reinterpret_cast<sockaddr_un*>(addr)->sun_path;
+                else
+                {
+                    if (int error = getnameinfo(addr, addr_len, buf, sizeof(buf), NULL,
+                            0, NI_NUMERICHOST))
+                        log_error() << "getnameinfo(): " << error << endl;
+                    name = buf;
+                }
+            }
+            else
+            {
+                addr = 0;
+                name = "";
+            }
+
+            // not using new/delete because of the need of realloc()
+            msgbuf = (char *) malloc(128);
+            msgbuflen = 128;
+            msgofs = 0;
+            msgtogo = 0;
+            inbuf = (char *) malloc(128);
+            inbuflen = 128;
+            inofs = 0;
+            intogo = 0;
+            eof = false;
+            text_based = text;
+
+            int on = 1;
+
+            if (!setsockopt(_fd, SOL_SOCKET, SO_KEEPALIVE, (char *) &on, sizeof(on)))
+            {
+        #if defined( TCP_KEEPIDLE )
+                int keepidle = TCP_KEEPIDLE;
+        #else
+                int keepidle = TCPCTL_KEEPIDLE;
+        #endif
+
+                int sec;
+                sec = MAX_SCHEDULER_PING - 3 * MAX_SCHEDULER_PONG;
+                setsockopt(_fd, IPPROTO_TCP, keepidle, (char *) &sec, sizeof(sec));
+
+        #if defined( TCP_KEEPINTVL )
+                int keepintvl = TCP_KEEPINTVL;
+        #else
+                int keepintvl = TCPCTL_KEEPINTVL;
+        #endif
+
+                sec = MAX_SCHEDULER_PONG;
+                setsockopt(_fd, IPPROTO_TCP, keepintvl, (char *) &sec, sizeof(sec));
+
+        #ifdef TCP_KEEPCNT
+                sec = 3;
+                setsockopt(_fd, IPPROTO_TCP, TCP_KEEPCNT, (char *) &sec, sizeof(sec));
+        #endif
+            }
+
+            if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
+            {
+                log_perror("Channel fcntl()");
+            }
+
+            if (fcntl(fd, F_SETFD, FD_CLOEXEC) < 0)
+            {
+                log_perror("Channel fcntl() 2");
+            }
+
+            if (text_based)
+            {
+                instate = NEED_LEN;
+                protocol = PROTOCOL_VERSION;
+            }
+            else
+            {
+                instate = NEED_PROTO;
+                protocol = -1;
+                unsigned char vers[4] = { PROTOCOL_VERSION, 0, 0, 0 };
+                //writeuint32 ((uint32_t) PROTOCOL_VERSION);
+                writefull(vers, 4);
+
+                if (!flush_writebuf(true))
+                {
+                    protocol = 0;    // unusable
+                }
+            }
+
+            last_talk = time(0);
+        }
+
+        Channel::~Channel()
+        {
+            if (fd >= 0)
+            {
+                close (fd);
+            }
+
+            fd = -1;
+
+            if (msgbuf)
+            {
+                free (msgbuf);
+            }
+
+            if (inbuf)
+            {
+                free (inbuf);
+            }
+
+            if (addr)
+            {
+                free (addr);
+            }
+        }
+
         /* Tries to fill the inbuf completely.  */
         bool Channel::read_a_bit()
         {
@@ -609,143 +733,6 @@ namespace icecream
                     && memcmp(&s1->sin_addr, &s2->sin_addr, sizeof(s1->sin_addr)) == 0);
         }
 
-        Channel *Service::createChannel(int fd, struct sockaddr *_a, socklen_t _l)
-        {
-            Channel *c = new Channel(fd, _a, _l, false);
-
-            if (!c->wait_for_protocol())
-            {
-                delete c;
-                c = 0;
-            }
-
-            return c;
-        }
-
-        Channel::Channel(int _fd, struct sockaddr *_a, socklen_t _l, bool text)
-                : fd(_fd)
-        {
-            addr_len = _l;
-
-            if (addr_len && _a)
-            {
-                addr = (struct sockaddr *) malloc(addr_len);
-                memcpy(addr, _a, addr_len);
-                char buf[16384] = "";
-                if (addr->sa_family == AF_UNIX)
-                    name = reinterpret_cast<sockaddr_un*>(addr)->sun_path;
-                else
-                {
-                    if (int error = getnameinfo(addr, addr_len, buf, sizeof(buf), NULL,
-                            0, NI_NUMERICHOST))
-                        log_error() << "getnameinfo(): " << error << endl;
-                    name = buf;
-                }
-            }
-            else
-            {
-                addr = 0;
-                name = "";
-            }
-
-            // not using new/delete because of the need of realloc()
-            msgbuf = (char *) malloc(128);
-            msgbuflen = 128;
-            msgofs = 0;
-            msgtogo = 0;
-            inbuf = (char *) malloc(128);
-            inbuflen = 128;
-            inofs = 0;
-            intogo = 0;
-            eof = false;
-            text_based = text;
-
-            int on = 1;
-
-            if (!setsockopt(_fd, SOL_SOCKET, SO_KEEPALIVE, (char *) &on, sizeof(on)))
-            {
-        #if defined( TCP_KEEPIDLE )
-                int keepidle = TCP_KEEPIDLE;
-        #else
-                int keepidle = TCPCTL_KEEPIDLE;
-        #endif
-
-                int sec;
-                sec = MAX_SCHEDULER_PING - 3 * MAX_SCHEDULER_PONG;
-                setsockopt(_fd, IPPROTO_TCP, keepidle, (char *) &sec, sizeof(sec));
-
-        #if defined( TCP_KEEPINTVL )
-                int keepintvl = TCP_KEEPINTVL;
-        #else
-                int keepintvl = TCPCTL_KEEPINTVL;
-        #endif
-
-                sec = MAX_SCHEDULER_PONG;
-                setsockopt(_fd, IPPROTO_TCP, keepintvl, (char *) &sec, sizeof(sec));
-
-        #ifdef TCP_KEEPCNT
-                sec = 3;
-                setsockopt(_fd, IPPROTO_TCP, TCP_KEEPCNT, (char *) &sec, sizeof(sec));
-        #endif
-            }
-
-            if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
-            {
-                log_perror("Channel fcntl()");
-            }
-
-            if (fcntl(fd, F_SETFD, FD_CLOEXEC) < 0)
-            {
-                log_perror("Channel fcntl() 2");
-            }
-
-            if (text_based)
-            {
-                instate = NEED_LEN;
-                protocol = PROTOCOL_VERSION;
-            }
-            else
-            {
-                instate = NEED_PROTO;
-                protocol = -1;
-                unsigned char vers[4] = { PROTOCOL_VERSION, 0, 0, 0 };
-                //writeuint32 ((uint32_t) PROTOCOL_VERSION);
-                writefull(vers, 4);
-
-                if (!flush_writebuf(true))
-                {
-                    protocol = 0;    // unusable
-                }
-            }
-
-            last_talk = time(0);
-        }
-
-        Channel::~Channel()
-        {
-            if (fd >= 0)
-            {
-                close (fd);
-            }
-
-            fd = -1;
-
-            if (msgbuf)
-            {
-                free (msgbuf);
-            }
-
-            if (inbuf)
-            {
-                free (inbuf);
-            }
-
-            if (addr)
-            {
-                free (addr);
-            }
-        }
-
         string Channel::dump() const
         {
             return name + ": (" + char((int) instate + 'A') + " eof: " + char(eof + '0')
@@ -873,7 +860,7 @@ namespace icecream
         Msg *Channel::get_msg(int timeout)
         {
             Msg *m = 0;
-            enum MsgType type;
+            MsgType type;
             uint32_t t;
 
             if (!wait_for_msg(timeout))
@@ -904,7 +891,7 @@ namespace icecream
             else
             {
                 *this >> t;
-                type = (enum MsgType) t;
+                type = static_cast<MsgType>(t);
             }
 
             switch (type)
@@ -1015,7 +1002,7 @@ namespace icecream
             return m;
         }
 
-        bool Channel::send_msg(const Msg &m, int flags)
+        bool Channel::send_msg(const Msg &m, SendFlags flags)
         {
             if (instate == NEED_PROTO && !wait_for_protocol())
             {

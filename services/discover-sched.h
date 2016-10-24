@@ -33,6 +33,7 @@
 # include "logging.h"
 # include "job.h"
 # include "channel.h"
+# include "service.h"
 # include "protocol.h"
 # include "network.h"
 # include "comm.h"

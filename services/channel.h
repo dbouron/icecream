@@ -46,14 +46,24 @@ namespace icecream
     {
         class Msg;
 
-        class Channel {
-        public:
-            enum SendFlags {
-                SendBlocking = 1 << 0,
-                SendNonBlocking = 1 << 1,
-                SendBulkOnly = 1 << 2
-            };
+        enum class SendFlags : uint32_t
+        {
+            SendBlocking = 1 << 0,
+            SendNonBlocking = 1 << 1,
+            SendBulkOnly = 1 << 2
+        };
 
+        enum class  InState : uint32_t
+        {
+            NEED_PROTO,
+            NEED_LEN,
+            FILL_BUF,
+            HAS_MSG
+        };
+
+        class Channel
+        {
+        public:
             virtual ~Channel();
 
             void setBulkTransfer();
@@ -63,16 +73,16 @@ namespace icecream
             Msg *get_msg(int timeout = 10);
 
             // false <--> error (msg not send)
-            bool send_msg(const Msg &, int SendFlags = SendBlocking);
+            bool send_msg(const Msg &, SendFlags flags = SendFlags::SendBlocking);
 
             bool has_msg(void) const {
-                return eof || instate == HAS_MSG;
+                return eof || instate == InState::HAS_MSG;
             }
 
             bool read_a_bit(void);
 
             bool at_eof(void) const {
-                return instate != HAS_MSG && eof;
+                return instate != InState::HAS_MSG && eof;
             }
 
             bool is_text_based(void) const {
@@ -128,9 +138,7 @@ namespace icecream
             size_t inofs;
             size_t intogo;
 
-            enum {
-                NEED_PROTO, NEED_LEN, FILL_BUF, HAS_MSG
-            } instate;
+            InState instate;
 
             uint32_t inmsglen;
             bool eof;
@@ -143,16 +151,6 @@ namespace icecream
             struct sockaddr *addr;
             socklen_t addr_len;
         };
-
-        // just convenient functions to create Channels
-        class Service {
-        public:
-            static Channel *createChannel(const std::string &host, unsigned short p,
-                                          int timeout);
-            static Channel *createChannel(const std::string &domain_socket);
-            static Channel *createChannel(int remote_fd, struct sockaddr *, socklen_t);
-        };
-
     } // services
 } // icecream
 

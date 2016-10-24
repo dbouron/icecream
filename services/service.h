@@ -25,18 +25,29 @@
 
 #ifndef ICECREAM_SERVICE_H
 # define ICECREAM_SERVICE_H
+
+# include <string>
+# include <iostream>
+
+# include "network.h"
+# include "channel.h"
+
 namespace icecream
 {
     namespace services
     {
+        // just convenient functions to create Channels
         class Service
         {
         public:
-            Channel *Service::createChannel(const string &hostname,
-                                            unsigned short p,
-                                            int timeout);
-            Channel *Service::createChannel(const string &socket_path);
+            static Channel *createChannel(const std::string &host,
+                                          unsigned short p,
+                                          int timeout);
+            static Channel *createChannel(const std::string &domain_socket);
+            static Channel *createChannel(int remote_fd, struct sockaddr *,
+                                          socklen_t);
         };
     } // services
 } // icecream
+
 #endif /* !ICECREAM_SERVICE_H */

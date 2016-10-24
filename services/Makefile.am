@@ -1,6 +1,7 @@
 lib_LTLIBRARIES = libicecc.la
 libicecc_la_SOURCES = \
 	job.cpp \
+	service.cpp \
 	exitcode.cpp \
 	getifaddrs.cpp \
 	logging.cpp \
@@ -56,6 +57,7 @@ ice_HEADERS = \
 
 noinst_HEADERS = \
 	exitcode.h \
+	service.h \
 	getifaddrs.h \
 	logging.h \
 	tempfile.h \
