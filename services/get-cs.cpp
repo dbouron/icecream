@@ -54,7 +54,7 @@ namespace icecream
         {
         }
 
-        void GetCS::fill_from_channel(Channel *c)
+        void GetCS::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
             c->read_environments(versions);
@@ -91,7 +91,7 @@ namespace icecream
             }
         }
 
-        void GetCS::send_to_channel(Channel *c) const
+        void GetCS::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             c->write_environments(versions);

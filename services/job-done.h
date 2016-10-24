@@ -53,8 +53,8 @@ namespace icecream
                 return (flags & FROM_SUBMITTER) == 0;
             }
 
-            virtual void fill_from_channel(Channel *c);
-            virtual void send_to_channel(Channel *c) const;
+            virtual void fill_from_channel(std::shared_ptr<Channel> c);
+            virtual void send_to_channel(std::shared_ptr<Channel> c) const;
 
             uint32_t real_msec; /* real time it used */
             uint32_t user_msec; /* user time used */

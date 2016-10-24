@@ -46,12 +46,12 @@ namespace icecream
         class Service
         {
         public:
-            static Channel *createChannel(const std::string &host,
+            static std::shared_ptr<Channel> createChannel(const std::string &host,
                                           unsigned short p,
                                           int timeout);
-            static Channel *createChannel(const std::string &domain_socket);
-            static Channel *createChannel(int remote_fd, struct sockaddr *,
-                                          socklen_t);
+            static std::shared_ptr<Channel> createChannel(const std::string &domain_socket);
+            static std::shared_ptr<Channel> createChannel(int remote_fd, struct sockaddr *,
+                                                          socklen_t);
         };
     } // services
 } // icecream

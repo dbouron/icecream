@@ -61,7 +61,7 @@ namespace icecream
             HAS_MSG
         };
 
-        class Channel
+        class Channel : public std::enable_shared_from_this<Channel>
         {
         public:
             virtual ~Channel();

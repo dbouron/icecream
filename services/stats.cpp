@@ -29,7 +29,7 @@ namespace icecream
 {
     namespace services
     {
-        void Stats::fill_from_channel(Channel *c)
+        void Stats::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
             *c >> load;
@@ -39,7 +39,7 @@ namespace icecream
             *c >> freeMem;
         }
 
-        void Stats::send_to_channel(Channel *c) const
+        void Stats::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             *c << load;

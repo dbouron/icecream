@@ -29,14 +29,14 @@ namespace icecream
 {
     namespace services
     {
-        void MonStats::fill_from_channel(Channel *c)
+        void MonStats::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
             *c >> hostid;
             *c >> statmsg;
         }
 
-        void MonStats::send_to_channel(Channel *c) const
+        void MonStats::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             *c << hostid;

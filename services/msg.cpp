@@ -38,11 +38,11 @@ namespace icecream
         {
         }
 
-        void Msg::fill_from_channel(Channel *)
+        void Msg::fill_from_channel(std::shared_ptr<Channel>)
         {
         }
 
-        void Msg::send_to_channel(Channel *c) const
+        void Msg::send_to_channel(std::shared_ptr<Channel> c) const
         {
             if (c->is_text_based())
             {

@@ -44,7 +44,7 @@ namespace icecream
         {
         }
 
-        void BlacklistHostEnv::fill_from_channel(Channel *c)
+        void BlacklistHostEnv::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
             *c >> environment_;
@@ -52,7 +52,7 @@ namespace icecream
             *c >> hostname_;
         }
 
-        void BlacklistHostEnv::send_to_channel(Channel *c) const
+        void BlacklistHostEnv::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             *c << environment_;

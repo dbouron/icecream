@@ -29,12 +29,12 @@ namespace icecream
 {
     namespace services
     {
-        void Text::fill_from_channel(Channel *c)
+        void Text::fill_from_channel(std::shared_ptr<Channel> c)
         {
             c->read_line(text);
         }
 
-        void Text::send_to_channel(Channel *c) const
+        void Text::send_to_channel(std::shared_ptr<Channel> c) const
         {
             c->write_line(text);
         }

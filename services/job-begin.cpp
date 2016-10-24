@@ -29,14 +29,14 @@ namespace icecream
 {
     namespace services
     {
-        void JobBegin::fill_from_channel(Channel *c)
+        void JobBegin::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
             *c >> job_id;
             *c >> stime;
         }
 
-        void JobBegin::send_to_channel(Channel *c) const
+        void JobBegin::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             *c << job_id;

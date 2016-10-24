@@ -29,7 +29,7 @@ namespace icecream
 {
     namespace services
     {
-        void CompileResult::fill_from_channel(Channel *c)
+        void CompileResult::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
             uint32_t _status = 0;
@@ -48,7 +48,7 @@ namespace icecream
             }
         }
 
-        void CompileResult::send_to_channel(Channel *c) const
+        void CompileResult::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             *c << err;

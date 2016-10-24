@@ -47,7 +47,7 @@ namespace icecream
 #endif
         }
 
-        void Login::fill_from_channel(Channel *c)
+        void Login::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
             *c >> port;
@@ -68,7 +68,7 @@ namespace icecream
             noremote = (net_noremote != 0);
         }
 
-        void Login::send_to_channel(Channel *c) const
+        void Login::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             *c << port;

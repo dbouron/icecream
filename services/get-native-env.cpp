@@ -29,7 +29,7 @@ namespace icecream
 {
     namespace services
     {
-        void GetNativeEnv::fill_from_channel(Channel *c)
+        void GetNativeEnv::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
 
@@ -40,7 +40,7 @@ namespace icecream
             }
         }
 
-        void GetNativeEnv::send_to_channel(Channel *c) const
+        void GetNativeEnv::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
 

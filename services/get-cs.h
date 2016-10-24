@@ -48,8 +48,8 @@ namespace icecream
                   std::string _target, unsigned int _arg_flags,
                   const std::string &host, int _minimal_host_version);
 
-            virtual void fill_from_channel(Channel *c);
-            virtual void send_to_channel(Channel *c) const;
+            virtual void fill_from_channel(std::shared_ptr<Channel> c);
+            virtual void send_to_channel(std::shared_ptr<Channel> c) const;
 
             Environments versions;
             std::string filename;

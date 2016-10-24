@@ -109,7 +109,7 @@ namespace icecream
             }
         }
 
-        Channel *DiscoverSched::try_get_scheduler()
+        std::shared_ptr<Channel> DiscoverSched::try_get_scheduler()
         {
             if (schedname.empty() || 0 != best_version)
             {

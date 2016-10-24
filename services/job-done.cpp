@@ -45,7 +45,7 @@ namespace icecream
             out_uncompressed = 0;
         }
 
-        void JobDone::fill_from_channel(Channel *c)
+        void JobDone::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
             uint32_t _exitcode = 255;
@@ -63,7 +63,7 @@ namespace icecream
             exitcode = (int) _exitcode;
         }
 
-        void JobDone::send_to_channel(Channel *c) const
+        void JobDone::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             *c << job_id;

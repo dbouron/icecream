@@ -36,7 +36,7 @@ namespace icecream
         {
         }
 
-        void ConfCS::fill_from_channel(Channel *c)
+        void ConfCS::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
             *c >> max_scheduler_pong;
@@ -45,7 +45,7 @@ namespace icecream
             *c >> bench_source;
         }
 
-        void ConfCS::send_to_channel(Channel *c) const
+        void ConfCS::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             *c << max_scheduler_pong;

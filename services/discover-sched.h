@@ -50,8 +50,10 @@ namespace icecream
              schedname can be the hostname of a box running a scheduler, to avoid
              broadcasting, port can be specified explicitly */
             DiscoverSched(const std::string &_netname = std::string(),
-                    int _timeout = 2, const std::string &_schedname =
-                            std::string(), int port = 0);
+                          int _timeout = 2,
+                          const std::string &_schedname = std::string{},
+                          int port = 0);
+
             ~DiscoverSched();
 
             bool timed_out();
@@ -78,7 +80,7 @@ namespace icecream
              returns false. If this returns NULL you should wait for either
              more data on listen_fd() (use select), or a timeout of your own.
              */
-            Channel *try_get_scheduler();
+            std::shared_ptr<Channel> try_get_scheduler();
 
             // Returns the hostname of the scheduler - set by constructor or by try_get_scheduler
             std::string schedulerName() const

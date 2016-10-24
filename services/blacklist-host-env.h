@@ -42,8 +42,8 @@ namespace icecream
                              const std::string &environment,
                              const std::string &hostname);
 
-            virtual void fill_from_channel(Channel *c);
-            virtual void send_to_channel(Channel *c) const;
+            virtual void fill_from_channel(std::shared_ptr<Channel> c);
+            virtual void send_to_channel(std::shared_ptr<Channel> c) const;
 
             const std::string environment_get() const;
             const std::string target_get() const;

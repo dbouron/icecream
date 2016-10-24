@@ -1025,7 +1025,7 @@ namespace icecream
                 return 0;
             }
 
-            m->fill_from_channel(this);
+            m->fill_from_channel(this->shared_from_this());
             instate = InState::NEED_LEN;
             update_state();
 
@@ -1044,12 +1044,12 @@ namespace icecream
 
             if (text_based)
             {
-                m.send_to_channel(this);
+                m.send_to_channel(this->shared_from_this());
             }
             else
             {
                 *this << static_cast<uint32_t>(0);
-                m.send_to_channel(this);
+                m.send_to_channel(this->shared_from_this());
                 uint32_t len = htonl(msgtogo - msgtogo_old - 4);
                 memcpy(msgbuf + msgtogo_old, &len, 4);
             }

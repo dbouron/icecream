@@ -29,7 +29,7 @@ namespace icecream
 {
     namespace services
     {
-        void MonGetCS::fill_from_channel(Channel *c)
+        void MonGetCS::fill_from_channel(std::shared_ptr<Channel> c)
         {
             if (is_protocol<29>()(*c))
             {
@@ -48,7 +48,7 @@ namespace icecream
             *c >> clientid;
         }
 
-        void MonGetCS::send_to_channel(Channel *c) const
+        void MonGetCS::send_to_channel(std::shared_ptr<Channel> c) const
         {
             if (is_protocol<29>()(*c))
             {

@@ -37,7 +37,7 @@ namespace icecream
             }
         }
 
-        void FileChunk::fill_from_channel(Channel *c)
+        void FileChunk::fill_from_channel(std::shared_ptr<Channel> c)
         {
             if (del_buf)
             {
@@ -51,7 +51,7 @@ namespace icecream
             c->readcompressed(&buffer, len, compressed);
         }
 
-        void FileChunk::send_to_channel(Channel *c) const
+        void FileChunk::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             c->writecompressed(buffer, len, compressed);

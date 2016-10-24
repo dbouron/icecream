@@ -45,7 +45,7 @@ namespace icecream
             }
         }
 
-        void CompileFile::fill_from_channel(Channel *c)
+        void CompileFile::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
             uint32_t id, lang;
@@ -103,7 +103,7 @@ namespace icecream
             }
         }
 
-        void CompileFile::send_to_channel(Channel *c) const
+        void CompileFile::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             *c << (uint32_t) job->language();

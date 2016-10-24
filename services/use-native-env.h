@@ -45,8 +45,8 @@ namespace icecream
                 : Msg(MsgType::NATIVE_ENV), nativeVersion(_native) {
             }
 
-            virtual void fill_from_channel(Channel *c);
-            virtual void send_to_channel(Channel *c) const;
+            virtual void fill_from_channel(std::shared_ptr<Channel> c);
+            virtual void send_to_channel(std::shared_ptr<Channel> c) const;
 
             std::string nativeVersion;
         };

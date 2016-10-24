@@ -29,9 +29,9 @@ namespace icecream
 {
     namespace services
     {
-        Channel *Service::createChannel(const std::string &hostname,
-                                        unsigned short p,
-                                        int timeout)
+        std::shared_ptr<Channel> Service::createChannel(const std::string &hostname,
+                                                        unsigned short p,
+                                                        int timeout)
         {
             int remote_fd;
             struct sockaddr_in remote_addr;
@@ -68,21 +68,20 @@ namespace icecream
                                  sizeof(remote_addr));
         }
 
-        Channel *Service::createChannel(int fd, struct sockaddr *_a,
-                                        socklen_t _l)
+        std::shared_ptr<Channel> Service::createChannel(int fd, struct sockaddr *_a,
+                                                        socklen_t _l)
         {
-            Channel *c = new Channel(fd, _a, _l, false);
+            std::shared_ptr<Channel> c{new Channel(fd, _a, _l, false)};
 
             if (!c->wait_for_protocol())
             {
-                delete c;
-                c = 0;
+                c.reset();
             }
 
             return c;
         }
 
-        Channel *Service::createChannel(const std::string &socket_path)
+        std::shared_ptr<Channel> Service::createChannel(const std::string &socket_path)
         {
             int remote_fd;
             struct sockaddr_un remote_addr;

@@ -29,7 +29,7 @@ namespace icecream
 {
     namespace services
     {
-        void MonJobBegin::fill_from_channel(Channel *c)
+        void MonJobBegin::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
             *c >> job_id;
@@ -37,7 +37,7 @@ namespace icecream
             *c >> hostid;
         }
 
-        void MonJobBegin::send_to_channel(Channel *c) const
+        void MonJobBegin::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             *c << job_id;

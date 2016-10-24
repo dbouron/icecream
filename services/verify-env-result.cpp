@@ -29,7 +29,7 @@ namespace icecream
 {
     namespace services
     {
-        void VerifyEnvResult::fill_from_channel(Channel *c)
+        void VerifyEnvResult::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
             uint32_t read_ok;
@@ -37,7 +37,7 @@ namespace icecream
             ok = read_ok != 0;
         }
 
-        void VerifyEnvResult::send_to_channel(Channel *c) const
+        void VerifyEnvResult::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             *c << uint32_t(ok);

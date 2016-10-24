@@ -29,14 +29,14 @@ namespace icecream
 {
     namespace services
     {
-        void VerifyEnv::fill_from_channel(Channel *c)
+        void VerifyEnv::fill_from_channel(std::shared_ptr<Channel> c)
         {
             Msg::fill_from_channel(c);
             *c >> environment;
             *c >> target;
         }
 
-        void VerifyEnv::send_to_channel(Channel *c) const
+        void VerifyEnv::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             *c << environment;
