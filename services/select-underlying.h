@@ -21,7 +21,7 @@
 */
 
 /**
- ** \file services/select-underlying.cpp
+ ** \file services/select-underlying.h
  **
  ** \brief Select between an underlying type, if \a T is a complete
  ** enumeration type, or an original type.
@@ -54,13 +54,17 @@ namespace icecream
         /**
          ** \struct underlying_traits
          ** \brief Partial template specialization of \c underlying_traits
-         ** for types which is not an enum. \c type is an alias of \a T.
+         ** for types which are not an enum. \c type is an alias of \a T.
          */
         template <typename T>
         struct underlying_traits<T, std::false_type>
         {
             using type = T;
         };
+
+        /// An useful alias for underlying type acces.
+        template <typename T>
+        using underlying_traits_t = typename underlying_traits<T>::type;
     } // services
 } // icecream
 

@@ -32,6 +32,7 @@
 # include "logging.h"
 # include "exitcode.h"
 # include "platform.h"
+# include "enum-operator.h"
 
 namespace icecream
 {

@@ -50,6 +50,7 @@ libicecc_la_CXXFLAGS = -fPIC -DPIC
 icedir = $(includedir)/icecc
 ice_HEADERS = \
 	job.h \
+	job.hxx \
 	comm.h \
 	logging.h
 
