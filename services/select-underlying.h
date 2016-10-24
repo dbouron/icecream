@@ -62,7 +62,7 @@ namespace icecream
             using type = T;
         };
 
-        /// An useful alias for underlying type acces.
+        /// An useful helper for underlying type acces.
         template <typename T>
         using underlying_traits_t = typename underlying_traits<T>::type;
     } // services

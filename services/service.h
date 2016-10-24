@@ -22,6 +22,13 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+/**
+ ** \file services/service.h
+ ** \brief Just convenient functions to create Channels with friendly acces to
+ ** \c Channel class.
+ **
+ ** \todo Move this function to \c Channel ctor?
+ */
 
 #ifndef ICECREAM_SERVICE_H
 # define ICECREAM_SERVICE_H
@@ -36,7 +43,6 @@ namespace icecream
 {
     namespace services
     {
-        // just convenient functions to create Channels
         class Service
         {
         public:

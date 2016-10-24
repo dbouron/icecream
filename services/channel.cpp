@@ -36,7 +36,7 @@ namespace icecream
 
             if (addr_len && _a)
             {
-                addr = (struct sockaddr *) malloc(addr_len);
+                addr = static_cast<struct sockaddr*>(malloc(addr_len));
                 memcpy(addr, _a, addr_len);
                 char buf[16384] = "";
                 if (addr->sa_family == AF_UNIX)
@@ -56,11 +56,11 @@ namespace icecream
             }
 
             // not using new/delete because of the need of realloc()
-            msgbuf = (char *) malloc(128);
+            msgbuf = static_cast<char*>(malloc(128));
             msgbuflen = 128;
             msgofs = 0;
             msgtogo = 0;
-            inbuf = (char *) malloc(128);
+            inbuf = static_cast<char*>(malloc(128));
             inbuflen = 128;
             inofs = 0;
             intogo = 0;
@@ -161,8 +161,8 @@ namespace icecream
 
             if (count < 128)
             {
-                inbuflen = (inbuflen + 128 + 127) & ~(size_t) 127;
-                inbuf = (char *) realloc(inbuf, inbuflen);
+                inbuflen = (inbuflen + 128 + 127) & ~static_cast<size_t>(127);
+                inbuf = static_cast<char*>(realloc(inbuf, inbuflen));
                 count = inbuflen - inofs;
             }
 
@@ -177,7 +177,6 @@ namespace icecream
                 }
 
                 ssize_t ret = read(fd, buf, count);
-
                 if (ret > 0)
                 {
                     count -= ret;
@@ -273,7 +272,7 @@ namespace icecream
                         /* The second time we read the remote protocol.  */
                         protocol = -(protocol + 1);
 
-                        if ((int) remote_prot != protocol)
+                        if (static_cast<int>(remote_prot) != protocol)
                         {
                             protocol = 0;
                             return false;
@@ -328,8 +327,9 @@ namespace icecream
 
                     if (inbuflen - intogo < inmsglen)
                     {
-                        inbuflen = (inmsglen + intogo + 127) & ~(size_t) 127;
-                        inbuf = (char *) realloc(inbuf, inbuflen);
+                        inbuflen = (inmsglen + intogo + 127)
+                            & ~static_cast<size_>(127);
+                        inbuf = static_cast<char*>(realloc(inbuf, inbuflen));
                     }
 
                     instate = FILL_BUF;
@@ -564,7 +564,7 @@ namespace icecream
 
         Channel &Channel::operator<<(const std::list<std::string> &l)
         {
-            *this << (uint32_t) l.size();
+            *this << static_cast<uint32_t>(l.size());
 
             for (list<string>::const_iterator it = l.begin(); it != l.end(); ++it)
             {
@@ -631,8 +631,8 @@ namespace icecream
 
             if (uncompressed_len && compressed_len)
             {
-                const lzo_byte *compressed_buf = (lzo_byte *) (inbuf + intogo);
-                lzo_voidp wrkmem = (lzo_voidp) malloc(LZO1X_MEM_COMPRESS);
+                const lzo_byte *compressed_buf = static_cast<lzo_byte*>(inbuf + intogo);
+                lzo_voidp wrkmem = static_cast<lzo_voidp>(malloc(LZO1X_MEM_COMPRESS));
                 int ret = lzo1x_decompress(compressed_buf, compressed_len,
                         *uncompressed_buf, &uncompressed_len, wrkmem);
                 free(wrkmem);
@@ -667,17 +667,17 @@ namespace icecream
             out_len = in_len + in_len / 64 + 16 + 3;
             *this << in_len;
             size_t msgtogo_old = msgtogo;
-            *this << (uint32_t) 0;
+            *this << static_cast<uint32_t>(0);
 
             if (msgtogo + out_len >= msgbuflen)
             {
                 /* Realloc to a multiple of 128.  */
-                msgbuflen = (msgtogo + out_len + 127) & ~(size_t) 127;
+                msgbuflen = (msgtogo + out_len + 127) & ~static_cast<size_t>(127);
                 msgbuf = (char *) realloc(msgbuf, msgbuflen);
             }
 
-            lzo_byte *out_buf = (lzo_byte *) (msgbuf + msgtogo);
-            lzo_voidp wrkmem = (lzo_voidp) malloc(LZO1X_MEM_COMPRESS);
+            lzo_byte *out_buf = static_cast<lzo_byte*>(msgbuf + msgtogo);
+            lzo_voidp wrkmem = static_cast<lzo_voidp>(malloc(LZO1X_MEM_COMPRESS));
             int ret = lzo1x_1_compress(in_buf, in_len, out_buf, &out_len, wrkmem);
             free(wrkmem);
 
@@ -794,12 +794,12 @@ namespace icecream
             }
 
             int i = 0;
-            setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *) &i, sizeof(i));
+            setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, static_cast<char>(&i), sizeof(i));
 
             // would be nice but not portable across non-linux
         #ifdef __linux__
             i = 1;
-            setsockopt(fd, IPPROTO_TCP, TCP_CORK, (char *) &i, sizeof(i));
+            setsockopt(fd, IPPROTO_TCP, TCP_CORK, static_cast<char*>(&i), sizeof(i));
         #endif
             i = 65536;
             setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &i, sizeof(i));
@@ -1018,7 +1018,7 @@ namespace icecream
             }
             else
             {
-                *this << (uint32_t) 0;
+                *this << static_cast<uint32_t>(0);
                 m.send_to_channel(this);
                 uint32_t len = htonl(msgtogo - msgtogo_old - 4);
                 memcpy(msgbuf + msgtogo_old, &len, 4);

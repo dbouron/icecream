@@ -30,7 +30,7 @@ namespace icecream
     namespace services
     {
         DiscoverSched::DiscoverSched(const std::string &_netname, int _timeout,
-                const std::string &_schedname, int port)
+                                     const std::string &_schedname, int port)
                 : netname(_netname)
                 , schedname(_schedname)
                 , timeout(_timeout)
