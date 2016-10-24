@@ -46,14 +46,14 @@ namespace icecream
     {
         class Msg;
 
-        enum class SendFlags : uint32_t
+        enum SendFlags : uint32_t
         {
             SendBlocking = 1 << 0,
             SendNonBlocking = 1 << 1,
             SendBulkOnly = 1 << 2
         };
 
-        enum class  InState : uint32_t
+        enum InState : uint32_t
         {
             NEED_PROTO,
             NEED_LEN,

@@ -1,6 +1,8 @@
 lib_LTLIBRARIES = libicecc.la
 libicecc_la_SOURCES = \
 	job.cpp \
+	msg.cpp \
+	channel.cpp \
 	service.cpp \
 	exitcode.cpp \
 	getifaddrs.cpp \
@@ -95,7 +97,9 @@ noinst_HEADERS = \
 	verify-env.h \
 	verify-env-result.h \
 	blacklist-host-env.h \
-	network.h
+	network.h \
+	protocol.h \
+	protocol.hxx
 
 
 pkgconfigdir = $(libdir)/pkgconfig

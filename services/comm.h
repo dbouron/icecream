@@ -50,7 +50,7 @@ namespace icecream
         /// A list of pairs of host platform, filename
         using Environments = std::list<std::pair<std::string, std::string>>;
 
-        enum class MsgType : uint32_t
+        enum MsgType : uint32_t
         {
             // so far unknown
             UNKNOWN = 'A',

@@ -25,6 +25,36 @@
 
 #include "channel.h"
 
+#include "ping.h"
+#include "end.h"
+#include "get-cs.h"
+#include "use-cs.h"
+#include "get-native-env.h"
+#include "use-native-env.h"
+#include "compile-file.h"
+#include "file-chunk.h"
+#include "compile-result.h"
+#include "job-begin.h"
+#include "job-done.h"
+#include "job-local-begin.h"
+#include "job-local-done.h"
+#include "login.h"
+#include "conf-cs.h"
+#include "stats.h"
+#include "env-transfer.h"
+#include "get-internal-status.h"
+#include "mon-login.h"
+#include "mon-get-cs.h"
+#include "mon-job-begin.h"
+#include "mon-job-done.h"
+#include "mon-local-job-begin.h"
+#include "mon-stats.h"
+#include "text.h"
+#include "status-text.h"
+#include "verify-env.h"
+#include "verify-env-result.h"
+#include "blacklist-host-env.h"
+
 namespace icecream
 {
     namespace services
@@ -43,9 +73,9 @@ namespace icecream
                     name = reinterpret_cast<sockaddr_un*>(addr)->sun_path;
                 else
                 {
-                    if (int error = getnameinfo(addr, addr_len, buf, sizeof(buf), NULL,
+                    if (int error = getnameinfo(addr, addr_len, buf, sizeof (buf), NULL,
                             0, NI_NUMERICHOST))
-                        log_error() << "getnameinfo(): " << error << endl;
+                        log_error() << "getnameinfo(): " << error << std::endl;
                     name = buf;
                 }
             }
@@ -284,7 +314,7 @@ namespace icecream
                     }
                     else
                     {
-                        trace() << "NEED_PROTO but protocol > 0" << endl;
+                        trace() << "NEED_PROTO but protocol > 0" << std::endl;
                     }
                 }
 
@@ -328,7 +358,7 @@ namespace icecream
                     if (inbuflen - intogo < inmsglen)
                     {
                         inbuflen = (inmsglen + intogo + 127)
-                            & ~static_cast<size_>(127);
+                            & ~static_cast<size_t>(127);
                         inbuf = static_cast<char*>(realloc(inbuf, inbuflen));
                     }
 
@@ -491,7 +521,7 @@ namespace icecream
                 }
                 else
                 {
-                    buf = *(uint32_t *) (inbuf + intogo);
+                    buf = *reinterpret_cast<uint32_t*>(inbuf + intogo);
                 }
 
                 intogo += 4;
@@ -512,7 +542,7 @@ namespace icecream
             return *this;
         }
 
-        Channel &Channel::operator>>(string &s)
+        Channel &Channel::operator>>(std::string &s)
         {
             char *buf;
             // len is including the (also saved) 0 Byte
@@ -541,7 +571,7 @@ namespace icecream
             return *this;
         }
 
-        Channel &Channel::operator>>(list<string> &l)
+        Channel &Channel::operator>>(std::list<std::string> &l)
         {
             uint32_t len;
             l.clear();
@@ -549,7 +579,7 @@ namespace icecream
 
             while (len--)
             {
-                string s;
+                std::string s;
                 *this >> s;
                 l.push_back(s);
 
@@ -566,7 +596,7 @@ namespace icecream
         {
             *this << static_cast<uint32_t>(l.size());
 
-            for (list<string>::const_iterator it = l.begin(); it != l.end(); ++it)
+            for (std::list<std::string>::const_iterator it = l.begin(); it != l.end(); ++it)
             {
                 *this << *it;
             }
@@ -593,8 +623,8 @@ namespace icecream
 
             for (unsigned int i = 0; i < count; i++)
             {
-                string plat;
-                string vers;
+                std::string plat;
+                std::string vers;
                 *this >> plat;
                 *this >> vers;
                 envs.push_back(make_pair(plat, vers));
@@ -619,7 +649,7 @@ namespace icecream
                     || (uncompressed_len && !compressed_len)
                     || inofs < intogo + compressed_len)
             {
-                log_error() << "failure in readcompressed() length checking" << endl;
+                log_error() << "failure in readcompressed() length checking" << std::endl;
                 *uncompressed_buf = 0;
                 uncompressed_len = 0;
                 _uclen = uncompressed_len;
@@ -631,7 +661,7 @@ namespace icecream
 
             if (uncompressed_len && compressed_len)
             {
-                const lzo_byte *compressed_buf = static_cast<lzo_byte*>(inbuf + intogo);
+                const lzo_byte *compressed_buf = reinterpret_cast<lzo_byte*>(inbuf + intogo);
                 lzo_voidp wrkmem = static_cast<lzo_voidp>(malloc(LZO1X_MEM_COMPRESS));
                 int ret = lzo1x_decompress(compressed_buf, compressed_len,
                         *uncompressed_buf, &uncompressed_len, wrkmem);
@@ -644,7 +674,7 @@ namespace icecream
                      but don't reset the compressed_len, so our caller know,
                      that there actually was something read in.  */
                     log_error() << "internal error - decompression of data from "
-                            << dump().c_str() << " failed: " << ret << endl;
+                            << dump().c_str() << " failed: " << ret << std::endl;
                     delete[] *uncompressed_buf;
                     *uncompressed_buf = 0;
                     uncompressed_len = 0;
@@ -676,7 +706,7 @@ namespace icecream
                 msgbuf = (char *) realloc(msgbuf, msgbuflen);
             }
 
-            lzo_byte *out_buf = static_cast<lzo_byte*>(msgbuf + msgtogo);
+            lzo_byte *out_buf = reinterpret_cast<lzo_byte*>(msgbuf + msgtogo);
             lzo_voidp wrkmem = static_cast<lzo_voidp>(malloc(LZO1X_MEM_COMPRESS));
             int ret = lzo1x_1_compress(in_buf, in_len, out_buf, &out_len, wrkmem);
             free(wrkmem);
@@ -684,7 +714,7 @@ namespace icecream
             if (ret != LZO_E_OK)
             {
                 /* this should NEVER happen */
-                log_error() << "internal error - compression failed: " << ret << endl;
+                log_error() << "internal error - compression failed: " << ret << std::endl;
                 out_len = 0;
             }
 
@@ -694,7 +724,7 @@ namespace icecream
             _out_len = out_len;
         }
 
-        void Channel::read_line(string &line)
+        void Channel::read_line(std::string &line)
         {
             /* XXX handle DOS and MAC line endings and null bytes as string endings.  */
             if (!text_based || inofs < intogo)
@@ -703,7 +733,7 @@ namespace icecream
             }
             else
             {
-                line = string(inbuf + intogo, inmsglen);
+                line = std::string(inbuf + intogo, inmsglen);
                 intogo += inmsglen;
 
                 while (intogo < inofs && inbuf[intogo] < ' ')
@@ -713,7 +743,7 @@ namespace icecream
             }
         }
 
-        void Channel::write_line(const string &line)
+        void Channel::write_line(const std::string &line)
         {
             size_t len = line.length();
             writefull(line.c_str(), len);
@@ -733,7 +763,7 @@ namespace icecream
                     && memcmp(&s1->sin_addr, &s2->sin_addr, sizeof(s1->sin_addr)) == 0);
         }
 
-        string Channel::dump() const
+        std::string Channel::dump() const
         {
             return name + ": (" + char((int) instate + 'A') + " eof: " + char(eof + '0')
                     + ")";
@@ -767,7 +797,7 @@ namespace icecream
                 if (ret == 0)
                 {
                     log_error() << "no response from local daemon within timeout."
-                            << endl;
+                            << std::endl;
                     return false; /* timeout. Consider it a fatal error. */
                 }
 
@@ -794,12 +824,12 @@ namespace icecream
             }
 
             int i = 0;
-            setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, static_cast<char>(&i), sizeof(i));
+            setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&i), sizeof(i));
 
             // would be nice but not portable across non-linux
         #ifdef __linux__
             i = 1;
-            setsockopt(fd, IPPROTO_TCP, TCP_CORK, static_cast<char*>(&i), sizeof(i));
+            setsockopt(fd, IPPROTO_TCP, TCP_CORK, reinterpret_cast<char*>(&i), sizeof(i));
         #endif
             i = 65536;
             setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &i, sizeof(i));
@@ -874,13 +904,13 @@ namespace icecream
              Don't use has_msg() here, as it returns true for eof.  */
             if (at_eof())
             {
-                trace() << "saw eof without complete msg! " << instate << endl;
+                trace() << "saw eof without complete msg! " << instate << std::endl;
                 return 0;
             }
 
             if (!has_msg())
             {
-                trace() << "saw eof without msg! " << eof << " " << instate << endl;
+                trace() << "saw eof without msg! " << eof << " " << instate << std::endl;
                 return 0;
             }
 
@@ -991,12 +1021,12 @@ namespace icecream
 
             if (!m)
             {
-                trace() << "no message type" << endl;
+                trace() << "no message type" << std::endl;
                 return 0;
             }
 
             m->fill_from_channel(this);
-            instate = NEED_LEN;
+            instate = InState::NEED_LEN;
             update_state();
 
             return m;
@@ -1004,7 +1034,7 @@ namespace icecream
 
         bool Channel::send_msg(const Msg &m, SendFlags flags)
         {
-            if (instate == NEED_PROTO && !wait_for_protocol())
+            if (instate == InState::NEED_PROTO && !wait_for_protocol())
             {
                 return false;
             }
@@ -1024,12 +1054,12 @@ namespace icecream
                 memcpy(msgbuf + msgtogo_old, &len, 4);
             }
 
-            if ((flags & SendBulkOnly) && msgtogo < 4096)
+            if ((flags & SendFlags::SendBulkOnly) && msgtogo < 4096)
             {
                 return true;
             }
 
-            return flush_writebuf((flags & SendBlocking));
+            return flush_writebuf((flags & SendFlags::SendBlocking));
         }
     } // services
 } // icecream

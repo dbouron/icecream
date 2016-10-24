@@ -89,25 +89,25 @@ namespace icecream
                     if (arg.at(1) == 'g') {
                         if (arg.length() > 2 && arg.at(2) == '3') {
                             result &= ~Flag::g;
-                            result = result | Flag::g3;
+                            result |= Flag::g3;
                         } else {
                             result &= ~Flag::g3;
-                            result = result | Flag::g;
+                            result |= Flag::g;
                         }
                     } else if (arg.at(1) == 'O') {
                         result &= ~(Flag::O | Flag::O2 | Flag::Ol2);
 
                         if (arg.length() == 2) {
-                            result = result | Flag::O;
+                            result |= Flag::O;
                         } else {
                             assert(arg.length() > 2);
 
                             if (arg.at(2) == '2') {
-                                result = result | Flag::O2;
+                                result |= Flag::O2;
                             } else if (arg.at(2) == '1') {
-                                result = result | Flag::O;
+                                result |= Flag::O;
                             } else if (arg.at(2) != '0') {
-                                result = result | Flag::Ol2;
+                                result |= Flag::Ol2;
                             }
                         }
                     }

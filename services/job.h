@@ -32,13 +32,12 @@
 # include "logging.h"
 # include "exitcode.h"
 # include "platform.h"
-# include "enum-operator.h"
 
 namespace icecream
 {
     namespace services
     {
-        enum class ArgumentType
+        enum ArgumentType : uint32_t
         {
             Unspecified,
             Local,
@@ -46,7 +45,7 @@ namespace icecream
             Rest
         };
 
-        enum class Language
+        enum Language : uint32_t
         {
                 C,
                 CXX,
@@ -54,7 +53,7 @@ namespace icecream
                 Custom
         };
 
-        enum class Flag
+        enum Flag : uint32_t
         {
             None = 0,
             g = 0x1,
