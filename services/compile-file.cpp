@@ -56,7 +56,7 @@ namespace icecream
             *c >> _l1;
             *c >> _l2;
             *c >> version;
-            job->setLanguage((Language) lang);
+            job->setLanguage(static_cast<Language>(lang));
             job->setJobID(id);
             ArgumentList l;
 
@@ -144,7 +144,7 @@ namespace icecream
             if (is_protocol<35>()(*c))
             {
                 *c << job->outputFile();
-                *c << (uint32_t) job->dwarfFissionEnabled();
+                *c << static_cast<uint32_t>(job->dwarfFissionEnabled());
             }
         }
 

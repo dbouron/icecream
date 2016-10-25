@@ -151,7 +151,7 @@ namespace icecream
             return str.substr(ofs + 1);
         }
 
-/* Returns a filedesc. or a negative value for errors.  */
+        /* Returns a filedesc. or a negative value for errors.  */
          int open_send_broadcast(int port, const char* buf, int size)
         {
             int ask_fd;

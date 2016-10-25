@@ -131,7 +131,9 @@ namespace icecream
 
                 /* Read/test all packages arrived until now.  */
                 while (get_broad_answer(ask_fd, 0/*timeout*/, buf2,
-                        (struct sockaddr_in *) &remote_addr, &remote_len))
+                                        reinterpret_cast<struct sockaddr_in *>
+                                        (&remote_addr),
+                                        &remote_len))
                 {
                     int version;
                     time_t start_time;
@@ -156,8 +158,8 @@ namespace icecream
                         if (best_version != 0)
                             multiple = true;
                         if (best_version < version
-                                || (best_version == version
-                                        && best_start_time > start_time))
+                            || (best_version == version
+                                && best_start_time > start_time))
                         {
                             schedname = inet_ntoa(remote_addr.sin_addr);
                             sport = ntohs(remote_addr.sin_port);
@@ -183,8 +185,10 @@ namespace icecream
 
                     if (ask_fd >= 0)
                     {
-                        int status = connect(ask_fd, (struct sockaddr *) &remote_addr,
-                                sizeof(remote_addr));
+                        int status = connect(ask_fd,
+                                             reinterpret_cast<struct sockaddr*>
+                                             (&remote_addr),
+                                             sizeof(remote_addr));
 
                         if (status == 0
                                 || (status < 0
@@ -192,24 +196,28 @@ namespace icecream
                         {
                             int fd = ask_fd;
                             ask_fd = -1;
-                            return Service::createChannel(fd,
-                                    (struct sockaddr *) &remote_addr,
-                                    sizeof(remote_addr));
+                            return
+                                Service::createChannel(fd,
+                                                       reinterpret_cast<struct sockaddr*>
+                                                       (&remote_addr),
+                                                       sizeof(remote_addr));
                         }
                     }
                 }
             }
             else if (ask_fd >= 0)
             {
-                int status = connect(ask_fd, (struct sockaddr *) &remote_addr,
-                        sizeof(remote_addr));
+                int status = connect(ask_fd,
+                                     reinterpret_cast<struct sockaddr*>(&remote_addr),
+                                     sizeof(remote_addr));
 
                 if (status == 0 || (status < 0 && errno == EISCONN))
                 {
                     int fd = ask_fd;
                     ask_fd = -1;
-                    return Service::createChannel(fd, (struct sockaddr *) &remote_addr,
-                            sizeof(remote_addr));
+                    return Service::createChannel(fd,
+                                                  reinterpret_cast<struct sockaddr*>(&remote_addr),
+                                                  sizeof(remote_addr));
                 }
             }
 

@@ -29,8 +29,7 @@ extern "C" {
 
 std::string determine_platform_once()
 {
-    using namespace std;
-    string platform;
+    std::string platform;
 
     struct utsname uname_buf;
 
@@ -40,13 +39,13 @@ std::string determine_platform_once()
         // return platform;
     }
 
-    string os = uname_buf.sysname;
+    std::string os = uname_buf.sysname;
 
     if (os == "Darwin") {
         const std::string release = uname_buf.release;
-        const string::size_type pos = release.find('.');
+        const std::string::size_type pos = release.find('.');
 
-        if (pos == string::npos) {
+        if (pos == std::string::npos) {
             throw(std::string("determine_platform: Cannot determine Darwin release from release string \"") + release + "\"");
         }
 
@@ -60,9 +59,9 @@ std::string determine_platform_once()
     }
 
     while (true) {
-        string::size_type pos = platform.find(" ");
+        auto pos = platform.find(" ");
 
-        if (pos == string::npos) {
+        if (pos == std::string::npos) {
             break;
         }
 

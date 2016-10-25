@@ -75,7 +75,7 @@ namespace icecream
 
         unsigned int CompileJob::argumentFlags() const
         {
-            unsigned int result = static_cast<unsigned int>(Flag::None);
+            auto result = static_cast<unsigned int>(Flag::None);
 
             for (const auto &cit : m_flags)
             {

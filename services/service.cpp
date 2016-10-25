@@ -43,7 +43,8 @@ namespace icecream
 
             if (timeout)
             {
-                if (!connect_async(remote_fd, (struct sockaddr *) &remote_addr,
+                if (!connect_async(remote_fd,
+                                   reinterpret_cast<struct sockaddr*>(&remote_addr),
                                    sizeof(remote_addr), timeout))
                 {
                     return 0;    // remote_fd is already closed
@@ -54,7 +55,8 @@ namespace icecream
                 int i = 2048;
                 setsockopt(remote_fd, SOL_SOCKET, SO_SNDBUF, &i, sizeof(i));
 
-                if (connect(remote_fd, (struct sockaddr *) &remote_addr,
+                if (connect(remote_fd,
+                            reinterpret_cast<struct sockaddr*>(&remote_addr),
                             sizeof(remote_addr)) < 0)
                 {
                     close(remote_fd);
@@ -64,7 +66,8 @@ namespace icecream
             }
 
             trace() << "connected to " << hostname << std::endl;
-            return createChannel(remote_fd, (struct sockaddr *) &remote_addr,
+            return createChannel(remote_fd,
+                                 reinterpret_cast<struct sockaddr*>(&remote_addr),
                                  sizeof(remote_addr));
         }
 
@@ -96,7 +99,8 @@ namespace icecream
             strncpy(remote_addr.sun_path, socket_path.c_str(),
                     sizeof(remote_addr.sun_path) - 1);
 
-            if (connect(remote_fd, (struct sockaddr *) &remote_addr,
+            if (connect(remote_fd,
+                        reinterpret_cast<struct sockaddr*>(&remote_addr),
                         sizeof(remote_addr)) < 0)
             {
                 close(remote_fd);
@@ -105,7 +109,8 @@ namespace icecream
             }
 
             trace() << "connected to " << socket_path << std::endl;
-            return createChannel(remote_fd, (struct sockaddr *) &remote_addr,
+            return createChannel(remote_fd,
+                                 reinterpret_cast<struct sockaddr*>(&remote_addr),
                                  sizeof(remote_addr));
         }
     } // services
