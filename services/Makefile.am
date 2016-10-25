@@ -99,7 +99,8 @@ noinst_HEADERS = \
 	blacklist-host-env.h \
 	network.h \
 	protocol.h \
-	protocol.hxx
+	protocol.hxx \
+	all.h
 
 
 pkgconfigdir = $(libdir)/pkgconfig
