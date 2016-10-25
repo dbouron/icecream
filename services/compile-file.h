@@ -41,20 +41,20 @@ namespace icecream
         class CompileFile : public Msg
         {
         public:
-            CompileFile(CompileJob *j, bool delete_job = false);
+            CompileFile(std::shared_ptr<CompileJob> j, bool delete_job = false);
 
             ~CompileFile();
 
             virtual void fill_from_channel(std::shared_ptr<Channel> c);
             virtual void send_to_channel(std::shared_ptr<Channel> c) const;
 
-            CompileJob *takeJob();
+            std::shared_ptr<CompileJob> takeJob();
 
         private:
             std::string remote_compiler_name() const;
 
             bool deleteit;
-            CompileJob *job;
+            std::shared_ptr<CompileJob> job;
         };
     } // services
 } // icecream

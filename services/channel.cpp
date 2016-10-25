@@ -859,9 +859,9 @@ namespace icecream
             return true;
         }
 
-        Msg *Channel::get_msg(int timeout)
+        std::shared_ptr<Msg> Channel::get_msg(int timeout)
         {
-            Msg *m = 0;
+            std::shared_ptr<Msg> m{nullptr};
             MsgType type;
             uint32_t t;
 
@@ -899,94 +899,96 @@ namespace icecream
             switch (type)
             {
             case MsgType::UNKNOWN:
-                return 0;
+                return std::shared_ptr<Msg>{nullptr};
             case MsgType::PING:
-                m = new Ping;
+                m = std::shared_ptr<Ping>{new Ping{}};
                 break;
             case MsgType::END:
-                m = new End;
+                m = std::shared_ptr<End>{new End{}};
                 break;
             case MsgType::GET_CS:
-                m = new GetCS;
+                m = std::shared_ptr<GetCS>{new GetCS{}};
                 break;
             case MsgType::USE_CS:
-                m = new UseCS;
+                m = std::shared_ptr<UseCS>{new UseCS{}};
                 break;
             case MsgType::COMPILE_FILE:
-                m = new CompileFile(new CompileJob, true);
-                break;
+                m = std::shared_ptr<CompileFile>{
+                    new CompileFile{std::shared_ptr<CompileJob>{new CompileJob},
+                                    true}};
+                    break;
             case MsgType::FILE_CHUNK:
-                m = new FileChunk;
+                m = std::shared_ptr<FileChunk>{new FileChunk{}};
                 break;
             case MsgType::COMPILE_RESULT:
-                m = new CompileResult;
+                m = std::shared_ptr<CompileResult>{new CompileResult{}};
                 break;
             case MsgType::JOB_BEGIN:
-                m = new JobBegin;
+                m = std::shared_ptr<JobBegin>{new JobBegin{}};
                 break;
             case MsgType::JOB_DONE:
-                m = new JobDone;
+                m = std::shared_ptr<JobDone>{new JobDone{}};
                 break;
             case MsgType::LOGIN:
-                m = new Login;
+                m = std::shared_ptr<Login>{new Login{}};
                 break;
             case MsgType::STATS:
-                m = new Stats;
+                m = std::shared_ptr<Stats>{new Stats{}};
                 break;
             case MsgType::GET_NATIVE_ENV:
-                m = new GetNativeEnv;
+                m = std::shared_ptr<GetNativeEnv>{new GetNativeEnv{}};
                 break;
             case MsgType::NATIVE_ENV:
-                m = new UseNativeEnv;
+                m = std::shared_ptr<UseNativeEnv>{new UseNativeEnv{}};
                 break;
             case MsgType::MON_LOGIN:
-                m = new MonLogin;
+                m = std::shared_ptr<MonLogin>{new MonLogin{}};
                 break;
             case MsgType::MON_GET_CS:
-                m = new MonGetCS;
+                m = std::shared_ptr<MonGetCS>{new MonGetCS{}};
                 break;
             case MsgType::MON_JOB_BEGIN:
-                m = new MonJobBegin;
+                m = std::shared_ptr<MonJobBegin>{new MonJobBegin{}};
                 break;
             case MsgType::MON_JOB_DONE:
-                m = new MonJobDone;
+                m = std::shared_ptr<MonJobDone>{new MonJobDone{}};
                 break;
             case MsgType::MON_STATS:
-                m = new MonStats;
+                m = std::shared_ptr<MonStats>{new MonStats{}};
                 break;
             case MsgType::JOB_LOCAL_BEGIN:
-                m = new JobLocalBegin;
+                m = std::shared_ptr<JobLocalBegin>{new JobLocalBegin{}};
                 break;
             case MsgType::JOB_LOCAL_DONE:
-                m = new JobLocalDone;
+                m = std::shared_ptr<JobLocalDone>{new JobLocalDone{}};
                 break;
             case MsgType::MON_LOCAL_JOB_BEGIN:
-                m = new MonLocalJobBegin;
+                m = std::shared_ptr<MonLocalJobBegin>{new MonLocalJobBegin{}};
                 break;
             case MsgType::TRANFER_ENV:
-                m = new EnvTransfer;
+                m = std::shared_ptr<EnvTransfer>{new EnvTransfer{}};
                 break;
             case MsgType::TEXT:
-                m = new Text;
+                m = std::shared_ptr<Text>{new Text{}};
                 break;
             case MsgType::GET_INTERNALS:
-                m = new GetInternalStatus;
+                m = std::shared_ptr<GetInternalStatus>{new GetInternalStatus{}};
                 break;
             case MsgType::STATUS_TEXT:
-                m = new StatusText;
+                m = std::shared_ptr<StatusText>{new StatusText{}};
                 break;
             case MsgType::CS_CONF:
-                m = new ConfCS;
+                m = std::shared_ptr<ConfCS>{new ConfCS{}};
                 break;
             case MsgType::VERIFY_ENV:
-                m = new VerifyEnv;
+                m = std::shared_ptr<VerifyEnv>{new VerifyEnv{}};
                 break;
             case MsgType::VERIFY_ENV_RESULT:
-                m = new VerifyEnvResult;
+                m = std::shared_ptr<VerifyEnvResult>{new VerifyEnvResult{}};
                 break;
             case MsgType::BLACKLIST_HOST_ENV:
-                m = new BlacklistHostEnv;
-                break;
+            m = std::shared_ptr<BlacklistHostEnv>{new BlacklistHostEnv{}};
+            break;
             case MsgType::TIMEOUT:
                 break;
             }

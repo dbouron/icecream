@@ -30,7 +30,7 @@ namespace icecream
     namespace services
     {
 
-        CompileFile::CompileFile(CompileJob *j, bool delete_job)
+        CompileFile::CompileFile(std::shared_ptr<CompileJob>j, bool delete_job)
             : Msg(MsgType::COMPILE_FILE)
             , deleteit(delete_job)
             , job(j)
@@ -39,9 +39,10 @@ namespace icecream
 
         CompileFile::~CompileFile()
         {
+            /// \todo Need to understand carefully this part before removing it.
             if (deleteit)
             {
-                delete job;
+                job.reset();
             }
         }
 
@@ -162,7 +163,7 @@ namespace icecream
             return job->language() == Language::CXX ? "g++" : "gcc";
         }
 
-        CompileJob *CompileFile::takeJob()
+        std::shared_ptr<CompileJob> CompileFile::takeJob()
         {
             assert(deleteit);
             deleteit = false;

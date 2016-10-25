@@ -9,7 +9,7 @@ Release Critical:
 * Improve Documentation (cschum)
 * make the protocol version an uint32, not a hand-build array.
 * let the client specify it was compiled with recent compiler (supporting -param). If so,
-  let the daemon compile with the options, otherwise leave them out. 
+  let the daemon compile with the options, otherwise leave them out.
 
 Akademy must have's:
 * daemon: only accept connections from a sane net prefix (scheduler can determine
@@ -64,3 +64,18 @@ Andi Kleen writes to protect against misconfiguration:
 >and then run with
 >-include somefile.h
 > (this file needs to be in the environment created by create_env)
+
+Code source improvement:
+* Create a miscellaneous module for logging, util, platform, gcc, ... and make
+  services only a module for messaging.
+* Continue improving doc (using Doxygen?)
+* Make code source more readable:
+  * Only definitions in header file
+  * Template and inlined implementation in .hxx file. It is sometimes helpful
+    for the One Definition Rule.
+* Use clang format (Purpose: linux style?)
+* Discuss about boost.asio usage with a C++ network layer. It will not arrive for
+  major C++17. This library could increase network module performance:
+  https://konradzemek.com/2015/08/16/asio-ssl-and-scalability/
+* Discuss about exception usage instead of bool or nullptr return value. We also can
+  use std::experimental::optional. It will arrive for major C++17

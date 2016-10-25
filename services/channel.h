@@ -37,6 +37,9 @@
 #ifndef ICECREAM_CHANNEL_H
 # define ICECREAM_CHANNEL_H
 
+# include <memory>
+# include <cstddef>
+
 # include "comm.h"
 # include "msg.h"
 
@@ -70,7 +73,7 @@ namespace icecream
 
             std::string dump() const;
             // NULL  <--> channel closed or timeout
-            Msg *get_msg(int timeout = 10);
+            std::shared_ptr<Msg> get_msg(int timeout = 10);
 
             // false <--> error (msg not send)
             bool send_msg(const Msg &, SendFlags flags = SendFlags::SendBlocking);
