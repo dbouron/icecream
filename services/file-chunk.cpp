@@ -44,7 +44,7 @@ namespace icecream
                 delete[] buffer;
             }
 
-            buffer = 0;
+            buffer = nullptr;
             del_buf = true;
 
             Msg::fill_from_channel(c);

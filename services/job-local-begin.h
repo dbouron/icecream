@@ -37,7 +37,7 @@ namespace icecream
             JobLocalBegin(int job_id = 0, const std::string &file = "")
                 : Msg(MsgType::JOB_LOCAL_BEGIN)
                 , outfile(file)
-                , stime(time(0))
+                , stime(time(nullptr))
                 , id(job_id) {
             }
 

@@ -41,7 +41,7 @@ namespace icecream
             JobBegin(unsigned int j)
                 : Msg(MsgType::JOB_BEGIN)
                 , job_id(j)
-                , stime(time(0)) {
+                , stime(time(nullptr)) {
             }
 
             virtual void fill_from_channel(std::shared_ptr<Channel> c);

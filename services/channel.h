@@ -72,7 +72,7 @@ namespace icecream
             void setBulkTransfer();
 
             std::string dump() const;
-            // NULL  <--> channel closed or timeout
+            // nullptr  <--> channel closed or timeout
             std::shared_ptr<Msg> get_msg(int timeout = 10);
 
             // false <--> error (msg not send)

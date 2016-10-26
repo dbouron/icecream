@@ -47,7 +47,7 @@ namespace icecream
 
             FileChunk()
                 : Msg(MsgType::FILE_CHUNK)
-                , buffer(0)
+                , buffer(nullptr)
                 , len(0)
                 , del_buf(true)
                 {

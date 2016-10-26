@@ -45,7 +45,7 @@ namespace icecream
                     name = reinterpret_cast<sockaddr_un*>(addr)->sun_path;
                 else
                 {
-                    if (int error = getnameinfo(addr, addr_len, buf, sizeof (buf), NULL,
+                    if (int error = getnameinfo(addr, addr_len, buf, sizeof (buf), nullptr,
                             0, NI_NUMERICHOST))
                         log_error() << "getnameinfo(): " << error << std::endl;
                     name = buf;
@@ -53,7 +53,7 @@ namespace icecream
             }
             else
             {
-                addr = 0;
+                addr = nullptr;
                 name = "";
             }
 
@@ -127,7 +127,7 @@ namespace icecream
                 }
             }
 
-            last_talk = time(0);
+            last_talk = time(nullptr);
         }
 
         Channel::~Channel()
@@ -442,7 +442,7 @@ namespace icecream
                             struct timeval tv;
                             tv.tv_sec = 20;
                             tv.tv_usec = 0;
-                            ready = select(fd + 1, NULL, &write_set, NULL, &tv);
+                            ready = select(fd + 1, nullptr, &write_set, nullptr, &tv);
 
                             if (ready < 0 && errno == EINTR)
                             {
@@ -759,7 +759,7 @@ namespace icecream
                 struct timeval tv;
                 tv.tv_sec = 5;
                 tv.tv_usec = 0;
-                int ret = select(fd + 1, &set, NULL, NULL, &tv);
+                int ret = select(fd + 1, &set, nullptr, nullptr, &tv);
 
                 if (ret < 0 && errno == EINTR)
                 {
@@ -837,7 +837,7 @@ namespace icecream
                 tv.tv_sec = timeout;
                 tv.tv_usec = 0;
 
-                if (select(fd + 1, &read_set, NULL, NULL, &tv) <= 0)
+                if (select(fd + 1, &read_set, nullptr, nullptr, &tv) <= 0)
                 {
                     if (errno == EINTR)
                     {
@@ -868,7 +868,7 @@ namespace icecream
             if (!wait_for_msg(timeout))
             {
                 trace() << "!wait_for_msg()\n";
-                return 0;
+                return nullptr;
             }
 
             /* If we've seen the EOF, and we don't have a complete message,
@@ -877,13 +877,13 @@ namespace icecream
             if (at_eof())
             {
                 trace() << "saw eof without complete msg! " << instate << std::endl;
-                return 0;
+                return nullptr;
             }
 
             if (!has_msg())
             {
                 trace() << "saw eof without msg! " << eof << " " << instate << std::endl;
-                return 0;
+                return nullptr;
             }
 
             if (text_based)
@@ -899,7 +899,7 @@ namespace icecream
             switch (type)
             {
             case MsgType::UNKNOWN:
-                return std::shared_ptr<Msg>{nullptr};
+                return nullptr;
             case MsgType::PING:
                 m = std::shared_ptr<Ping>{new Ping{}};
                 break;
@@ -996,7 +996,7 @@ namespace icecream
             if (!m)
             {
                 trace() << "no message type" << std::endl;
-                return 0;
+                return nullptr;
             }
 
             m->fill_from_channel(this->shared_from_this());

@@ -88,7 +88,7 @@ namespace icecream
                     select_timeout.tv_usec = 0;
                     FD_ZERO(&writefds);
                     FD_SET(remote_fd, &writefds);
-                    ret = select(remote_fd + 1, NULL, &writefds, NULL, &select_timeout);
+                    ret = select(remote_fd + 1, nullptr, &writefds, nullptr, &select_timeout);
 
                     if (ret < 0 && errno == EINTR)
                     {
@@ -189,14 +189,14 @@ namespace icecream
                 return ret;
             }
 
-            for (struct kde_ifaddrs *addr = addrs; addr != NULL; addr = addr->ifa_next)
+            for (struct kde_ifaddrs *addr = addrs; addr != nullptr; addr = addr->ifa_next)
             {
                 /*
                  * See if this interface address is IPv4...
                  */
 
-                if (addr->ifa_addr == NULL || addr->ifa_addr->sa_family != AF_INET
-                    || addr->ifa_netmask == NULL || addr->ifa_name == NULL)
+                if (addr->ifa_addr == nullptr || addr->ifa_addr->sa_family != AF_INET
+                    || addr->ifa_netmask == nullptr || addr->ifa_name == nullptr)
                 {
                     continue;
                 }
@@ -251,7 +251,7 @@ namespace icecream
             tv.tv_usec = 1000 * (timeout % 1000);
             errno = 0;
 
-            if (select(ask_fd + 1, &read_set, NULL, NULL, &tv) <= 0)
+            if (select(ask_fd + 1, &read_set, nullptr, nullptr, &tv) <= 0)
             {
                 /* Normally this is a timeout, i.e. no scheduler there.  */
                 if (errno)
@@ -289,28 +289,28 @@ namespace icecream
             if (buf[0] == PROTOCOL_VERSION + 1)
             {
                 // Scheduler version 32 or older, didn't send us its version, assume it's 32.
-                if (name != NULL)
+                if (name != nullptr)
                     *name = buf + 1;
-                if (version != NULL)
+                if (version != nullptr)
                     *version = 32;
-                if (start_time != NULL)
+                if (start_time != nullptr)
                     *start_time = 0; // Unknown too.
             }
             else if (buf[0] == PROTOCOL_VERSION + 2)
             {
-                if (version != NULL)
+                if (version != nullptr)
                 {
                     uint32_t tmp_version;
                     memcpy(&tmp_version, buf + 1, sizeof(uint32_t));
                     *version = tmp_version;
                 }
-                if (start_time != NULL)
+                if (start_time != nullptr)
                 {
                     uint64_t tmp_time;
                     memcpy(&tmp_time, buf + 1 + sizeof(uint32_t), sizeof(uint64_t));
                     *start_time = tmp_time;
                 }
-                if (name != NULL)
+                if (name != nullptr)
                     *name = buf + 1 + sizeof(uint32_t) + sizeof(uint64_t);
             }
             else

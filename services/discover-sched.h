@@ -76,8 +76,8 @@ namespace icecream
 
             /* Attempt to get a conenction to the scheduler.
 
-             Continue to call this while it returns NULL and timed_out()
-             returns false. If this returns NULL you should wait for either
+             Continue to call this while it returns nullptr and timed_out()
+             returns false. If this returns nullptr you should wait for either
              more data on listen_fd() (use select), or a timeout of your own.
              */
             std::shared_ptr<Channel> try_get_scheduler();

@@ -40,7 +40,7 @@ namespace icecream
                 , best_start_time(0)
                 , multiple(false)
         {
-            time0 = time(0);
+            time0 = time(nullptr);
 
             if (schedname.empty())
             {
@@ -93,13 +93,13 @@ namespace icecream
 
         bool DiscoverSched::timed_out()
         {
-            return (time(0) - time0 >= timeout);
+            return (time(nullptr) - time0 >= timeout);
         }
 
         void DiscoverSched::attempt_scheduler_connect()
         {
 
-            time0 = time(0) + MAX_SCHEDULER_PONG;
+            time0 = time(nullptr) + MAX_SCHEDULER_PONG;
             log_info() << "scheduler is on " << schedname << ":" << sport << " (net "
                     << netname << ")" << std::endl;
 
@@ -173,7 +173,7 @@ namespace icecream
                 {
                     if (best_version == 0)
                     {
-                        return 0;
+                        return nullptr;
                     }
                     if (multiple)
                         log_info() << "Selecting scheduler at " << schedname << ":"
@@ -221,7 +221,7 @@ namespace icecream
                 }
             }
 
-            return 0;
+            return nullptr;
         }
 
         bool DiscoverSched::broadcastData(int port, const char* buf, int len)
@@ -241,7 +241,7 @@ namespace icecream
             int ask_fd;
             struct sockaddr_in remote_addr;
             socklen_t remote_len;
-            time_t time0 = time(0);
+            time_t time0 = time(nullptr);
 
             char buf = PROTOCOL_VERSION;
             ask_fd = open_send_broadcast(port, &buf, 1);
@@ -252,18 +252,18 @@ namespace icecream
                 bool first = true;
                 /* Wait at least two seconds to give all schedulers a chance to answer
                  (unless that'd be longer than the timeout).*/
-                time_t timeout_time = time(NULL) + std::min(2 + 1, timeout);
+                time_t timeout_time = time(nullptr) + std::min(2 + 1, timeout);
 
                 /* Read/test all arriving packages.  */
                 while (get_broad_answer(ask_fd, first ? timeout : 0, buf2, &remote_addr,
-                        &remote_len) && time(NULL) < timeout_time)
+                        &remote_len) && time(nullptr) < timeout_time)
                 {
                     first = false;
                     const char* name;
-                    get_broad_data(buf2, &name, NULL, NULL);
+                    get_broad_data(buf2, &name, nullptr, nullptr);
                     l.push_back(name);
                 }
-            } while (time(0) - time0 < (timeout / 1000));
+            } while (time(nullptr) - time0 < (timeout / 1000));
 
             close(ask_fd);
             return l;

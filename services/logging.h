@@ -52,7 +52,7 @@ void flush_debug();
 
 static inline std::ostream &output_date(std::ostream &os)
 {
-    time_t t = time(0);
+    time_t t = time(nullptr);
     struct tm *tmp = localtime(&t);
     char buf[64];
     strftime(buf, sizeof(buf), "%T: ", tmp);
@@ -121,7 +121,7 @@ class log_block
     char *m_label;
 
 public:
-    log_block(const char *label = 0)
+    log_block(const char *label = nullptr)
     {
 #ifndef NDEBUG
 
@@ -133,7 +133,7 @@ public:
 
         m_label = strdup(label ? label : "");
         ++nesting;
-        gettimeofday(&m_start, 0);
+        gettimeofday(&m_start, nullptr);
 #endif
     }
 
@@ -141,7 +141,7 @@ public:
     {
 #ifndef NDEBUG
         timeval end;
-        gettimeofday(&end, 0);
+        gettimeofday(&end, nullptr);
 
         --nesting;
 
