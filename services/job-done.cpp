@@ -60,14 +60,14 @@ namespace icecream
             *c >> out_compressed;
             *c >> out_uncompressed;
             *c >> flags;
-            exitcode = (int) _exitcode;
+            exitcode = static_cast<int>(_exitcode);
         }
 
         void JobDone::send_to_channel(std::shared_ptr<Channel> c) const
         {
             Msg::send_to_channel(c);
             *c << job_id;
-            *c << (uint32_t) exitcode;
+            *c << static_cast<uint32_t>(exitcode);
             *c << real_msec;
             *c << user_msec;
             *c << sys_msec;
