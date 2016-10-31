@@ -32,10 +32,10 @@
 using namespace std;
 
 int debug_level = 0;
-ostream *logfile_trace = 0;
-ostream *logfile_info = 0;
-ostream *logfile_warning = 0;
-ostream *logfile_error = 0;
+ostream *logfile_trace = nullptr;
+ostream *logfile_info = nullptr;
+ostream *logfile_warning = nullptr;
+ostream *logfile_error = nullptr;
 string logfile_prefix;
 
 static ofstream logfile_null("/dev/null");
@@ -55,7 +55,7 @@ void setup_debug(int level, const string &filename, const string &prefix)
         logfile_file.close();
     }
 
-    ostream *output = 0;
+    ostream *output = nullptr;
 
     if (filename.length()) {
         logfile_file.clear();
@@ -124,7 +124,7 @@ void close_debug()
         logfile_file.close();
     }
 
-    logfile_trace = logfile_info = logfile_warning = logfile_error = 0;
+    logfile_trace = logfile_info = logfile_warning = logfile_error = nullptr;
 }
 
 /* Flushes all ostreams used for debug messages.  You need to call

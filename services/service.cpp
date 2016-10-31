@@ -38,7 +38,7 @@ namespace icecream
 
             if ((remote_fd = prepare_connect(hostname, p, remote_addr)) < 0)
             {
-                return 0;
+                return nullptr;
             }
 
             if (timeout)
@@ -47,7 +47,7 @@ namespace icecream
                                    reinterpret_cast<struct sockaddr*>(&remote_addr),
                                    sizeof(remote_addr), timeout))
                 {
-                    return 0;    // remote_fd is already closed
+                    return nullptr;    // remote_fd is already closed
                 }
             }
             else
@@ -61,7 +61,7 @@ namespace icecream
                 {
                     close(remote_fd);
                     trace() << "connect failed on " << hostname << std::endl;
-                    return 0;
+                    return nullptr;
                 }
             }
 
@@ -92,7 +92,7 @@ namespace icecream
             if ((remote_fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
             {
                 log_perror("socket()");
-                return 0;
+                return nullptr;
             }
 
             remote_addr.sun_family = AF_UNIX;
@@ -105,7 +105,7 @@ namespace icecream
             {
                 close(remote_fd);
                 trace() << "connect failed on " << socket_path << std::endl;
-                return 0;
+                return nullptr;
             }
 
             trace() << "connected to " << socket_path << std::endl;
