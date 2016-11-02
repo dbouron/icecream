@@ -96,6 +96,10 @@
 # include "serve.h"
 # include "load.h"
 
+#ifndef __attribute_warn_unused_result__
+# define __attribute_warn_unused_result__
+#endif
+
 namespace icecream
 {
     namespace daemon

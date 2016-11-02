@@ -54,10 +54,6 @@
 
 static std::string pidFilePath;
 
-#ifndef __attribute_warn_unused_result__
-#define __attribute_warn_unused_result__
-#endif
-
 using namespace icecream::services;
 using namespace icecream::daemon;
 using namespace std;
@@ -138,9 +134,10 @@ static void dcc_daemon_terminate(int whichsig)
     ++exit_main_loop;
 }
 
-void usage(const char *reason = 0)
+void usage(const char *reason = nullptr)
 {
-    if (reason) {
+    if (reason)
+    {
         cerr << reason << endl;
     }
 
@@ -152,7 +149,7 @@ void usage(const char *reason = 0)
 int main(int argc, char **argv)
 {
     int max_processes = -1;
-    srand(time(0) + getpid());
+    srand(time(nullptr) + getpid());
 
     Daemon d;
 
@@ -164,20 +161,20 @@ int main(int argc, char **argv)
     while (true) {
         int option_index = 0;
         static const struct option long_options[] = {
-            { "netname", 1, NULL, 'n' },
-            { "max-processes", 1, NULL, 'm' },
-            { "help", 0, NULL, 'h' },
-            { "daemonize", 0, NULL, 'd'},
-            { "log-file", 1, NULL, 'l'},
-            { "nice", 1, NULL, 0},
-            { "name", 1, NULL, 'N'},
-            { "scheduler-host", 1, NULL, 's' },
-            { "env-basedir", 1, NULL, 'b' },
-            { "user-uid", 1, NULL, 'u'},
-            { "cache-limit", 1, NULL, 0},
-            { "no-remote", 0, NULL, 0},
-            { "port", 1, NULL, 'p'},
-            { 0, 0, 0, 0 }
+            { "netname", 1, nullptr, 'n' },
+            { "max-processes", 1, nullptr, 'm' },
+            { "help", 0, nullptr, 'h' },
+            { "daemonize", 0, nullptr, 'd'},
+            { "log-file", 1, nullptr, 'l'},
+            { "nice", 1, nullptr, 0},
+            { "name", 1, nullptr, 'N'},
+            { "scheduler-host", 1, nullptr, 's' },
+            { "env-basedir", 1, nullptr, 'b' },
+            { "user-uid", 1, nullptr, 'u'},
+            { "cache-limit", 1, nullptr, 0},
+            { "no-remote", 0, nullptr, 0},
+            { "port", 1, nullptr, 'p'},
+            { nullptr, 0, nullptr, 0 }
         };
 
         const int c = getopt_long(argc, argv, "N:n:m:l:s:whvdrb:u:p:", long_options, &option_index);

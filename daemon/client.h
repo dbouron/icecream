@@ -71,16 +71,17 @@ namespace icecream
         class Client
         {
         public:
-            Client() {
-                job_id = 0;
-                channel = 0;
-                job = 0;
-                usecsmsg = 0;
-                client_id = 0;
-                status = UNKNOWN;
-                pipe_to_child = -1;
-                child_pid = -1;
-            }
+            Client()
+                : job_id(0)
+                , channel(nullptr)
+                , usecsmsg(nullptr)
+                , job(nullptr)
+                , client_id(0)
+                , pipe_to_child(-1)
+                , child_pid(-1)
+                , status(UNKNOWN)
+                {
+                }
 
             static std::string status_str(Status status) {
                 switch (status) {
@@ -118,7 +119,7 @@ namespace icecream
                 status = (Status) - 1;
                 channel = nullptr;
                 delete usecsmsg;
-                usecsmsg = 0;
+                usecsmsg = nullptr;
                 job = nullptr;
 
                 if (pipe_to_child >= 0) {
@@ -168,7 +169,7 @@ namespace icecream
             }
         };
 
-                class Clients : public std::map<Channel*, Client*>
+        class Clients : public std::map<Channel*, Client*>
         {
         public:
             Clients() {
@@ -182,14 +183,14 @@ namespace icecream
                         return it->second;
                     }
 
-                return 0;
+                return nullptr;
             }
 
             Client *find_by_channel(Channel *c) const {
                 const_iterator it = find(c);
 
                 if (it == end()) {
-                    return 0;
+                    return nullptr;
                 }
 
                 return it->second;
@@ -201,14 +202,14 @@ namespace icecream
                         return it->second;
                     }
 
-                return 0;
+                return nullptr;
             }
 
             Client *first() {
                 iterator it = begin();
 
                 if (it == end()) {
-                    return 0;
+                    return nullptr;
                 }
 
                 Client *cl = it->second;
@@ -235,7 +236,8 @@ namespace icecream
                 std::string s;
 
                 for (auto i = Status::UNKNOWN; i <= Status::LASTSTATE;
-                     i = Status(int(i) + 1)) {
+                     i = Status(int(i) + 1))
+                {
                     s += dump_status(i);
                 }
 
@@ -244,10 +246,11 @@ namespace icecream
 
             Client *get_earliest_client(Status s) const {
                 // TODO: possibly speed this up in adding some sorted lists
-                Client *client = 0;
+                Client *client = nullptr;
                 int min_client_id = 0;
 
-                for (const_iterator it = begin(); it != end(); ++it) {
+                for (const_iterator it = begin(); it != end(); ++it)
+                {
                     if (it->second->status == s && (!min_client_id || min_client_id > it->second->client_id))
                     {
                         client = it->second;

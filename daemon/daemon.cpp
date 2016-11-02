@@ -29,18 +29,19 @@ namespace icecream
     {
         Daemon::Daemon()
             : envbasedir("/tmp/icecc-envs")
+            , warn_icecc_user_errno(0)
             , tcp_listen_fd(-1)
             , unix_listen_fd(-1)
-            , new_client_id(0)
-            , next_scheduler_connect(0)
-            , cache_size(0)
             , noremote(false)
             , custom_nodename(false)
+            , cache_size(0)
+            , new_client_id(0)
+            , next_scheduler_connect(0)
             , icecream_load(0)
             , current_load(-1000)
             , num_cpus(0)
-            , scheduler(0)
-            , discover(0)
+            , scheduler(nullptr)
+            , discover(nullptr)
             , scheduler_port(8765)
             , daemon_port(10245)
             , max_scheduler_pong(services::MAX_SCHEDULER_PONG)
@@ -48,19 +49,25 @@ namespace icecream
             , current_kids(0)
 
         {
-            warn_icecc_user_errno = 0;
-            if (getuid() == 0) {
+            if (getuid() == 0)
+            {
                 struct passwd *pw = getpwnam("icecc");
 
-                if (pw) {
+                if (pw)
+                {
                     user_uid = pw->pw_uid;
                     user_gid = pw->pw_gid;
-                } else {
-                    warn_icecc_user_errno = errno ? errno : ENOENT; // apparently errno can be 0 on error here
+                }
+                else
+                {
+                    /// apparently errno can be 0 on error here
+                    warn_icecc_user_errno = errno ? errno : ENOENT;
                     user_uid = 65534;
                     user_gid = 65533;
                 }
-            } else {
+            }
+            else
+            {
                 user_uid = getuid();
                 user_gid = getgid();
             }
@@ -76,29 +83,36 @@ namespace icecream
         {
             tcp_listen_fd = -1;
 
-            if (!noremote) { // if we only listen to local clients, there is no point in going TCP
-                if ((tcp_listen_fd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+            /// if we only listen to local clients, there is no point in going TCP
+            if (!noremote)
+            {
+                if ((tcp_listen_fd = socket(PF_INET, SOCK_STREAM, 0)) < 0)
+                {
                     log_perror("socket()");
                     return false;
                 }
 
                 int optval = 1;
 
-                if (setsockopt(tcp_listen_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0) {
+                if (setsockopt(tcp_listen_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0)
+                {
                     log_perror("setsockopt()");
                     return false;
                 }
 
                 int count = 5;
 
-                while (count) {
+                while (count)
+                {
                     struct sockaddr_in myaddr;
                     myaddr.sin_family = AF_INET;
                     myaddr.sin_port = htons(daemon_port);
                     myaddr.sin_addr.s_addr = INADDR_ANY;
 
-                    if (bind(tcp_listen_fd, (struct sockaddr *)&myaddr,
-                             sizeof(myaddr)) < 0) {
+                    if (bind(tcp_listen_fd,
+                             reinterpret_cast<struct sockaddr *>(&myaddr),
+                             sizeof (myaddr)) < 0)
+                    {
                         log_perror("bind()");
                         sleep(2);
 
@@ -112,7 +126,8 @@ namespace icecream
                     }
                 }
 
-                if (listen(tcp_listen_fd, 20) < 0) {
+                if (listen(tcp_listen_fd, 20) < 0)
+                {
                     log_perror("listen()");
                     return false;
                 }
@@ -120,59 +135,80 @@ namespace icecream
                 fcntl(tcp_listen_fd, F_SETFD, FD_CLOEXEC);
             }
 
-            if ((unix_listen_fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+            if ((unix_listen_fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
+            {
                 log_perror("socket()");
                 return false;
             }
 
             struct sockaddr_un myaddr;
 
-            memset(&myaddr, 0, sizeof(myaddr));
+            memset(&myaddr, 0, sizeof (myaddr));
 
             myaddr.sun_family = AF_UNIX;
 
             mode_t old_umask = -1U;
 
-            if (getenv("ICECC_TEST_SOCKET") == NULL) {
+            if (getenv("ICECC_TEST_SOCKET") == nullptr)
+            {
 #ifdef HAVE_LIBCAP_NG
                 // We run as system daemon (UID has been already changed).
-                if (capng_have_capability( CAPNG_EFFECTIVE, CAP_SYS_CHROOT )) {
+                if (capng_have_capability( CAPNG_EFFECTIVE, CAP_SYS_CHROOT ))
+                {
 #else
-                    if (getuid() == 0) {
+                    if (getuid() == 0)
+                    {
 #endif
                         strncpy(myaddr.sun_path, "/var/run/icecc/iceccd.socket", sizeof(myaddr.sun_path) - 1);
                         unlink(myaddr.sun_path);
                         old_umask = umask(0);
-                    } else { // Started by user.
-                        if( getenv( "HOME" )) {
-                            strncpy(myaddr.sun_path, getenv("HOME"), sizeof(myaddr.sun_path) - 1);
-                            strncat(myaddr.sun_path, "/.iceccd.socket", sizeof(myaddr.sun_path) - 1 - strlen(myaddr.sun_path));
+                    }
+                    else
+                    {
+                        // Started by user.
+                        if (getenv("HOME"))
+                        {
+                            strncpy(myaddr.sun_path, getenv("HOME"),
+                                    sizeof (myaddr.sun_path) - 1);
+                            strncat(myaddr.sun_path, "/.iceccd.socket",
+                                    sizeof (myaddr.sun_path) - 1 - strlen(myaddr.sun_path));
                             unlink(myaddr.sun_path);
-                        } else {
+                        }
+                        else
+                        {
                             log_error() << "launched by user, but $HOME not set" << std::endl;
                             return false;
                         }
                     }
-                } else {
-                    strncpy(myaddr.sun_path, getenv("ICECC_TEST_SOCKET"), sizeof(myaddr.sun_path) - 1);
+                }
+                else
+                {
+                    strncpy(myaddr.sun_path, getenv("ICECC_TEST_SOCKET"),
+                            sizeof (myaddr.sun_path) - 1);
                     unlink(myaddr.sun_path);
                 }
 
-                if (bind(unix_listen_fd, (struct sockaddr*)&myaddr, sizeof(myaddr)) < 0) {
+                if (bind(unix_listen_fd,
+                         reinterpret_cast<struct sockaddr*>(&myaddr),
+                         sizeof (myaddr)) < 0)
+                {
                     log_perror("bind()");
 
-                    if (old_umask != -1U) {
+                    if (old_umask != -1U)
+                    {
                         umask(old_umask);
                     }
 
                     return false;
                 }
 
-                if (old_umask != -1U) {
+                if (old_umask != -1U)
+                {
                     umask(old_umask);
                 }
 
-                if (listen(unix_listen_fd, 20) < 0) {
+                if (listen(unix_listen_fd, 20) < 0)
+                {
                     log_perror("listen()");
                     return false;
                 }
@@ -186,16 +222,19 @@ namespace icecream
             {
                 struct utsname uname_buf;
 
-                if (uname(&uname_buf)) {
+                if (uname(&uname_buf))
+                {
                     log_perror("uname call failed");
                     return;
                 }
 
-                if (nodename.length() && (nodename != uname_buf.nodename)) {
+                if (nodename.length() && (nodename != uname_buf.nodename))
+                {
                     custom_nodename  = true;
                 }
 
-                if (!custom_nodename) {
+                if (!custom_nodename)
+                {
                     nodename = uname_buf.nodename;
                 }
 
@@ -204,14 +243,16 @@ namespace icecream
 
             std::string Daemon::determine_nodename()
             {
-                if (custom_nodename && !nodename.empty()) {
+                if (custom_nodename && !nodename.empty())
+                {
                     return nodename;
                 }
 
                 // perhaps our host name changed due to network change?
                 struct utsname uname_buf;
 
-                if (!uname(&uname_buf)) {
+                if (!uname(&uname_buf))
+                {
                     nodename = uname_buf.nodename;
                 }
 
@@ -220,12 +261,14 @@ namespace icecream
 
             bool Daemon::send_scheduler(const services::Msg& msg)
             {
-                if (!scheduler) {
+                if (!scheduler)
+                {
                     log_error() << "scheduler dead ?!" << std::endl;
                     return false;
                 }
 
-                if (!scheduler->send_msg(msg)) {
+                if (!scheduler->send_msg(msg))
+                {
                     log_error() << "sending to scheduler failed.." << std::endl;
                     close_scheduler();
                     return false;
@@ -244,7 +287,8 @@ namespace icecream
 
             void Daemon::close_scheduler()
             {
-                if (!scheduler) {
+                if (!scheduler)
+                {
                     return;
                 }
 
@@ -252,24 +296,26 @@ namespace icecream
                 scheduler.reset();
                 scheduler = nullptr;
                 delete discover;
-                discover = 0;
-                next_scheduler_connect = time(0) + 20 + (rand() & 31);
+                discover = nullptr;
+                next_scheduler_connect = time(nullptr) + 20 + (rand() & 31);
             }
 
             bool Daemon::maybe_stats(bool send_ping)
             {
                 struct timeval now;
-                gettimeofday(&now, 0);
+                gettimeofday(&now, nullptr);
 
                 time_t diff_sent = (now.tv_sec - last_stat.tv_sec) * 1000 + (now.tv_usec - last_stat.tv_usec) / 1000;
 
-                if (diff_sent >= max_scheduler_pong * 1000) {
+                if (diff_sent >= max_scheduler_pong * 1000)
+                {
                     Stats msg;
                     unsigned int memory_fillgrade;
                     unsigned long idleLoad = 0;
                     unsigned long niceLoad = 0;
 
-                    if (!fill_stats(idleLoad, niceLoad, memory_fillgrade, &msg, clients.active_processes)) {
+                    if (!fill_stats(idleLoad, niceLoad, memory_fillgrade, &msg, clients.active_processes))
+                    {
                         return false;
                     }
 
@@ -283,12 +329,14 @@ namespace icecream
                     /* add the time of our childrens, but only the time since the last run */
                     struct rusage ru;
 
-                    if (!getrusage(RUSAGE_CHILDREN, &ru)) {
+                    if (!getrusage(RUSAGE_CHILDREN, &ru))
+                    {
                         uint32_t ice_msec = ((ru.ru_utime.tv_sec - icecream_usage.tv_sec) * 1000
                                              + (ru.ru_utime.tv_usec - icecream_usage.tv_usec) / 1000) / num_cpus;
 
                         /* heuristics when no child terminated yet: account 25% of total nice as our clients */
-                        if (!ice_msec && current_kids) {
+                        if (!ice_msec && current_kids)
+                        {
                             ice_msec = (niceLoad * diff_stat) / (4 * 1000);
                         }
 
@@ -300,21 +348,25 @@ namespace icecream
 
                     int idle_average = icecream_load;
 
-                    if (diff_sent) {
+                    if (diff_sent)
+                    {
                         idle_average = icecream_load * 1000 / diff_sent;
                     }
 
-                    if (idle_average > 1000) {
+                    if (idle_average > 1000)
+                    {
                         idle_average = 1000;
                     }
 
                     msg.load = ((700 * (1000 - idle_average)) + (300 * memory_fillgrade)) / 1000;
 
-                    if (memory_fillgrade > 600) {
+                    if (memory_fillgrade > 600)
+                    {
                         msg.load = 1000;
                     }
 
-                    if (idle_average < 100) {
+                    if (idle_average < 100)
+                    {
                         msg.load = 1000;
                     }
 
@@ -322,7 +374,8 @@ namespace icecream
                     struct statfs buf;
                     int ret = statfs(envbasedir.c_str(), &buf);
 
-                    if (!ret && long(buf.f_bavail) < ((long(max_kids + 1 - current_kids) * 4 * 1024 * 1024) / buf.f_bsize)) {
+                    if (!ret && long(buf.f_bavail) < ((long(max_kids + 1 - current_kids) * 4 * 1024 * 1024) / buf.f_bsize))
+                    {
                         msg.load = 1000;
                     }
 
@@ -331,8 +384,10 @@ namespace icecream
                     // Matz got in the urine that not all CPUs are always feed
                     mem_limit = std::max(int(msg.freeMem / std::min(std::max(max_kids, 1U), 4U)), int(100U));
 
-                    if (abs(int(msg.load) - current_load) >= 100 || send_ping) {
-                        if (!send_scheduler(msg)) {
+                    if (abs(int(msg.load) - current_load) >= 100 || send_ping)
+                    {
+                        if (!send_scheduler(msg))
+                        {
                             return false;
                         }
                     }
@@ -351,38 +406,46 @@ namespace icecream
                 result += "Node Name: " + nodename + "\n";
                 result += "  Remote name: " + remote_name + "\n";
 
-                for (std::map<int, Channel *>::const_iterator it = fd2chan.begin(); it != fd2chan.end(); ++it)  {
-                    result += "  fd2chan[" + toString(it->first) + "] = " + it->second->dump() + "\n";
+                for (const auto &cit : fd2chan)
+                {
+                    result += "  fd2chan[" + toString(cit.first) + "] = " + cit.second->dump() + "\n";
                 }
 
-                for (Clients::const_iterator it = clients.begin(); it != clients.end(); ++it)  {
-                    result += "  client " + toString(it->second->client_id) + ": " + it->second->dump() + "\n";
+                for (const auto &cit : clients)
+                {
+                    result += "  client " + toString(cit.second->client_id) + ": " + cit.second->dump() + "\n";
                 }
 
-                if (cache_size) {
+                if (cache_size)
+                {
                     result += "  Cache Size: " + toString(cache_size) + "\n";
                 }
 
                 result += "  Architecture: " + machine_name + "\n";
 
-                for (std::map<std::string, NativeEnvironment>::const_iterator it = native_environments.begin();
-                     it != native_environments.end(); ++it) {
-                    result += "  NativeEnv (" + it->first + "): " + it->second.name
-                        + (it->second.create_env_pipe ? " (creating)" : "" ) + "\n";
+                for (const auto &cit : native_environments)
+                {
+                    result += "  NativeEnv (" + cit.first + "): "
+                        + cit.second.name
+                        + (cit.second.create_env_pipe ? " (creating)" : "" )
+                        + "\n";
                 }
 
-                if (!envs_last_use.empty()) {
-                    result += "  Now: " + toString(time(0)) + "\n";
+                if (!envs_last_use.empty())
+                {
+                    result += "  Now: " + toString(time(nullptr)) + "\n";
                 }
 
-                for (std::map<std::string, time_t>::const_iterator it = envs_last_use.begin();
-                     it != envs_last_use.end(); ++it)  {
-                    result += "  envs_last_use[" + it->first  + "] = " + toString(it->second) + "\n";
+                for (const auto & cit : envs_last_use)
+                {
+                    result += "  envs_last_use[" + cit.first  + "] = "
+                        + toString(cit.second) + "\n";
                 }
 
                 result += "  Current kids: " + toString(current_kids) + " (max: " + toString(max_kids) + ")\n";
 
-                if (scheduler) {
+                if (scheduler)
+                {
                     result += "  Scheduler protocol: " + toString(scheduler->protocol) + "\n";
                 }
 
@@ -391,7 +454,8 @@ namespace icecream
                 unsigned long idleLoad = 0;
                 unsigned long niceLoad = 0;
 
-                if (fill_stats(idleLoad, niceLoad, memory_fillgrade, &msg, clients.active_processes)) {
+                if (fill_stats(idleLoad, niceLoad, memory_fillgrade, &msg, clients.active_processes))
+                {
                     result += "  cpu: " + toString(idleLoad) + " idle, "
                         + toString(niceLoad) + " nice\n";
                     result += "  load: " + toString(msg.loadAvg1 / 1000.) + ", icecream_load: "
@@ -456,12 +520,13 @@ namespace icecream
                 EnvTransfer *emsg = static_cast<EnvTransfer *>(_msg);
                 std::string target = emsg->target;
 
-                if (target.empty()) {
+                if (target.empty())
+                {
                     target =  machine_name;
                 }
 
                 int sock_to_stdin = -1;
-                FileChunk *fmsg = 0;
+                FileChunk *fmsg = nullptr;
 
                 pid_t pid = start_install_environment(envbasedir, target, emsg->name, client->channel,
                                                       sock_to_stdin, fmsg, user_uid, user_gid);
@@ -470,17 +535,20 @@ namespace icecream
                 client->outfile = emsg->target + "/" + emsg->name;
                 current_kids++;
 
-                if (pid > 0) {
+                if (pid > 0)
+                {
                     log_error() << "got pid " << pid << std::endl;
                     client->pipe_to_child = sock_to_stdin;
                     client->child_pid = pid;
 
-                    if (!handle_file_chunk_env(client, fmsg)) {
+                    if (!handle_file_chunk_env(client, fmsg))
+                    {
                         pid = 0;
                     }
                 }
 
-                if (pid <= 0) {
+                if (pid <= 0)
+                {
                     handle_transfer_env_done(client);
                 }
 
@@ -498,7 +566,8 @@ namespace icecream
                 size_t installed_size = finalize_install_environment(envbasedir, client->outfile,
                                                                      client->child_pid, user_uid, user_gid);
 
-                if (client->pipe_to_child >= 0) {
+                if (client->pipe_to_child >= 0)
+                {
                     installed_size = 0;
                     close(client->pipe_to_child);
                     client->pipe_to_child = -1;
@@ -513,9 +582,10 @@ namespace icecream
 
                 log_error() << "installed_size: " << installed_size << std::endl;
 
-                if (installed_size) {
+                if (installed_size)
+                {
                     cache_size += installed_size;
-                    envs_last_use[current] = time(NULL);
+                    envs_last_use[current] = time(nullptr);
                     log_error() << "installed " << current << " size: " << installed_size
                                 << " all: " << cache_size << std::endl;
                 }
@@ -525,7 +595,8 @@ namespace icecream
                 bool r = reannounce_environments(); // do that before the file compiles
 
                 // we do that here so we're not given out in case of full discs
-                if (!maybe_stats(true)) {
+                if (!maybe_stats(true))
+                {
                     r = false;
                 }
 
@@ -534,17 +605,18 @@ namespace icecream
 
             void Daemon::check_cache_size(const std::string &new_env)
             {
-                time_t now = time(NULL);
+                time_t now = time(nullptr);
 
-                while (cache_size > cache_size_limit) {
+                while (cache_size > cache_size_limit)
+                {
                     std::string oldest;
                     // I don't dare to use (time_t)-1
-                    time_t oldest_time = time(NULL) + 90000;
+                    time_t oldest_time = time(nullptr) + 90000;
                     std::string oldest_native_env_key;
 
-                    for (std::map<std::string, time_t>::const_iterator it = envs_last_use.begin();
-                         it != envs_last_use.end(); ++it) {
-                        trace() << "considering cached environment: " << it->first << " " << it->second << " " << oldest_time << std::endl;
+                    for (const auto &cit : envs_last_use)
+                    {
+                        trace() << "considering cached environment: " << cit.first << " " << cit.second << " " << oldest_time << std::endl;
                         // ignore recently used envs (they might be in use _right_ now)
                         int keep_timeout = 200;
                         std::string native_env_key;
@@ -553,7 +625,7 @@ namespace icecream
                         // unless there are many native environments.
                         for (std::map<std::string, NativeEnvironment>::const_iterator it2 = native_environments.begin();
                              it2 != native_environments.end(); ++it2) {
-                            if (it2->second.name == it->first) {
+                            if (it2->second.name == cit.first) {
                                 native_env_key = it2->first;
 
                                 if (native_environments.size() < 5) {
@@ -567,7 +639,7 @@ namespace icecream
                             }
                         }
 
-                        if (it->second < oldest_time && now - it->second > keep_timeout) {
+                        if (cit.second < oldest_time && now - cit.second > keep_timeout) {
                             bool env_currently_in_use = false;
 
                             for (Clients::const_iterator it2 = clients.begin(); it2 != clients.end(); ++it2)  {
@@ -579,15 +651,15 @@ namespace icecream
                                     std::string envforjob = it2->second->job->targetPlatform() + "/"
                                         + it2->second->job->environmentVersion();
 
-                                    if (envforjob == it->first) {
+                                    if (envforjob == cit.first) {
                                         env_currently_in_use = true;
                                     }
                                 }
                             }
 
                             if (!env_currently_in_use) {
-                                oldest_time = it->second;
-                                oldest = it->first;
+                                oldest_time = cit.second;
+                                oldest = cit.first;
                                 oldest_native_env_key = native_env_key;
                             }
                         }
@@ -620,32 +692,36 @@ namespace icecream
                 std::map<std::string, time_t> extrafilestimes;
                 env_key = msg->compiler;
 
-                for (std::list<std::string>::const_iterator it = msg->extrafiles.begin();
-                     it != msg->extrafiles.end(); ++it) {
+                for (const auto &cit : msg->extrafiles)
+                {
                     env_key += ':';
-                    env_key += *it;
+                    env_key += cit;
                     struct stat st;
 
-                    if (stat(it->c_str(), &st) != 0) {
-                        log_error() << "Extra file " << *it << " for environment not found." << std::endl;
+                    if (stat(cit.c_str(), &st) != 0)
+                    {
+                        log_error() << "Extra file " << cit << " for environment not found." << std::endl;
                         client->channel->send_msg(End());
                         handle_end(client, 122);
                         return false;
                     }
 
-                    extrafilestimes[*it] = st.st_mtime;
+                    extrafilestimes[cit] = st.st_mtime;
                 }
 
-                if (native_environments[env_key].name.length()) {
+                if (native_environments[env_key].name.length())
+                {
                     const NativeEnvironment &env = native_environments[env_key];
 
                     if (!compilers_uptodate(env.gcc_bin_timestamp, env.gpp_bin_timestamp, env.clang_bin_timestamp)
                         || env.extrafilestimes != extrafilestimes
-                        || access(env.name.c_str(), R_OK) != 0) {
+                        || access(env.name.c_str(), R_OK) != 0)
+                    {
                         trace() << "native_env needs rebuild" << std::endl;
                         cache_size -= remove_native_environment(env.name);
                         envs_last_use.erase(env.name);
-                        if (env.create_env_pipe) {
+                        if (env.create_env_pipe)
+                        {
                             close(env.create_env_pipe);
                             // TODO kill the still running icecc-create-env process?
                         }
@@ -659,15 +735,20 @@ namespace icecream
                 client->status = Status::WAITCREATEENV;
                 client->pending_create_env = env_key;
 
-                if (native_environments[env_key].name.length()) { // already available
+                if (native_environments[env_key].name.length())
+                { // already available
                     return finish_get_native_env(client, env_key);
-                } else {
+                }
+                else
+                {
                     NativeEnvironment &env = native_environments[env_key]; // also inserts it
                     if (!env.create_env_pipe) { // start creating it only if not already in progress
                         env.extrafilestimes = extrafilestimes;
                         trace() << "start_create_env " << env_key << std::endl;
                         env.create_env_pipe = start_create_env(envbasedir, user_uid, user_gid, msg->compiler, msg->extrafiles);
-                    } else {
+                    }
+                    else
+                    {
                         trace() << "waiting for already running create_env " << env_key << std::endl;
                     }
                 }
@@ -685,7 +766,7 @@ namespace icecream
                     return false;
                 }
 
-                envs_last_use[native_environments[env_key].name] = time(NULL);
+                envs_last_use[native_environments[env_key].name] = time(nullptr);
                 client->status = Status::GOTNATIVE;
                 client->pending_create_env.clear();
                 return true;
@@ -705,30 +786,35 @@ namespace icecream
                 cache_size += installed_size;
                 trace() << "cache_size = " << cache_size << std::endl;
 
-                if (!installed_size) {
-                    for (Clients::const_iterator it = clients.begin(); it != clients.end(); ++it)  {
-                        if (it->second->pending_create_env == env_key) {
-                            it->second->channel->send_msg(End());
-                            handle_end(it->second, 121);
+                if (!installed_size)
+                {
+                    for (const auto &cit : clients)
+                    {
+                        if (cit.second->pending_create_env == env_key)
+                        {
+                            cit.second->channel->send_msg(End());
+                            handle_end(cit.second, 121);
                         }
                     }
                     return false;
                 }
 
                 save_compiler_timestamps(env.gcc_bin_timestamp, env.gpp_bin_timestamp, env.clang_bin_timestamp);
-                envs_last_use[env.name] = time(NULL);
+                envs_last_use[env.name] = time(nullptr);
                 check_cache_size(env.name);
 
-                for (Clients::const_iterator it = clients.begin(); it != clients.end(); ++it) {
-                    if (it->second->pending_create_env == env_key)
-                        finish_get_native_env(it->second, env_key);
+                for (const auto &cit : clients)
+                {
+                    if (cit.second->pending_create_env == env_key)
+                        finish_get_native_env(cit.second, env_key);
                 }
                 return true;
             }
 
             bool Daemon::handle_job_done(Client *cl, JobDone *m)
             {
-                if (cl->status == Status::CLIENTWORK) {
+                if (cl->status == Status::CLIENTWORK)
+                {
                     clients.active_processes--;
                 }
 
@@ -737,7 +823,8 @@ namespace icecream
                 trace() << "handle_job_done " << msg->job_id << " " << msg->exitcode << std::endl;
 
                 if (!m->is_from_server()
-                    && (m->user_msec + m->sys_msec) <= m->real_msec) {
+                    && (m->user_msec + m->sys_msec) <= m->real_msec)
+                {
                     icecream_load += (m->user_msec + m->sys_msec) / num_cpus;
                 }
 
@@ -748,22 +835,28 @@ namespace icecream
 
             void Daemon::handle_old_request()
             {
-                while ((current_kids + clients.active_processes) < max_kids) {
+                while ((current_kids + clients.active_processes) < max_kids)
+                {
 
                     Client *client = clients.get_earliest_client(Status::LINKJOB);
 
-                    if (client) {
+                    if (client)
+                    {
                         trace() << "send JobLocalBegin to client" << std::endl;
 
-                        if (!client->channel->send_msg(JobLocalBegin())) {
+                        if (!client->channel->send_msg(JobLocalBegin()))
+                        {
                             log_warning() << "can't send start message to client" << std::endl;
                             handle_end(client, 112);
-                        } else {
+                        }
+                        else
+                        {
                             client->status = Status::CLIENTWORK;
                             clients.active_processes++;
                             trace() << "pushed local job " << client->client_id << std::endl;
 
-                            if (!send_scheduler(JobLocalBegin(client->client_id, client->outfile))) {
+                            if (!send_scheduler(JobLocalBegin(client->client_id, client->outfile)))
+                            {
                                 return;
                             }
                         }
@@ -773,15 +866,19 @@ namespace icecream
 
                     client = clients.get_earliest_client(Status::PENDING_USE_CS);
 
-                    if (client) {
+                    if (client)
+                    {
                         trace() << "pending " << client->dump() << std::endl;
 
-                        if (client->channel->send_msg(*client->usecsmsg)) {
+                        if (client->channel->send_msg(*client->usecsmsg))
+                        {
                             client->status = Status::CLIENTWORK;
                             /* we make sure we reserve a spot and the rest is done if the
                              * client contacts as back with a Compile request */
                             clients.active_processes++;
-                        } else {
+                        }
+                        else
+                        {
                             handle_end(client, 129);
                         }
 
@@ -790,13 +887,15 @@ namespace icecream
 
                     /* we don't want to handle TOCOMPILE jobs as long as our load
                        is too high */
-                    if (current_load >= 1000) {
+                    if (current_load >= 1000)
+                    {
                         break;
                     }
 
                     client = clients.get_earliest_client(Status::TOCOMPILE);
 
-                    if (client) {
+                    if (client)
+                    {
                         std::shared_ptr<CompileJob> job = client->job;
                         assert(job);
                         int sock = -1;
@@ -805,20 +904,24 @@ namespace icecream
                         trace() << "requests--" << job->jobID() << std::endl;
 
                         std::string envforjob = job->targetPlatform() + "/" + job->environmentVersion();
-                        envs_last_use[envforjob] = time(NULL);
+                        envs_last_use[envforjob] = time(nullptr);
                         pid = handle_connection(envbasedir, job, client->channel, sock, mem_limit, user_uid, user_gid);
                         trace() << "handle connection returned " << pid << std::endl;
 
-                        if (pid > 0) {
+                        if (pid > 0)
+                        {
                             current_kids++;
                             client->status = Status::WAITFORCHILD;
                             client->pipe_to_child = sock;
                             client->child_pid = pid;
 
-                            if (!send_scheduler(JobBegin(job->jobID()))) {
+                            if (!send_scheduler(JobBegin(job->jobID())))
+                            {
                                 log_info() << "failed sending scheduler about " << job->jobID() << std::endl;
                             }
-                        } else {
+                        }
+                        else
+                        {
                             handle_end(client, 117);
                         }
 
@@ -843,7 +946,8 @@ namespace icecream
                 unsigned int job_stat[8];
                 int end_status = 151;
 
-                if (read(client->pipe_to_child, job_stat, sizeof(job_stat)) == sizeof(job_stat)) {
+                if (read(client->pipe_to_child, job_stat, sizeof(job_stat)) == sizeof(job_stat))
+                {
                     msg->in_uncompressed = job_stat[JobStats::in_uncompressed];
                     msg->in_compressed = job_stat[JobStats::in_compressed];
                     msg->out_compressed = msg->out_uncompressed = job_stat[JobStats::out_uncompressed];
@@ -858,7 +962,7 @@ namespace icecream
                 close(client->pipe_to_child);
                 client->pipe_to_child = -1;
                 std::string envforjob = client->job->targetPlatform() + "/" + client->job->environmentVersion();
-                envs_last_use[envforjob] = time(NULL);
+                envs_last_use[envforjob] = time(nullptr);
 
                 bool r = send_scheduler(*msg);
                 handle_end(client, end_status);
@@ -1092,7 +1196,7 @@ namespace icecream
                             log_perror("write to transfer env pipe failed. ");
 
                             delete msg;
-                            msg = 0;
+                            msg = nullptr;
                             handle_end(client, 137);
                             return false;
                         }
@@ -1220,11 +1324,11 @@ namespace icecream
                     max_fd = unix_listen_fd;
                 }
 
-                for (std::map<int, Channel *>::const_iterator it = fd2chan.begin();
-                     it != fd2chan.end();) {
-                    int i = it->first;
-                    Channel *c = it->second;
-                    ++it;
+                for (auto cit = fd2chan.cbegin(); cit != fd2chan.cend();)
+                {
+                    int i = cit->first;
+                    Channel *c = cit->second;
+                    ++cit;
                     /* don't select on a fd that we're currently not interested in.
                        Avoids that we wake up on an event we're not handling anyway */
                     Client *client = clients.find_by_channel(c);
@@ -1233,8 +1337,10 @@ namespace icecream
                     bool ignore_channel = current_status == Status::TOCOMPILE
                         || current_status == Status::WAITFORCHILD;
 
-                    if (!ignore_channel && (!c->has_msg() || handle_activity(client))) {
-                        if (i > max_fd) {
+                    if (!ignore_channel && (!c->has_msg() || handle_activity(client)))
+                    {
+                        if (i > max_fd)
+                        {
                             max_fd = i;
                         }
 
@@ -1242,8 +1348,10 @@ namespace icecream
                     }
 
                     if (current_status == Status::WAITFORCHILD
-                        && client->pipe_to_child != -1) {
-                        if (client->pipe_to_child > max_fd) {
+                        && client->pipe_to_child != -1)
+                    {
+                        if (client->pipe_to_child > max_fd)
+                        {
                             max_fd = client->pipe_to_child;
                         }
 
@@ -1251,50 +1359,61 @@ namespace icecream
                     }
                 }
 
-                if (scheduler) {
+                if (scheduler)
+                {
                     FD_SET(scheduler->fd, &listen_set);
 
-                    if (max_fd < scheduler->fd) {
+                    if (max_fd < scheduler->fd)
+                    {
                         max_fd = scheduler->fd;
                     }
-                } else if (discover && discover->listen_fd() >= 0) {
+                }
+                else if (discover && discover->listen_fd() >= 0)
+                {
                     /* We don't explicitely check for discover->get_fd() being in
                        the selected set below.  If it's set, we simply will return
                        and our call will make sure we try to get the scheduler.  */
                     FD_SET(discover->listen_fd(), &listen_set);
 
-                    if (max_fd < discover->listen_fd()) {
+                    if (max_fd < discover->listen_fd())
+                    {
                         max_fd = discover->listen_fd();
                     }
                 }
 
-                for (std::map<std::string, NativeEnvironment>::const_iterator it = native_environments.begin();
-                     it != native_environments.end(); ++it) {
-                    if (it->second.create_env_pipe) {
-                        FD_SET(it->second.create_env_pipe, &listen_set);
-                        if (max_fd < it->second.create_env_pipe)
-                            max_fd = it->second.create_env_pipe;
+                for (const auto &cit : native_environments)
+                {
+                    if (cit.second.create_env_pipe)
+                    {
+                        FD_SET(cit.second.create_env_pipe, &listen_set);
+                        if (max_fd < cit.second.create_env_pipe)
+                            max_fd = cit.second.create_env_pipe;
                     }
                 }
 
                 tv.tv_sec = max_scheduler_pong;
                 tv.tv_usec = 0;
 
-                int ret = select(max_fd + 1, &listen_set, NULL, NULL, &tv);
+                int ret = select(max_fd + 1, &listen_set, nullptr, nullptr, &tv);
 
-                if (ret < 0 && errno != EINTR) {
+                if (ret < 0 && errno != EINTR)
+                {
                     log_perror("select");
                     return 5;
                 }
 
-                if (ret > 0) {
+                if (ret > 0)
+                {
                     bool had_scheduler = scheduler.get();
 
-                    if (scheduler && FD_ISSET(scheduler->fd, &listen_set)) {
-                        while (!scheduler->read_a_bit() || scheduler->has_msg()) {
+                    if (scheduler && FD_ISSET(scheduler->fd, &listen_set))
+                    {
+                        while (!scheduler->read_a_bit() || scheduler->has_msg())
+                        {
                             services::Msg *msg = scheduler->get_msg().get();
 
-                            if (!msg) {
+                            if (!msg)
+                            {
                                 log_error() << "scheduler closed connection" << std::endl;
                                 close_scheduler();
                                 clear_children();
@@ -1303,7 +1422,8 @@ namespace icecream
 
                             ret = 0;
 
-                            switch (msg->type) {
+                            switch (msg->type)
+                            {
                             case MsgType::PING:
 
                                 if (!services::is_protocol<27>()(*scheduler))
@@ -1336,31 +1456,37 @@ namespace icecream
 
                     int listen_fd = -1;
 
-                    if (tcp_listen_fd != -1 && FD_ISSET(tcp_listen_fd, &listen_set)) {
+                    if (tcp_listen_fd != -1 && FD_ISSET(tcp_listen_fd, &listen_set))
+                    {
                         listen_fd = tcp_listen_fd;
                     }
 
-                    if (FD_ISSET(unix_listen_fd, &listen_set)) {
+                    if (FD_ISSET(unix_listen_fd, &listen_set))
+                    {
                         listen_fd = unix_listen_fd;
                     }
 
-                    if (listen_fd != -1) {
+                    if (listen_fd != -1)
+                    {
                         struct sockaddr cli_addr;
                         socklen_t cli_len = sizeof cli_addr;
                         int acc_fd = accept(listen_fd, &cli_addr, &cli_len);
 
-                        if (acc_fd < 0) {
+                        if (acc_fd < 0)
+                        {
                             log_perror("accept error");
                         }
 
-                        if (acc_fd == -1 && errno != EINTR) {
+                        if (acc_fd == -1 && errno != EINTR)
+                        {
                             log_perror("accept failed:");
                             return EXIT_CONNECT_FAILED;
                         }
 
                         std::shared_ptr<Channel> c = Service::createChannel(acc_fd, &cli_addr, cli_len);
 
-                        if (!c) {
+                        if (!c)
+                        {
                             return 0;
                         }
 
@@ -1373,45 +1499,56 @@ namespace icecream
 
                         fd2chan[c->fd] = c.get();
 
-                        while (!c->read_a_bit() || c->has_msg()) {
+                        while (!c->read_a_bit() || c->has_msg())
+                        {
                             if (!handle_activity(client)) {
                                 break;
                             }
 
                             if (client->status == Status::TOCOMPILE
-                                || client->status == Status::WAITFORCHILD) {
+                                || client->status == Status::WAITFORCHILD)
+                            {
                                 break;
                             }
                         }
-                    } else {
-                        for (std::map<int, Channel *>::const_iterator it = fd2chan.begin();
-                             max_fd && it != fd2chan.end();)  {
-                            int i = it->first;
-                            Channel *c = it->second;
+                    }
+                    else
+                    {
+                        for (auto cit = fd2chan.cbegin();
+                             max_fd && cit != fd2chan.cend();)
+                        {
+                            int i = cit->first;
+                            Channel *c = cit->second;
                             Client *client = clients.find_by_channel(c);
                             assert(client);
-                            ++it;
+                            ++cit;
 
                             if (client->status == Status::WAITFORCHILD
                                 && client->pipe_to_child >= 0
-                                && FD_ISSET(client->pipe_to_child, &listen_set)) {
+                                && FD_ISSET(client->pipe_to_child, &listen_set))
+                            {
                                 max_fd--;
 
-                                if (!handle_compile_done(client)) {
+                                if (!handle_compile_done(client))
+                                {
                                     return 1;
                                 }
                             }
 
-                            if (FD_ISSET(i, &listen_set)) {
+                            if (FD_ISSET(i, &listen_set))
+                            {
                                 assert(client->status != Status::TOCOMPILE);
 
-                                while (!c->read_a_bit() || c->has_msg()) {
-                                    if (!handle_activity(client)) {
+                                while (!c->read_a_bit() || c->has_msg())
+                                {
+                                    if (!handle_activity(client))
+                                    {
                                         break;
                                     }
 
                                     if (client->status == Status::TOCOMPILE
-                                        || client->status == Status::WAITFORCHILD) {
+                                        || client->status == Status::WAITFORCHILD)
+                                    {
                                         break;
                                     }
                                 }
@@ -1420,16 +1557,18 @@ namespace icecream
                             }
                         }
 
-                        for (std::map<std::string, NativeEnvironment>::iterator it = native_environments.begin();
-                             it != native_environments.end(); ) {
-                            if (it->second.create_env_pipe && FD_ISSET(it->second.create_env_pipe, &listen_set)) {
-                                if(!create_env_finished(it->first))
+                        for (auto cit = native_environments.cbegin();
+                             cit != native_environments.end();)
+                        {
+                            if (cit->second.create_env_pipe && FD_ISSET(cit->second.create_env_pipe, &listen_set))
+                            {
+                                if(!create_env_finished(cit->first))
                                 {
-                                    native_environments.erase(it++);
+                                    native_environments.erase(cit++);
                                     continue;
                                 }
                             }
-                            ++it;
+                            ++cit;
                         }
 
                     }
@@ -1450,7 +1589,8 @@ namespace icecream
                     return true;
                 }
 
-                if (!discover && next_scheduler_connect > time(0)) {
+                if (!discover && next_scheduler_connect > time(nullptr))
+                {
                     trace() << "timeout.." << std::endl;
                     return false;
                 }
@@ -1470,7 +1610,7 @@ namespace icecream
                 }
 
                 delete discover;
-                discover = 0;
+                discover = nullptr;
                 sockaddr_in name;
                 socklen_t len = sizeof(name);
                 int error = getsockname(scheduler->fd, (struct sockaddr*)&name, &len);
@@ -1483,7 +1623,7 @@ namespace icecream
 
                 log_info() << "Connected to scheduler (I am known as " << remote_name << ")" << std::endl;
                 current_load = -1000;
-                gettimeofday(&last_stat, 0);
+                gettimeofday(&last_stat, nullptr);
                 icecream_load = 0;
 
                 services::Login lmsg(daemon_port, determine_nodename(), machine_name);
