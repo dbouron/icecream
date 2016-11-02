@@ -8,7 +8,8 @@ iceccd_SOURCES = \
 	environment.cpp \
 	load.cpp \
 	file_util.cpp \
-	daemon.cpp
+	daemon.cpp \
+	client.cpp
 
 iceccd_LDADD = \
 	../services/libicecc.la \

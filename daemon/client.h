@@ -28,6 +28,7 @@
 # include <map>
 
 # include "channel.h"
+# include "all.h"
 
 using namespace icecream::services;
 
@@ -71,102 +72,26 @@ namespace icecream
         class Client
         {
         public:
-            Client()
-                : job_id(0)
-                , channel(nullptr)
-                , usecsmsg(nullptr)
-                , job(nullptr)
-                , client_id(0)
-                , pipe_to_child(-1)
-                , child_pid(-1)
-                , status(UNKNOWN)
-                {
-                }
+            Client();
+            ~Client();
 
-            static std::string status_str(Status status) {
-                switch (status) {
-                case UNKNOWN:
-                    return "unknown";
-                case GOTNATIVE:
-                    return "gotnative";
-                case PENDING_USE_CS:
-                    return "pending_use_cs";
-                case JOBDONE:
-                    return "jobdone";
-                case LINKJOB:
-                    return "linkjob";
-                case TOINSTALL:
-                    return "toinstall";
-                case TOCOMPILE:
-                    return "tocompile";
-                case WAITFORCS:
-                    return "waitforcs";
-                case CLIENTWORK:
-                    return "clientwork";
-                case WAITCOMPILE:
-                    return "waitcompile";
-                case WAITFORCHILD:
-                    return "waitforchild";
-                case WAITCREATEENV:
-                    return "waitcreateenv";
-                }
+            static std::string status_str(Status status);
 
-                assert(false);
-                return std::string(); // shutup gcc
-            }
+            std::string dump() const;
 
-            ~Client() {
-                status = (Status) - 1;
-                channel = nullptr;
-                delete usecsmsg;
-                usecsmsg = nullptr;
-                job = nullptr;
-
-                if (pipe_to_child >= 0) {
-                    close(pipe_to_child);
-                }
-
-            }
             uint32_t job_id;
-            std::string outfile; // only useful for LINKJOB or TOINSTALL
+            // only useful for LINKJOB or TOINSTALL
+            std::string outfile;
             std::shared_ptr<services::Channel> channel;
             services::UseCS *usecsmsg;
             std::shared_ptr<services::CompileJob> job;
             int client_id;
-            int pipe_to_child; // pipe to child process, only valid if WAITFORCHILD or TOINSTALL
+            // pipe to child process, only valid if WAITFORCHILD or TOINSTALL
+            int pipe_to_child;
             pid_t child_pid;
-            std::string pending_create_env; // only for WAITCREATEENV
+            // only for WAITCREATEENV
+            std::string pending_create_env;
             Status status;
-
-            std::string dump() const {
-                std::string ret = status_str(status) + " " + channel->dump();
-
-                switch (status) {
-                case LINKJOB:
-                    return ret + " CID: " + toString(client_id) + " " + outfile;
-                case TOINSTALL:
-                    return ret + " " + toString(client_id) + " " + outfile;
-                case WAITFORCHILD:
-                    return ret + " CID: " + toString(client_id) + " PID: " + toString(child_pid) + " PFD: " + toString(pipe_to_child);
-                case WAITCREATEENV:
-                    return ret + " " + toString(client_id) + " " + pending_create_env;
-                default:
-
-                    if (job_id) {
-                        std::string jobs;
-
-                        if (usecsmsg) {
-                            jobs = " CS: " + usecsmsg->hostname;
-                        }
-
-                        return ret + " CID: " + toString(client_id) + " ID: " + toString(job_id) + jobs;
-                    } else {
-                        return ret + " CID: " + toString(client_id);
-                    }
-                }
-
-                return ret;
-            }
         };
 
         class Clients : public std::map<Channel*, Client*>
