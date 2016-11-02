@@ -72,7 +72,7 @@ namespace icecream
          **
          ** On the other hand, it could be useful for making exemption.
          */
-        template <uint32_t N>
+        template <int32_t N>
         struct is_protocol
         {
             /// Return type enabled if and only if N >= MIN_PROTOCOL_VERSION.
@@ -84,6 +84,6 @@ namespace icecream
     } // services
 } // icecream
 
-#include <protocol.hxx>
+#include "protocol.hxx"
 
 #endif /* !ICECREAM_PROTOCOL_H */

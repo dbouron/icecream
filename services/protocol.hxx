@@ -24,20 +24,20 @@
  ** \brief Implement is_protocol templated method.
  */
 
-#ifndef ICECREAM_PROTOCOL_H
-# define ICECREAM_PROTOCOL_H
+#ifndef ICECREAM_PROTOCOL_HXX
+# define ICECREAM_PROTOCOL_HXX
 
 namespace icecream
 {
     namespace services
     {
-        template <uint32_t N>
-        inline
-        bool_t is_protocol<N>::operator()(const Channel &c) const
+        template <int32_t N>
+        typename is_protocol<N>::bool_t
+        is_protocol<N>::operator()(const Channel &c) const
         {
-            return c->protocol >= N;
+            return c.protocol >= N;
         }
     } // services
 } // icecream
 
-#endif /* !ICECREAM_PROTOCOL_H */
+#endif /* !ICECREAM_PROTOCOL_HXX */
