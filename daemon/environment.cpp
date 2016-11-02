@@ -554,7 +554,7 @@ namespace icecream
             }
 
             argv[4] = strdup("-");
-            argv[5] = 0;
+            argv[5] = nullptr;
             _exit(execv(argv[0], argv));
         }
 

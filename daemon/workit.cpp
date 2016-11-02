@@ -57,9 +57,13 @@ namespace icecream
 {
     namespace daemon
     {
-        int work_it(CompileJob &j, unsigned int job_stat[], Channel *client, CompileResult &rmsg,
-                    const std::string &tmp_root, const std::string &build_path, const std::string &file_name,
-                    unsigned long int mem_limit, int client_fd, int /*job_in_fd*/)
+        int work_it(CompileJob &j, unsigned int job_stat[],
+                    Channel *client, CompileResult &rmsg,
+                    const std::string &tmp_root,
+                    const std::string &build_path,
+                    const std::string &file_name,
+                    unsigned long int mem_limit,
+                    int client_fd, int /*job_in_fd*/)
         {
             rmsg.out.erase(rmsg.out.begin(), rmsg.out.end());
             rmsg.out.erase(rmsg.out.begin(), rmsg.out.end());
@@ -118,15 +122,15 @@ namespace icecream
 
             act.sa_handler = SIG_IGN;
             act.sa_flags = 0;
-            sigaction(SIGPIPE, &act, 0L);
+            sigaction(SIGPIPE, &act, nullptr);
 
             act.sa_handler = theSigCHLDHandler;
             act.sa_flags = SA_NOCLDSTOP;
-            sigaction(SIGCHLD, &act, 0);
+            sigaction(SIGCHLD, &act, nullptr);
 
             sigaddset(&act.sa_mask, SIGCHLD);
             // Make sure we don't block this signal. gdb tends to do that :-(
-            sigprocmask(SIG_UNBLOCK, &act.sa_mask, 0);
+            sigprocmask(SIG_UNBLOCK, &act.sa_mask, nullptr);
 
             flush_debug();
             pid_t pid = fork();
@@ -252,7 +256,7 @@ namespace icecream
                 }
 
                 // before you add new args, check above for argc
-                argv[i] = 0;
+                argv[i] = nullptr;
                 assert(i <= argc);
 
                 close_debug();
@@ -321,7 +325,7 @@ namespace icecream
             close(main_sock[0]);
 
             struct timeval starttv;
-            gettimeofday(&starttv, 0);
+            gettimeofday(&starttv, nullptr);
 
             int return_value = 0;
             // Got EOF for preprocessed input. stdout send may be still pending.
@@ -402,7 +406,8 @@ namespace icecream
                     max_fd = death_pipe[0];
                 }
 
-                fd_set wfds, *wfdsp = 0;
+                fd_set wfds;
+                fd_set *wfdsp = nullptr;
                 FD_ZERO(&wfds);
 
                 if (fcmsg) {
@@ -414,18 +419,22 @@ namespace icecream
                     }
                 }
 
-                struct timeval tv, *tvp = 0;
+                struct timeval tv;
+                struct timeval *tvp = nullptr;
 
-                if (!input_complete) {
+                if (!input_complete)
+                {
                     tv.tv_sec = 60;
                     tv.tv_usec = 0;
                     tvp = &tv;
                 }
 
-                switch (select(max_fd + 1, &rfds, wfdsp, 0, tvp)) {
+                switch (select(max_fd + 1, &rfds, wfdsp, nullptr, tvp))
+                {
                 case 0:
 
-                    if (!input_complete) {
+                    if (!input_complete)
+                    {
                         log_error() << "timeout while reading preprocessed file" << endl;
                         kill(pid, SIGTERM); // Won't need it any more ...
                         return_value = EXIT_IO_ERROR;
@@ -440,7 +449,8 @@ namespace icecream
                     return EXIT_DISTCC_FAILED;
                 case -1:
 
-                    if (errno == EINTR) {
+                    if (errno == EINTR)
+                    {
                         continue;
                     }
 
@@ -449,11 +459,14 @@ namespace icecream
                     return EXIT_DISTCC_FAILED;
                 default:
 
-                    if (fcmsg && FD_ISSET(sock_in[1], &wfds)) {
+                    if (fcmsg && FD_ISSET(sock_in[1], &wfds))
+                    {
                         ssize_t bytes = write(sock_in[1], fcmsg->buffer + off, fcmsg->len - off);
 
-                        if (bytes < 0) {
-                            if (errno == EINTR) {
+                        if (bytes < 0)
+                        {
+                            if (errno == EINTR)
+                            {
                                 continue;
                             }
 
@@ -470,41 +483,52 @@ namespace icecream
 
                         off += bytes;
 
-                        if (off == fcmsg->len) {
+                        if (off == fcmsg->len)
+                        {
                             fcmsg = nullptr;
 
-                            if (input_complete) {
+                            if (input_complete)
+                            {
                                 close(sock_in[1]);
                                 sock_in[1] = -1;
                             }
                         }
                     }
 
-                    if (sock_out[0] >= 0 && FD_ISSET(sock_out[0], &rfds)) {
+                    if (sock_out[0] >= 0 && FD_ISSET(sock_out[0], &rfds))
+                    {
                         ssize_t bytes = read(sock_out[0], buffer, sizeof(buffer) - 1);
 
-                        if (bytes > 0) {
+                        if (bytes > 0)
+                        {
                             buffer[bytes] = 0;
                             rmsg.out.append(buffer);
-                        } else if (bytes == 0) {
+                        }
+                        else if (bytes == 0)
+                        {
                             close(sock_out[0]);
                             sock_out[0] = -1;
                         }
                     }
 
-                    if (sock_err[0] >= 0 && FD_ISSET(sock_err[0], &rfds)) {
+                    if (sock_err[0] >= 0 && FD_ISSET(sock_err[0], &rfds))
+                    {
                         ssize_t bytes = read(sock_err[0], buffer, sizeof(buffer) - 1);
 
-                        if (bytes > 0) {
+                        if (bytes > 0)
+                        {
                             buffer[bytes] = 0;
                             rmsg.err.append(buffer);
-                        } else if (bytes == 0) {
+                        }
+                        else if (bytes == 0)
+                        {
                             close(sock_err[0]);
                             sock_err[0] = -1;
                         }
                     }
 
-                    if (FD_ISSET(death_pipe[0], &rfds)) {
+                    if (FD_ISSET(death_pipe[0], &rfds))
+                    {
                         // Note that we have already read any remaining stdout/stderr:
                         // the sigpipe is delivered after everything was written,
                         // and the notification is multiplexed into the select above.
@@ -512,13 +536,15 @@ namespace icecream
                         struct rusage ru;
                         int status;
 
-                        if (wait4(pid, &status, 0, &ru) != pid) {
+                        if (wait4(pid, &status, 0, &ru) != pid)
+                        {
                             // this should never happen
                             assert(false);
                             return EXIT_DISTCC_FAILED;
                         }
 
-                        if (shell_exit_status(status) != 0) {
+                        if (shell_exit_status(status) != 0)
+                        {
                             unsigned long int mem_used = ((ru.ru_minflt + ru.ru_majflt) * getpagesize()) / 1024;
                             rmsg.status = EXIT_OUT_OF_MEMORY;
 
@@ -533,9 +559,10 @@ namespace icecream
                             }
                         }
 
-                        if (WIFEXITED(status)) {
+                        if (WIFEXITED(status))
+                        {
                             struct timeval endtv;
-                            gettimeofday(&endtv, 0);
+                            gettimeofday(&endtv, nullptr);
                             rmsg.status = shell_exit_status(status);
                             rmsg.have_dwo_file = j.dwarfFissionEnabled();
                             job_stat[JobStats::exit_code] = shell_exit_status(status);

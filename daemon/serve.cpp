@@ -24,7 +24,6 @@
 # include "serve.h"
 
 using namespace icecream::services;
-
 using namespace std;
 
 namespace icecream
@@ -132,7 +131,7 @@ namespace icecream
                               << endl;
             }
 
-            Msg *msg = 0; // The current read message
+            Msg *msg = nullptr; // The current read message
             unsigned int job_id = 0;
             string tmp_path, obj_file, dwo_file;
 
@@ -166,7 +165,7 @@ namespace icecream
 
                 memset(job_stat, 0, sizeof(job_stat));
 
-                char *tmp_output = 0;
+                char *tmp_output = nullptr;
                 char prefix_output[32]; // 20 for 2^64 + 6 for "icecc-" + 1 for trailing NULL
                 sprintf(prefix_output, "icecc-%d", job_id);
 

@@ -622,7 +622,7 @@ namespace icecream
                     || inofs < intogo + compressed_len)
             {
                 log_error() << "failure in readcompressed() length checking" << std::endl;
-                *uncompressed_buf = 0;
+                *uncompressed_buf = nullptr;
                 uncompressed_len = 0;
                 _uclen = uncompressed_len;
                 _clen = compressed_len;
@@ -648,7 +648,7 @@ namespace icecream
                     log_error() << "internal error - decompression of data from "
                             << dump().c_str() << " failed: " << ret << std::endl;
                     delete[] *uncompressed_buf;
-                    *uncompressed_buf = 0;
+                    *uncompressed_buf = nullptr;
                     uncompressed_len = 0;
                 }
             }
