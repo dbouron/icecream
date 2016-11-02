@@ -3,6 +3,9 @@
 /*
     This file is part of Icecream.
 
+    Copyright (c) 2004 Stephan Kulow <coolo@suse.de>
+                  2002, 2003 by Martin Pool <mbp@samba.org>
+
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
@@ -18,27 +21,31 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef ICECREAM_FILE_UTIL_H
-# define ICECREAM_FILE_UTIL_H
+#ifndef ICECREAM_NATIVE_ENVIRONMENT_H
+# define ICECREAM_NATIVE_ENVIRONMENT_H
 
-# include <vector>
 # include <string>
+# include <map>
+
+# include <time.h>
 
 namespace icecream
 {
     namespace daemon
     {
-        std::vector<std::string> split(const std::string &s, char delim);
+        struct NativeEnvironment
+        {
+            std::string name; // the hash
+            std::map<std::string, time_t> extrafilestimes;
+            // Timestamps for compiler binaries, if they have changed since the time
+            // the native env was built, it needs to be rebuilt.
+            time_t gcc_bin_timestamp;
+            time_t gpp_bin_timestamp;
+            time_t clang_bin_timestamp;
+            int create_env_pipe; // if in progress of creating the environment
+        };
 
-        std::string get_relative_path(const std::string &to,
-                                      const std::string &from);
+    }
+}
 
-        std::string get_canonicalized_path(const std::string &path);
-
-        bool mkpath(const std::string &path);
-
-        bool rmpath(const char* path);
-    } // daemon
-} // icecream
-
-#endif /* !ICECREAM_FILE_UTIL_H */
+#endif /* !ICECREAM_NATIVE_ENVIRONMENT_H */

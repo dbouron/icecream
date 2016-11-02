@@ -22,37 +22,96 @@
 */
 
 #ifndef ICECREAM_WORKIT_H
-#define ICECREAM_WORKIT_H
+# define ICECREAM_WORKIT_H
 
-#include <job.h>
-#include <sys/types.h>
-#include <string>
+# include "config.h"
 
-#include <exception>
+# include <algorithm>
+# include <string>
+# include <exception>
 
-class MsgChannel;
-class CompileResultMsg;
+# ifdef __FreeBSD__
+#  include <sys/param.h>
+# endif
 
-// No icecream ;(
-class myexception : public std::exception
+# include <stdio.h>
+# include <errno.h>
+
+/* According to earlier standards */
+# include <sys/time.h>
+# include <sys/types.h>
+# include <unistd.h>
+# include <sys/fcntl.h>
+# include <sys/wait.h>
+# include <signal.h>
+# include <sys/resource.h>
+# if HAVE_SYS_USER_H && !defined(__DragonFly__)
+#  include <sys/user.h>
+# endif
+# include <sys/socket.h>
+
+# if defined(__FreeBSD__) || defined(__DragonFly__) || defined(__APPLE__)
+#  ifndef RUSAGE_SELF
+#   define   RUSAGE_SELF     (0)
+#  endif
+#  ifndef RUSAGE_CHILDREN
+#   define   RUSAGE_CHILDREN     (-1)
+#  endif
+# endif
+
+# include "comm.h"
+# include "platform.h"
+# include "util.h"
+# include "channel.h"
+# include "compile-result.h"
+# include "tempfile.h"
+# include "assert.h"
+# include "exitcode.h"
+# include "logging.h"
+# include <job.h>
+# include <all.h>
+# include <protocol.h>
+
+namespace icecream
 {
-    int code;
-public:
-    myexception(int _exitcode) : exception(), code(_exitcode) {}
-    int exitcode() const {
-        return code;
-    }
-};
+    namespace daemon
+    {
+        enum JobStats : uint32_t
+        {
+            in_compressed,
+            in_uncompressed,
+            out_uncompressed,
+            exit_code,
+            real_msec,
+            user_msec,
+            sys_msec,
+            sys_pfaults
+        };
 
-namespace JobStatistics
-{
-enum job_stat_fields { in_compressed, in_uncompressed, out_uncompressed, exit_code,
-                       real_msec, user_msec, sys_msec, sys_pfaults
-                     };
-}
+        /// \todo Rename this exception.
+        // No icecream ;(
+        class myexception : public std::exception
+        {
+            int code;
+        public:
+            myexception(int _exitcode) : exception(), code(_exitcode) {}
 
-extern int work_it(CompileJob &j, unsigned int job_stats[], MsgChannel *client, CompileResultMsg &msg,
-                   const std::string &tmp_root, const std::string &build_path, const std::string &file_name,
-                   unsigned long int mem_limit, int client_fd, int job_in_fd);
+            int exitcode() const {
+                return code;
+            }
+        };
+
+        extern int work_it(services::CompileJob &j,
+                           unsigned int job_stats[],
+                           services::Channel *client,
+                           services::CompileResult &msg,
+                           const std::string &tmp_root,
+                           const std::string &build_path,
+                           const std::string &file_name,
+                           unsigned long int mem_limit,
+                           int client_fd, int job_in_fd);
+
+    } // daemon
+} // icecream
 
 #endif

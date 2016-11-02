@@ -21,11 +21,59 @@
 */
 
 #ifndef ICECREAM_LOAD_H
-#define ICECREAM_LOAD_H
+# define ICECREAM_LOAD_H
 
-#include <comm.h>
+# include <unistd.h>
+# include <stdio.h>
+# include <math.h>
+# include <sys/types.h>
+# include <sys/stat.h>
+# include <fcntl.h>
+# ifdef HAVE_SYS_PARAM_H
+#  include <sys/param.h>
+# endif
 
-// 'hint' is used to approximate the load, whenever getloadavg() is unavailable.
-bool fill_stats(unsigned long &myidleload, unsigned long &myniceload, unsigned int &memory_fillgrade, StatsMsg *msg, unsigned int hint);
+# ifdef HAVE_MACH_HOST_INFO_H
+#  define USE_MACH 1
+# elif !defined( __linux__ ) && !defined(__CYGWIN__)
+#  define USE_SYSCTL
+# endif
 
-#endif
+# ifdef USE_MACH
+#  include <mach/host_info.h>
+#  include <mach/mach_host.h>
+#  include <mach/mach_init.h>
+# endif
+
+# ifdef HAVE_KINFO_H
+#  include <kinfo.h>
+# endif
+
+# ifdef HAVE_DEVSTAT_H
+#  include <sys/resource.h>
+#  include <sys/sysctl.h>
+#  include <devstat.h>
+# endif
+
+# include "config.h"
+# include "stats.h"
+# include <comm.h>
+# include <logging.h>
+
+namespace icecream
+{
+    namespace daemon
+    {
+
+        /// What the kernel puts as ticks in /proc/stat.
+        using load_t = unsigned long long;
+
+        // 'hint' is used to approximate the load, whenever getloadavg() is unavailable.
+        bool fill_stats(unsigned long &myidleload,
+                        unsigned long &myniceload,
+                        unsigned int &memory_fillgrade,
+                        icecream::services::Stats *msg,
+                        unsigned int hint);
+    } // daemon
+} // icecream
+#endif /* !ICECREAM_LOAD_H */

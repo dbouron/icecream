@@ -22,17 +22,72 @@
 */
 
 #ifndef ICECREAM_SERVE_H
-#define ICECREAM_SERVE_H
+# define ICECREAM_SERVE_H
 
-#include <string>
+# include <string>
+# include <cassert>
 
-class CompileJob;
-class MsgChannel;
+# include <stdio.h>
+# include <stdlib.h>
+# include <setjmp.h>
+# include <unistd.h>
+# include <string.h>
+# include <fcntl.h>
+# include <errno.h>
+# include <signal.h>
 
-extern int nice_level;
+# include <sys/stat.h>
+# include <sys/types.h>
+# include <sys/wait.h>
+# ifdef HAVE_SYS_SIGNAL_H
+#  include <sys/signal.h>
+# endif /* HAVE_SYS_SIGNAL_H */
+# include <sys/param.h>
+# include <unistd.h>
 
-int handle_connection(const std::string &basedir, CompileJob *job,
-                      MsgChannel *serv, int & out_fd,
-                      unsigned int mem_limit, uid_t user_uid, gid_t user_gid);
+# include <sys/time.h>
 
-#endif
+# ifdef __FreeBSD__
+#  include <sys/socket.h>
+#  include <sys/uio.h>
+# endif
+
+# ifndef O_LARGEFILE
+#  define O_LARGEFILE 0
+# endif
+
+# ifndef _PATH_TMP
+#  define _PATH_TMP "/tmp"
+# endif
+
+# include <job.h>
+# include <comm.h>
+
+# include "config.h"
+# include "environment.h"
+# include "exitcode.h"
+# include "tempfile.h"
+# include "workit.h"
+# include "logging.h"
+# include "util.h"
+# include "file_util.h"
+# include "channel.h"
+# include "all.h"
+
+namespace icecream
+{
+    namespace daemon
+    {
+        extern int nice_level;
+
+        int handle_connection(const std::string &basedir,
+                              std::shared_ptr<services::CompileJob> job,
+                              std::shared_ptr<services::Channel> client,
+                              int & out_fd,
+                              unsigned int mem_limit,
+                              uid_t user_uid,
+                              gid_t user_gid);
+    } // daemon
+} // icecream
+
+# endif
