@@ -30,7 +30,7 @@
 
 #include "../services/job.h"
 
-//using namespace icecream::services;
+using namespace icecream::services;
 
 /**
  ** \class FlagTest
@@ -69,36 +69,33 @@ public:
 
 protected:
     CompileJob compile_job_;
-    ArgumentsList arguments_list_;
+    ArgumentList arguments_list_;
 };
 
 /// \test Check with valid flags.
 TEST_F(FlagTest, ValidFlag)
 {
     SetUp({"-g", "-O2"});
-    ASSERT_EQ(CompileJob::Flag_g | CompileJob::Flag_O2, compile_job_.argumentFlags());
-    ASSERT_NE(CompileJob::Flag_O2, compile_job_.argumentFlags());
-    ASSERT_NE(CompileJob::Flag_g, compile_job_.argumentFlags());
+    ASSERT_EQ(Flag::g | Flag::O2, compile_job_.argumentFlags());
+    ASSERT_NE(Flag::O2, compile_job_.argumentFlags());
+    ASSERT_NE(Flag::g, compile_job_.argumentFlags());
 }
 
 /// \test Check with valid flags in reverse order.
 TEST_F(FlagTest, ReverseValidFlag)
 {
     SetUp({"-O2", "-g"});
-    ASSERT_EQ(CompileJob::Flag_g | CompileJob::Flag_O2, compile_job_.argumentFlags());
-    ASSERT_NE(CompileJob::Flag_O2, compile_job_.argumentFlags());
-    ASSERT_NE(CompileJob::Flag_g, compile_job_.argumentFlags());
+    ASSERT_EQ(Flag::g | Flag::O2, compile_job_.argumentFlags());
+    ASSERT_NE(Flag::O2, compile_job_.argumentFlags());
+    ASSERT_NE(Flag::g, compile_job_.argumentFlags());
 }
 
 /// \test Check with multiple valid flags, looking for some flag overwritting.
 TEST_F(FlagTest, MultiValidFlag)
 {
     SetUp({"-O1", "-g", "-O3", "-g3"});
-    ASSERT_EQ(CompileJob::Flag_Ol2 | CompileJob::Flag_g3, compile_job_.argumentFlags());
-    ASSERT_NE(CompileJob::Flag_O2
-              | CompileJob::Flag_g
-              | CompileJob::Flag_Ol2
-              | CompileJob::Flag_g3,
+    ASSERT_EQ(Flag::Ol2 | Flag::g3, compile_job_.argumentFlags());
+    ASSERT_NE(Flag::O2 | Flag::g | Flag::Ol2 | Flag::g3,
               compile_job_.argumentFlags());
 }
 
@@ -106,7 +103,7 @@ TEST_F(FlagTest, MultiValidFlag)
 TEST_F(FlagTest, MonkeyTestFlag)
 {
     SetUp({"-", "----", "test.cpp", "-o", "test"});
-    ASSERT_EQ(CompileJob::Flag_None, compile_job_.argumentFlags());
+    ASSERT_EQ(Flag::None, compile_job_.argumentFlags());
 }
 
 int main(int argc, char **argv)
