@@ -41,6 +41,8 @@
 #define _GNU_SOURCE
 #endif
 
+#include <cassert>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -48,7 +50,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <signal.h>
-#include <cassert>
 #include <limits.h>
 #include <sys/time.h>
 #include <comm.h>
@@ -61,7 +62,9 @@
 
 #include "client.h"
 #include "platform.h"
+#include "all.h"
 
+using namespace icecream::services;
 using namespace std;
 
 extern const char *rs_program_name;
@@ -235,7 +238,7 @@ static int create_native(char **args)
         argv.push_back(strdup(extrafiles[extracount]));
     }
 
-    argv.push_back(NULL);
+    argv.push_back(nullptr);
 
     return execv(argv[0], argv.data());
 }
@@ -349,7 +352,7 @@ int main(int argc, char **argv)
     char *icecc = getenv("ICECC");
 
     if (icecc && !strcasecmp(icecc, "disable")) {
-        return build_local(job, 0);
+        return build_local(job, nullptr);
     }
 
     if (icecc && !strcasecmp(icecc, "no")) {
@@ -374,10 +377,10 @@ int main(int argc, char **argv)
                 extrafiles.push_back(file);
             } else {
                 log_warning() << "File in ICECC_EXTRAFILES not found: " << file << endl;
-                return build_local(job, 0);
+                return build_local(job, nullptr);
             }
 
-            if (colon == NULL) {
+            if (colon == nullptr) {
                 break;
             }
 
@@ -385,8 +388,8 @@ int main(int argc, char **argv)
         }
     }
 
-    MsgChannel *local_daemon;
-    if (getenv("ICECC_TEST_SOCKET") == NULL) {
+    std::shared_ptr<Channel> local_daemon{nullptr};
+    if (getenv("ICECC_TEST_SOCKET") == nullptr) {
         /* try several options to reach the local daemon - 3 sockets, one TCP */
         local_daemon = Service::createChannel("/var/run/icecc/iceccd.socket");
 
@@ -413,7 +416,7 @@ int main(int argc, char **argv)
 
     if (!local_daemon) {
         log_warning() << "no local daemon found" << endl;
-        return build_local(job, 0);
+        return build_local(job, nullptr);
     }
 
     Environments envs;
@@ -425,22 +428,22 @@ int main(int argc, char **argv)
             } catch (std::exception) {
                 // we just build locally
             }
-        } else if (!extrafiles.empty() && !IS_PROTOCOL_32(local_daemon)) {
+        } else if (!extrafiles.empty() && !is_protocol<32>()(*local_daemon)) {
             log_warning() << "Local daemon is too old to handle compiler plugins." << endl;
             local = true;
         } else {
-            if (!local_daemon->send_msg(GetNativeEnvMsg(compiler_is_clang(job)
+            if (!local_daemon->send_msg(GetNativeEnv(compiler_is_clang(job)
                                         ? "clang" : "gcc", extrafiles))) {
                 log_warning() << "failed to write get native environment" << endl;
                 goto do_local_error;
             }
 
             // the timeout is high because it creates the native version
-            Msg *umsg = local_daemon->get_msg(4 * 60);
+            Msg *umsg = local_daemon->get_msg(4 * 60).get();
             string native;
 
-            if (umsg && umsg->type == M_NATIVE_ENV) {
-                native = static_cast<UseNativeEnvMsg*>(umsg)->nativeVersion;
+            if (umsg && umsg->type == MsgType::NATIVE_ENV) {
+                native = static_cast<UseNativeEnv*>(umsg)->nativeVersion;
             }
 
             if (native.empty() || ::access(native.c_str(), R_OK)) {
@@ -474,28 +477,28 @@ int main(int argc, char **argv)
     if (local) {
         log_block b("building_local");
         struct rusage ru;
-        Msg *startme = 0L;
+        Msg *startme = nullptr;
 
         /* Inform the daemon that we like to start a job.  */
-        if (local_daemon->send_msg(JobLocalBeginMsg(0, get_absfilename(job.outputFile())))) {
+        if (local_daemon->send_msg(JobLocalBegin(0, get_absfilename(job.outputFile())))) {
             /* Now wait until the daemon gives us the start signal.  40 minutes
                should be enough for all normal compile or link jobs.  */
-            startme = local_daemon->get_msg(40 * 60);
+            startme = local_daemon->get_msg(40 * 60).get();
         }
 
         /* If we can't talk to the daemon anymore we need to fall back
            to lock file locking.  */
-        if (!startme || startme->type != M_JOB_LOCAL_BEGIN) {
+        if (!startme || startme->type != MsgType::JOB_LOCAL_BEGIN) {
             goto do_local_error;
         }
 
-        ret = build_local(job, local_daemon, &ru);
+        ret = build_local(job, local_daemon.get(), &ru);
     } else {
         try {
             // check if it should be compiled three times
             const char *s = getenv("ICECC_REPEAT_RATE");
             int rate = s ? atoi(s) : 0;
-            ret = build_remote(job, local_daemon, envs, rate);
+            ret = build_remote(job, local_daemon.get(), envs, rate);
 
             /* We have to tell the local daemon that everything is fine and
                that the remote daemon will send the scheduler our done msg.
@@ -503,7 +506,7 @@ int main(int argc, char **argv)
                and tell the scheduler - and that fail message may arrive earlier
                than the remote daemon's success msg. */
             if (ret == 0) {
-                local_daemon->send_msg(EndMsg());
+                local_daemon->send_msg(End());
             }
         } catch (remote_error& error) {
             log_info() << "local build forced by remote exception: " << error.what() << endl;
@@ -526,11 +529,8 @@ int main(int argc, char **argv)
             goto do_local_error;
         }
     }
-
-    delete local_daemon;
     return ret;
 
 do_local_error:
-    delete local_daemon;
-    return build_local(job, 0);
+    return build_local(job, nullptr);
 }

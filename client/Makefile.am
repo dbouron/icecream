@@ -12,7 +12,7 @@ libclient_a_SOURCES = \
         safeguard.cpp
 
 icecc_SOURCES = \
-	main.cpp 
+	main.cpp
 icecc_LDADD = \
 	libclient.a \
 	../services/libicecc.la \

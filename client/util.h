@@ -22,7 +22,27 @@
 
 #include <string>
 
-class CompileJob;
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <time.h>
+#include <limits.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <sys/stat.h>
+#include <sys/file.h>
+
+#include "config.h"
+#include "client.h"
+#include "exitcode.h"
+#include "job.h"
+#include "logging.h"
+
+using namespace icecream::services;
 
 /* util.c */
 extern int set_cloexec_flag(int desc, int value);

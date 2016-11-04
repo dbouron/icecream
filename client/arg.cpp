@@ -35,6 +35,7 @@
 
 #include "client.h"
 
+using namespace icecream::services;
 using namespace std;
 
 // Whether any option controlling color output has been explicitly given.
@@ -74,13 +75,13 @@ static bool analyze_program(const char *name, CompileJob &job)
     }
 
     if ((suffix == "++") || (suffix == "CC")) {
-        job.setLanguage(CompileJob::Lang_CXX);
+        job.setLanguage(Language::CXX);
     } else if (suffix == "cc") {
-        job.setLanguage(CompileJob::Lang_C);
+        job.setLanguage(Language::C);
     } else if (compiler_name == "clang") {
-        job.setLanguage(CompileJob::Lang_C);
+        job.setLanguage(Language::C);
     } else {
-        job.setLanguage(CompileJob::Lang_Custom);
+        job.setLanguage(Language::Custom);
         log_info() << "custom command, running locally." << endl;
         return true;
     }
@@ -90,7 +91,7 @@ static bool analyze_program(const char *name, CompileJob &job)
 
 bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<string> *extrafiles)
 {
-    ArgumentsList args;
+    ArgumentList args;
     string ofile;
     string dwofile;
 
@@ -112,14 +113,15 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
     bool seen_md = false;
     bool seen_split_dwarf = false;
     // if rewriting includes and precompiling on remote machine, then cpp args are not local
-    Argument_Type Arg_Cpp = compiler_only_rewrite_includes(job) ? Arg_Rest : Arg_Local;
+    ArgumentType Arg_Cpp =
+        compiler_only_rewrite_includes(job) ? ArgumentType::Rest : ArgumentType::Local;
 
     explicit_color_diagnostics = false;
     explicit_no_show_caret = false;
 
     if (icerun) {
         always_local = true;
-        job.setLanguage(CompileJob::Lang_Custom);
+        job.setLanguage(Language::Custom);
         log_info() << "icerun, running locally." << endl;
     }
 
@@ -127,33 +129,33 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
         const char *a = argv[i];
 
         if (icerun) {
-            args.append(a, Arg_Local);
+            args.push_back({a, ArgumentType::Local});
         } else if (a[0] == '-') {
             if (!strcmp(a, "-E")) {
                 always_local = true;
-                args.append(a, Arg_Local);
+                args.push_back({a, ArgumentType::Local});
                 log_info() << "preprocessing, building locally" << endl;
             } else if (!strncmp(a, "-fdump", 6) || !strcmp(a, "-combine")) {
                 always_local = true;
-                args.append(a, Arg_Local);
+                args.push_back({a, ArgumentType::Local});
                 log_info() << "argument " << a << ", building locally" << endl;
             } else if (!strcmp(a, "-MD") || !strcmp(a, "-MMD")) {
                 seen_md = true;
-                args.append(a, Arg_Local);
+                args.push_back({a, ArgumentType::Local});
                 /* These two generate dependencies as a side effect.  They
                  * should work with the way we call cpp. */
             } else if (!strcmp(a, "-MG") || !strcmp(a, "-MP")) {
-                args.append(a, Arg_Local);
+                args.push_back({a, ArgumentType::Local});
                 /* These just modify the behaviour of other -M* options and do
                  * nothing by themselves. */
             } else if (!strcmp(a, "-MF")) {
                 seen_mf = true;
-                args.append(a, Arg_Local);
-                args.append(argv[++i], Arg_Local);
+                args.push_back({a, ArgumentType::Local});
+                args.push_back({argv[++i], ArgumentType::Local});
                 /* as above but with extra argument */
             } else if (!strcmp(a, "-MT") || !strcmp(a, "-MQ")) {
-                args.append(a, Arg_Local);
-                args.append(argv[++i], Arg_Local);
+                args.push_back({a, ArgumentType::Local});
+                args.push_back({argv[++i], ArgumentType::Local});
                 /* as above but with extra argument */
             } else if (a[1] == 'M') {
                 /* -M(anything else) causes the preprocessor to
@@ -163,27 +165,27 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
                    not the compiler.  There would be no point trying
                    to distribute it even if we could. */
                 always_local = true;
-                args.append(a, Arg_Local);
+                args.push_back({a, ArgumentType::Local});
                 log_info() << "argument " << a << ", building locally" << endl;
             } else if (str_equal("--param", a)) {
-                args.append(a, Arg_Remote);
+                args.push_back({a, ArgumentType::Remote});
 
                 /* skip next word, being option argument */
                 if (argv[i + 1]) {
-                    args.append(argv[++i], Arg_Remote);
+                    args.push_back({argv[++i], ArgumentType::Remote});
                 }
             } else if (a[1] == 'B') {
                 /* -B overwrites the path where the compiler finds the assembler.
                    As we don't use that, better force local job.
                 */
                 always_local = true;
-                args.append(a, Arg_Local);
+                args.push_back({a, ArgumentType::Local});
                 log_info() << "argument " << a << ", building locally" << endl;
 
                 if (str_equal(a, "-B")) {
                     /* skip next word, being option argument */
                     if (argv[i + 1]) {
-                        args.append(argv[++i], Arg_Local);
+                        args.push_back({argv[++i], ArgumentType::Local});
                     }
                 }
             } else if (str_startswith("-Wa,", a)) {
@@ -237,10 +239,10 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
 
                 if (local) {
                     always_local = true;
-                    args.append(a, Arg_Local);
+                    args.push_back({a, ArgumentType::Local});
                     log_info() << "argument " << a << ", building locally" << endl;
                 } else {
-                    args.append(a, Arg_Remote);
+                    args.push_back({a, ArgumentType::Remote});
                 }
             } else if (!strcmp(a, "-S")) {
                 seen_s = true;
@@ -254,17 +256,17 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
                        || !strcmp(a, "-fbranch-probabilities")) {
                 log_info() << "compiler will emit profile info (argument " << a << "); building locally" << endl;
                 always_local = true;
-                args.append(a, Arg_Local);
+                args.push_back({a, ArgumentType::Local});
             } else if (!strcmp(a, "-gsplit-dwarf")) {
                 seen_split_dwarf = true;
             } else if (str_equal(a, "-x")) {
-                args.append(a, Arg_Rest);
+                args.push_back({a, ArgumentType::Rest});
                 bool unsupported = true;
                 if (const char *opt = argv[i + 1]) {
                     ++i;
-                    args.append(opt, Arg_Rest);
+                    args.push_back({opt, ArgumentType::Rest});
                     if (str_equal(opt, "c++") || str_equal(opt, "c")) {
-                        CompileJob::Language lang = str_equal(opt, "c++") ? CompileJob::Lang_CXX : CompileJob::Lang_C;
+                        Language lang = str_equal(opt, "c++") ? Language::CXX : Language::C;
                         job.setLanguage(lang); // will cause -x used remotely twice, but shouldn't be a problem
                         unsupported = false;
                     }
@@ -279,14 +281,14 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
                            << "building locally"
                            << endl;
                 always_local = true;
-                args.append(a, Arg_Local);
+                args.push_back({a, ArgumentType::Local});
 
             } else if (!strcmp(a, "-fexec-charset") || !strcmp(a, "-fwide-exec-charset") || !strcmp(a, "-finput-charset") ) {
 #if CLIENT_DEBUG
                 log_info() << "-f*-charset assumes charset conversion in the build environment; must be local" << endl;
 #endif
                 always_local = true;
-                args.append(a, Arg_Local);
+                args.push_back({a, ArgumentType::Local});
             } else if (!strcmp(a, "-c")) {
                 seen_c = true;
             } else if (str_startswith("-o", a)) {
@@ -332,8 +334,8 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
                         always_local = true;    /* Included file is not header.suffix or header.suffix.gch! */
                     }
 
-                    args.append(a, Arg_Local);
-                    args.append(argv[i], Arg_Local);
+                    args.push_back({a, ArgumentType::Local});
+                    args.push_back({argv[i], ArgumentType::Local});
                 }
             } else if (str_equal("-include-pch", a)) {
                 /* Clang's precompiled header, it's probably not worth it sending the PCH file. */
@@ -344,12 +346,12 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
                 always_local = true;
                 log_info() << "argument " << a << ", building locally" << endl;
             } else if (str_equal("-D", a) || str_equal("-U", a)) {
-                args.append(a, Arg_Cpp);
+                args.push_back({a, Arg_Cpp});
 
                 /* skip next word, being option argument */
                 if (argv[i + 1]) {
                     ++i;
-                    args.append(argv[i], Arg_Cpp);
+                    args.push_back({argv[i], Arg_Cpp});
                 }
             } else if (str_equal("-I", a)
                        || str_equal("-L", a)
@@ -366,7 +368,7 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
                        || str_equal("-isysroot", a)
                        || str_equal("-iwithprefixbefore", a)
                        || str_equal("-idirafter", a)) {
-                args.append(a, Arg_Local);
+                args.push_back({a, ArgumentType::Local});
 
                 /* skip next word, being option argument */
                 if (argv[i + 1]) {
@@ -377,49 +379,49 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
                         log_info() << "argument " << a << " " << argv[i] << ", building locally" << endl;
                     }
 
-                    args.append(argv[i], Arg_Local);
+                    args.push_back({argv[i], ArgumentType::Local});
                 }
             } else if (str_startswith("-Wp,", a)
                        || str_startswith("-D", a)
                        || str_startswith("-U", a)) {
-                args.append(a, Arg_Cpp);
+                args.push_back({a, Arg_Cpp});
             } else if (str_startswith("-I", a)
                        || str_startswith("-l", a)
                        || str_startswith("-L", a)) {
-                args.append(a, Arg_Local);
+                args.push_back({a, ArgumentType::Local});
             } else if (str_equal("-undef", a)) {
-                args.append(a, Arg_Cpp);
+                args.push_back({a, Arg_Cpp});
             } else if (str_equal("-nostdinc", a)
                        || str_equal("-nostdinc++", a)
                        || str_equal("-MD", a)
                        || str_equal("-MMD", a)
                        || str_equal("-MG", a)
                        || str_equal("-MP", a)) {
-                args.append(a, Arg_Local);
+                args.push_back({a, ArgumentType::Local});
             } else if (str_equal("-fno-color-diagnostics", a)) {
                 explicit_color_diagnostics = true;
-                args.append(a, Arg_Rest);
+                args.push_back({a, ArgumentType::Rest});
             } else if (str_equal("-fcolor-diagnostics", a)) {
                 explicit_color_diagnostics = true;
-                args.append(a, Arg_Rest);
+                args.push_back({a, ArgumentType::Rest});
             } else if (str_equal("-fno-diagnostics-color", a)
                        || str_equal("-fdiagnostics-color=never", a)) {
                 explicit_color_diagnostics = true;
-                args.append(a, Arg_Rest);
+                args.push_back({a, ArgumentType::Rest});
             } else if (str_equal("-fdiagnostics-color", a)
                        || str_equal("-fdiagnostics-color=always", a)) {
                 explicit_color_diagnostics = true;
-                args.append(a, Arg_Rest);
+                args.push_back({a, ArgumentType::Rest});
             } else if (str_equal("-fdiagnostics-color=auto", a)) {
                 // Drop the option here and pretend it wasn't given,
                 // the code below will decide whether to enable colors or not.
                 explicit_color_diagnostics = false;
             } else if (str_equal("-fno-diagnostics-show-caret", a)) {
                 explicit_no_show_caret = true;
-                args.append(a, Arg_Rest);
+                args.push_back({a, ArgumentType::Rest});
             } else if (str_equal("-flto", a)) {
                 // pointless when preprocessing, and Clang would emit a warning
-                args.append(a, Arg_Remote);
+                args.push_back({a, ArgumentType::Remote});
             } else if (str_startswith("-fplugin=", a)) {
                 string file = a + strlen("-fplugin=");
 
@@ -431,7 +433,7 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
                     log_info() << "plugin for argument " << a << " missing, building locally" << endl;
                 }
 
-                args.append("-fplugin=" + file, Arg_Rest);
+                args.push_back({"-fplugin=" + file, ArgumentType::Rest});
             } else if (str_equal("-Xclang", a)) {
                 if (argv[i + 1]) {
                     ++i;
@@ -439,8 +441,8 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
 
                     if (str_equal("-load", p)) {
                         if (argv[i + 1] && argv[i + 2] && str_equal(argv[i + 1], "-Xclang")) {
-                            args.append(a, Arg_Rest);
-                            args.append(p, Arg_Rest);
+                            args.push_back({a, ArgumentType::Rest});
+                            args.push_back({p, ArgumentType::Rest});
                             string file = argv[i + 2];
 
                             if (access(file.c_str(), R_OK) == 0) {
@@ -453,22 +455,22 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
                                            << " missing, building locally" << endl;
                             }
 
-                            args.append(argv[i + 1], Arg_Rest);
-                            args.append(file, Arg_Rest);
+                            args.push_back({argv[i + 1], ArgumentType::Rest});
+                            args.push_back({file, ArgumentType::Rest});
                             i += 2;
                         }
                     } else {
-                        args.append(a, Arg_Rest);
-                        args.append(p, Arg_Rest);
+                        args.push_back({a, ArgumentType::Rest});
+                        args.push_back({p, ArgumentType::Rest});
                     }
                 }
             } else {
-                args.append(a, Arg_Rest);
+                args.push_back({a, ArgumentType::Rest});
             }
         } else if (a[0] == '@') {
-            args.append(a, Arg_Local);
+            args.push_back({a, ArgumentType::Local});
         } else {
-            args.append(a, Arg_Rest);
+            args.push_back({a, ArgumentType::Rest});
         }
     }
 
@@ -482,23 +484,23 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
             log_info() << "can't have both -c and -S, ignoring -c" << endl;
         }
 
-        args.append("-S", Arg_Remote);
+        args.push_back({"-S", ArgumentType::Remote});
     } else {
-        args.append("-c", Arg_Remote);
+        args.push_back({"-c", ArgumentType::Remote});
         if (seen_split_dwarf) {
             job.setDwarfFissionEnabled(true);
         }
     }
 
     if (!always_local) {
-        ArgumentsList backup = args;
+        ArgumentList backup = args;
 
         /* TODO: ccache has the heuristic of ignoring arguments that are not
          * extant files when looking for the input file; that's possibly
          * worthwile.  Of course we can't do that on the server. */
         string ifile;
 
-        for (ArgumentsList::iterator it = args.begin(); it != args.end();) {
+        for (ArgumentList::iterator it = args.begin(); it != args.end();) {
             if (it->first == "-") {
                 always_local = true;
                 log_info() << "stdin/stdout argument, building locally" << endl;
@@ -510,7 +512,7 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
             if (it->first == "-Xclang" || it->first == "-x") {
                 ++it;
                 ++it;
-            } else if (it->second != Arg_Rest || it->first.at(0) == '-'
+            } else if (it->second != ArgumentType::Rest || it->first.at(0) == '-'
                        || it->first.at(0) == '@') {
                 ++it;
             } else if (ifile.empty()) {
@@ -540,16 +542,16 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
                 || ext == "C" || ext == "ii") {
 #if CLIENT_DEBUG
 
-                if (job.language() != CompileJob::Lang_CXX) {
+                if (job.language() != Language::CXX) {
                     log_info() << "switching to C++ for " << ifile << endl;
                 }
 
 #endif
-                job.setLanguage(CompileJob::Lang_CXX);
+                job.setLanguage(Language::CXX);
             } else if (ext == "mi" || ext == "m"
                        || ext == "mii" || ext == "mm"
                        || ext == "M") {
-                job.setLanguage(CompileJob::Lang_OBJC);
+                job.setLanguage(Language::OBJC);
             } else if (ext == "s" || ext == "S" // assembler
                        || ext == "ads" || ext == "adb" // ada
                        || ext == "f" || ext == "for" // fortran
@@ -586,8 +588,8 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
                 log_info() << "dep file: " << dfile << endl;
 #endif
 
-                args.append("-MF", Arg_Local);
-                args.append(dfile, Arg_Local);
+                args.push_back({"-MF", ArgumentType::Local});
+                args.push_back({dfile, ArgumentType::Local});
             }
         }
 
@@ -608,9 +610,9 @@ bool analyse_argv(const char * const *argv, CompileJob &job, bool icerun, list<s
     // when it would be used, unless explicitly set
     if (compiler_has_color_output(job) && !explicit_color_diagnostics) {
         if (compiler_is_clang(job))
-            args.append("-fcolor-diagnostics", Arg_Rest);
+            args.push_back({"-fcolor-diagnostics", ArgumentType::Rest});
         else
-            args.append("-fdiagnostics-color", Arg_Rest); // GCC
+            args.push_back({"-fdiagnostics-color", ArgumentType::Rest}); // GCC
     }
 
     job.setFlags(args);

@@ -126,13 +126,13 @@ string compiler_path_lookup(const string& compiler)
  */
 string find_compiler(const CompileJob &job)
 {
-    if (job.language() == CompileJob::Lang_C) {
+    if (job.language() == Language::C) {
         if (const char *env = getenv("ICECC_CC")) {
             return env;
         }
     }
 
-    if (job.language() == CompileJob::Lang_CXX) {
+    if (job.language() == Language::CXX) {
         if (const char *env = getenv("ICECC_CXX")) {
             return env;
         }
@@ -143,7 +143,7 @@ string find_compiler(const CompileJob &job)
 
 bool compiler_is_clang(const CompileJob &job)
 {
-    if (job.language() == CompileJob::Lang_Custom) {
+    if (job.language() == Language::Custom) {
         return false;
     }
 
@@ -213,7 +213,7 @@ static void handle_user_break(int sig)
  * log our resource usage.
  *
  **/
-int build_local(CompileJob &job, MsgChannel *local_daemon, struct rusage *used)
+int build_local(CompileJob &job, Channel *local_daemon, struct rusage *used)
 {
     list<string> arguments;
 
@@ -249,7 +249,7 @@ int build_local(CompileJob &job, MsgChannel *local_daemon, struct rusage *used)
         argv[argc++] = strdup(it->c_str());
     }
 
-    argv[argc] = 0;
+    argv[argc] = nullptr;
 #if CLIENT_DEBUG
     trace() << "execing ";
 
@@ -271,7 +271,7 @@ int build_local(CompileJob &job, MsgChannel *local_daemon, struct rusage *used)
         lock_fd = fd;
     }
 
-    bool color_output = job.language() != CompileJob::Lang_Custom
+    bool color_output = job.language() != Language::Custom
                         && colorify_wanted(job);
     int pf[2];
 

@@ -106,7 +106,7 @@ pid_t call_cpp(CompileJob &job, int fdwrite, int fdread)
         argv = new char*[2 + 1];
         argv[0] = strdup("/bin/cat");
         argv[1] = strdup(job.inputFile().c_str());
-        argv[2] = 0;
+        argv[2] = nullptr;
     } else {
         list<string> flags = job.localFlags();
 
@@ -152,7 +152,7 @@ pid_t call_cpp(CompileJob &job, int fdwrite, int fdread)
             argv[i++] = strdup("-frewrite-includes");
         }
 
-        argv[i++] = 0;
+        argv[i++] = nullptr;
     }
 
 #if 0

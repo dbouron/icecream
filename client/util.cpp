@@ -20,30 +20,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "config.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <time.h>
-#include <limits.h>
-
-#include <sys/types.h>
-#include <pwd.h>
-
-#include <sys/stat.h>
-#include <sys/file.h>
-
-#include "client.h"
-#include "exitcode.h"
-#include "job.h"
-#include "logging.h"
 #include "util.h"
 
+using namespace icecream::services;
 using namespace std;
 
 extern bool explicit_color_diagnostics;
