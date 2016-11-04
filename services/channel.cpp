@@ -1006,7 +1006,7 @@ namespace icecream
             return m;
         }
 
-        bool Channel::send_msg(const Msg &m, SendFlags flags)
+        bool Channel::send_msg(const Msg &m, SendFlag flags)
         {
             if (instate == InState::NEED_PROTO && !wait_for_protocol())
             {
@@ -1028,12 +1028,12 @@ namespace icecream
                 memcpy(msgbuf + msgtogo_old, &len, 4);
             }
 
-            if ((flags & SendFlags::SendBulkOnly) && msgtogo < 4096)
+            if ((flags & SendFlag::SendBulkOnly) && msgtogo < 4096)
             {
                 return true;
             }
 
-            return flush_writebuf((flags & SendFlags::SendBlocking));
+            return flush_writebuf((flags & SendFlag::SendBlocking));
         }
     } // services
 } // icecream

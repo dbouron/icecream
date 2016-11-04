@@ -29,6 +29,10 @@
 #include <time.h>
 
 #include "../services/comm.h"
+#include "../services/channel.h"
+
+using namespace icecream::services;
+
 
 class CompileServer;
 

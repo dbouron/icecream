@@ -31,11 +31,12 @@
 
 #include "job.h"
 
+using namespace icecream::services;
 
 unsigned int CompileServer::s_hostIdCounter = 0;
 
 CompileServer::CompileServer(const int fd, struct sockaddr *_addr, const socklen_t _len, const bool text_based)
-    : MsgChannel(fd, _addr, _len, text_based)
+    : Channel(fd, _addr, _len, text_based)
     , m_remotePort(0)
     , m_hostId(0)
     , m_nodeName()

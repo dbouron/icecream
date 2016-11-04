@@ -49,7 +49,7 @@ namespace icecream
     {
         class Msg;
 
-        enum SendFlags : uint32_t
+        enum SendFlag : uint32_t
         {
             SendBlocking = 1 << 0,
             SendNonBlocking = 1 << 1,
@@ -76,7 +76,7 @@ namespace icecream
             std::shared_ptr<Msg> get_msg(int timeout = 10);
 
             // false <--> error (msg not send)
-            bool send_msg(const Msg &, SendFlags flags = SendFlags::SendBlocking);
+            bool send_msg(const Msg &, SendFlag flags = SendFlag::SendBlocking);
 
             bool has_msg(void) const {
                 return eof || instate == InState::HAS_MSG;

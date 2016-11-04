@@ -28,15 +28,18 @@
 #include <list>
 #include <map>
 
+#include "../services/channel.h"
+#include "../services/all.h"
 #include "../services/comm.h"
 #include "jobstat.h"
 
 class Job;
 
+using namespace icecream::services;
 using namespace std;
 
 /* One compile server (receiver, compile daemon)  */
-class CompileServer : public MsgChannel
+class CompileServer : public Channel
 {
 public:
     enum State {
