@@ -94,22 +94,15 @@ namespace icecream
             Status status;
         };
 
+        /// \todo Remove this class and use an alias.
         class Clients : public std::map<Channel*, Client*>
         {
         public:
             Clients() {
                 active_processes = 0;
             }
+            /// \todo Move this attribute into Daemon class.
             unsigned int active_processes;
-
-            Client *find_by_client_id(int id) const {
-                for (const_iterator it = begin(); it != end(); ++it)
-                    if (it->second->client_id == id) {
-                        return it->second;
-                    }
-
-                return nullptr;
-            }
 
             Client *find_by_channel(Channel *c) const {
                 const_iterator it = find(c);

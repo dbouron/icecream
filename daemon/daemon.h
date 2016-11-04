@@ -30,6 +30,7 @@
 # include <string>
 # include <map>
 # include <list>
+# include <algorithm>
 
 # include <stdio.h>
 # include <stdlib.h>

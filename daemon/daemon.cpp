@@ -475,7 +475,17 @@ namespace icecream
 
             int Daemon::scheduler_use_cs(services::UseCS *msg)
             {
-                Client *c = clients.find_by_client_id(msg->client_id);
+                Client *c = nullptr;
+                std::find_if(std::begin(clients), std::end(clients),
+                             [msg, &c](auto &e)
+                             {
+                                 if (e.second->client_id == msg->client_id)
+                                 {
+                                     c = e.second;
+                                     return true;
+                                 }
+                                 return false;
+                             });
                 trace() << "handle_use_cs " << msg->job_id << " " << msg->client_id
                         << " " << c << " " << msg->hostname << " " << remote_name <<  std::endl;
 
