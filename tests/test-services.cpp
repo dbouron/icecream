@@ -41,30 +41,11 @@ using namespace icecream::services;
 class FlagTest : public ::testing::Test
 {
 public:
-    FlagTest()
-        : compile_job_{}
-        , arguments_list_{}
-    {
-    }
-
-    ~FlagTest()
-    {
-    }
-
     void SetUp(const std::initializer_list<std::string> l)
     {
         for (const auto &e : l)
             arguments_list_.push_back(std::make_pair(e, ArgumentType::Unspecified));
         compile_job_.setFlags(arguments_list_);
-    }
-
-    void SetUp()
-    {
-        compile_job_.setFlags(arguments_list_);
-    }
-
-    void TearDown()
-    {
     }
 
 protected:

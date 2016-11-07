@@ -1,65 +1,114 @@
-#include "client.h"
+/* -*- mode: C++; indent-tabs-mode: nil; c-basic-offset: 4; fill-column: 99; -*- */
+/*
+    This file is part of Icecream.
+
+    Copyright (c) 2016 Dimitri Bouron <bouron.d@gmail.com>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
+/**
+ ** \file tests/test-args.cpp
+ ** \brief Checking icecream::client module.
+ ** Basic tests for checking arguments analysis.
+ */
+
+
 #include <list>
 #include <string>
 #include <iostream>
 
-using namespace std;
+#include <gtest/gtest.h>
 
-static const char *ICECC_COLOR_DIAGNOSTICS = NULL;
-void backup_icecc_color_diagnostics() {
-  ICECC_COLOR_DIAGNOSTICS = getenv("ICECC_COLOR_DIAGNOSTICS");
-  setenv("ICECC_COLOR_DIAGNOSTICS", "0", 1);
+#include "client.h"
+
+/// using namespace icecream::client;
+
+/**
+ ** \class ArgsTest
+ **
+ ** \brief Setup testing environement for checking
+ ** arguments analysis.
+ */
+class ArgsTest : public ::testing::Test
+{
+public:
+    void SetUp() override
+    {
+        ICECC_COLOR_DIAGNOSTICS = getenv("ICECC_COLOR_DIAGNOSTICS");
+        setenv("ICECC_COLOR_DIAGNOSTICS", "0", 1);
+    }
+
+    void TearDown() override
+    {
+        if (ICECC_COLOR_DIAGNOSTICS)
+            setenv("ICECC_COLOR_DIAGNOSTICS", ICECC_COLOR_DIAGNOSTICS, 1);
+        else
+            unsetenv("ICECC_COLOR_DIAGNOSTICS");
+    }
+
+private:
+    const char *ICECC_COLOR_DIAGNOSTICS;
+};
+
+namespace
+{
+    std::string test_run(const char * const *argv, bool icerun = false)
+    {
+        std::list<std::string> extrafiles;
+        CompileJob job;
+        bool local = analyse_argv(argv, job, icerun, &extrafiles);
+        std::stringstream ss;
+
+        ss << "local:" << local;
+        ss << " language:" << job.language();
+        ss << " compiler:" << job.compilerName();
+        ss << " local:" << concat_args(job.localFlags());
+        ss << " remote:" << concat_args(job.remoteFlags());
+        ss << " rest:" << concat_args(job.restFlags());
+        return ss.str();
+    }
+} // anonymous
+
+/// \test Check with valid arguments.
+TEST_F(ArgsTest, ValidArgs)
+{
+    const char * argv1[] = { "gcc", "-D", "TEST=1", "-c", "main.cpp", "-o", "main.o", nullptr };
+    const char * argv2[] = { "gcc", "-DTEST=1", "-c", "main.cpp", "-o", "main.o", nullptr };
+
+    EXPECT_EQ("local:0 language:C++ compiler:gcc local:'-D, TEST=1' remote:'-c' rest:''",
+              test_run(argv1));
+    EXPECT_EQ("local:0 language:C++ compiler:gcc local:'-DTEST=1' remote:'-c' rest:''",
+              test_run(argv2));
 }
 
-void restore_icecc_color_diagnostics() {
-  if (ICECC_COLOR_DIAGNOSTICS)
-    setenv("ICECC_COLOR_DIAGNOSTICS", ICECC_COLOR_DIAGNOSTICS, 1);
-  else
-    unsetenv("ICECC_COLOR_DIAGNOSTICS");
+/// \test Check with ambiguous arguments.
+/** \todo I am not sure about the exact result expected.
+ ** Originally, this test should succeed, but it fails.
+ ** Tested on several OS (OpenSuse 13.1, Debian 8, Fedora 24).
+ */
+TEST_F(ArgsTest, AmbiguousArgs)
+{
+    const char * argv3[] = { "clang", "-D", "TEST1=1", "-I.", "-c", "make1.cpp", "-o", "make.o", nullptr};
+
+    EXPECT_EQ("local:0 language:C++ compiler:clang local:'-D, TEST1=1, -I.' remote:'-c' rest:''",
+              test_run(argv3));
 }
 
-void test_run(const string &prefix, const char * const *argv, bool icerun, const string expected) {
-  list<string> extrafiles;
-  CompileJob job;
-  bool local = analyse_argv(argv, job, icerun, &extrafiles);
-  std::stringstream str;
-  str << "local:" << local;
-  str << " language:" << job.language();
-  str << " compiler:" << job.compilerName();
-  str << " local:" << concat_args(job.localFlags());
-  str << " remote:" << concat_args(job.remoteFlags());
-  str << " rest:" << concat_args(job.restFlags());
-  if (str.str() != expected) {
-    cerr << prefix << " failed\n";
-    cerr << "     got: \"" << str.str() << "\"\nexpected: \"" << expected << "\"\n";
-    exit(1);
-  }
-}
-
-static void test_1() {
-   const char * argv[] = { "gcc", "-D", "TEST=1", "-c", "main.cpp", "-o", "main.o", 0 };
-   backup_icecc_color_diagnostics();
-   test_run("1", argv, false, "local:0 language:C++ compiler:gcc local:'-D, TEST=1' remote:'-c' rest:''");
-   restore_icecc_color_diagnostics();
-}
-
-static void test_2() {
-   const char * argv[] = { "gcc", "-DTEST=1", "-c", "main.cpp", "-o", "main.o", 0 };
-   backup_icecc_color_diagnostics();
-   test_run("2", argv, false, "local:0 language:C++ compiler:gcc local:'-DTEST=1' remote:'-c' rest:''");
-   restore_icecc_color_diagnostics();
-}
-
-static void test_3() {
-   const char * argv[] = { "clang", "-D", "TEST1=1", "-I.", "-c", "make1.cpp", "-o", "make.o", 0};
-   backup_icecc_color_diagnostics();
-   test_run("3", argv, false, "local:0 language:C++ compiler:clang local:'-D, TEST1=1, -I.' remote:'-c' rest:''");
-   restore_icecc_color_diagnostics();
-}
-
-int main() {
-  test_1();
-  test_2();
-  test_3();
-  exit(0);
+int main(int argc, char **argv)
+{
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
