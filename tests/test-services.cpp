@@ -43,14 +43,15 @@ class FlagTest : public ::testing::Test
 public:
     void SetUp(const std::initializer_list<std::string> l)
     {
+        ArgumentList arguments_list;
+
         for (const auto &e : l)
-            arguments_list_.push_back(std::make_pair(e, ArgumentType::Unspecified));
-        compile_job_.setFlags(arguments_list_);
+            arguments_list.push_back(std::make_pair(e, ArgumentType::Unspecified));
+        compile_job_.setFlags(arguments_list);
     }
 
 protected:
     CompileJob compile_job_;
-    ArgumentList arguments_list_;
 };
 
 /// \test Check with valid flags.
