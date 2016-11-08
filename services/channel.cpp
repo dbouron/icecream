@@ -45,8 +45,9 @@ namespace icecream
                     name = reinterpret_cast<sockaddr_un*>(addr)->sun_path;
                 else
                 {
-                    if (int error = getnameinfo(addr, addr_len, buf, sizeof (buf), nullptr,
-                            0, NI_NUMERICHOST))
+                    if (int error = getnameinfo(addr, addr_len, buf,
+                                                sizeof (buf), nullptr,
+                                                0, NI_NUMERICHOST))
                         log_error() << "getnameinfo(): " << error << std::endl;
                     name = buf;
                 }

@@ -66,7 +66,7 @@ namespace icecream
         }
 
          bool connect_async(int remote_fd, struct sockaddr *remote_addr,
-                                  size_t remote_size, int timeout)
+                            size_t remote_size, int timeout)
         {
             fcntl(remote_fd, F_SETFL, O_NONBLOCK);
 
@@ -240,7 +240,7 @@ namespace icecream
         }
 
          bool get_broad_answer(int ask_fd, int timeout, char *buf2,
-                                     struct sockaddr_in *remote_addr, socklen_t *remote_len)
+                               struct sockaddr_in *remote_addr, socklen_t *remote_len)
         {
             char buf = PROTOCOL_VERSION;
             fd_set read_set;
@@ -284,7 +284,7 @@ namespace icecream
         }
 
          void get_broad_data(const char* buf, const char** name, int* version,
-                                   time_t* start_time)
+                             time_t* start_time)
         {
             if (buf[0] == PROTOCOL_VERSION + 1)
             {

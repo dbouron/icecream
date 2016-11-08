@@ -79,3 +79,5 @@ Code source improvement:
   https://konradzemek.com/2015/08/16/asio-ssl-and-scalability/
 * Discuss about exception usage instead of bool or nullptr return value. We also can
   use std::experimental::optional. It will arrive for major C++17
+* Most of the time, we sould use reference instead of pointer when passing argument to
+  a method/function.
