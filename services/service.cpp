@@ -29,9 +29,10 @@ namespace icecream
 {
     namespace services
     {
-        std::shared_ptr<Channel> Service::createChannel(const std::string &hostname,
-                                                        unsigned short p,
-                                                        int timeout)
+        std::shared_ptr<Channel>
+        Service::createChannel(const std::string &hostname,
+                               unsigned short p,
+                               int timeout)
         {
             int remote_fd;
             struct sockaddr_in remote_addr;
@@ -44,7 +45,8 @@ namespace icecream
             if (timeout)
             {
                 if (!connect_async(remote_fd,
-                                   reinterpret_cast<struct sockaddr*>(&remote_addr),
+                                   reinterpret_cast<struct sockaddr*>
+                                   (&remote_addr),
                                    sizeof(remote_addr), timeout))
                 {
                     return nullptr;    // remote_fd is already closed
@@ -57,7 +59,7 @@ namespace icecream
 
                 if (connect(remote_fd,
                             reinterpret_cast<struct sockaddr*>(&remote_addr),
-                            sizeof(remote_addr)) < 0)
+                            sizeof (remote_addr)) < 0)
                 {
                     close(remote_fd);
                     trace() << "connect failed on " << hostname << std::endl;
@@ -71,8 +73,9 @@ namespace icecream
                                  sizeof(remote_addr));
         }
 
-        std::shared_ptr<Channel> Service::createChannel(int fd, struct sockaddr *_a,
-                                                        socklen_t _l)
+        std::shared_ptr<Channel>
+        Service::createChannel(int fd, struct sockaddr *_a,
+                               socklen_t _l)
         {
             std::shared_ptr<Channel> c{new Channel(fd, _a, _l, false)};
 
@@ -84,7 +87,8 @@ namespace icecream
             return c;
         }
 
-        std::shared_ptr<Channel> Service::createChannel(const std::string &socket_path)
+        std::shared_ptr<Channel>
+        Service::createChannel(const std::string &socket_path)
         {
             int remote_fd;
             struct sockaddr_un remote_addr;

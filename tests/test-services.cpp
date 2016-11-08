@@ -21,7 +21,7 @@
 
 /**
  ** \file tests/test-services.cpp
- ** \brief Checking icecream::services module.
+ ** \brief Checking flag deduction in icecream::services module.
  */
 
 #include <initializer_list>

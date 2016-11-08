@@ -31,6 +31,7 @@ namespace icecream
         int prepare_connect(const std::string &hostname, unsigned short p,
                             struct sockaddr_in &remote_addr)
         {
+            struct hostent *host = nullptr;
             int remote_fd;
             int i = 1;
 
@@ -39,9 +40,7 @@ namespace icecream
                 log_perror("socket()");
                 return -1;
             }
-
-            struct hostent *host = gethostbyname(hostname.c_str());
-
+            host = gethostbyname(hostname.c_str());
             if (!host)
             {
                 log_perror("Unknown host");
@@ -56,12 +55,12 @@ namespace icecream
                 return -1;
             }
 
-            setsockopt(remote_fd, IPPROTO_TCP, TCP_NODELAY, (char *) &i, sizeof(i));
-
+            setsockopt(remote_fd, IPPROTO_TCP, TCP_NODELAY,
+                       (char*)&i, sizeof (i));
             remote_addr.sin_family = AF_INET;
             remote_addr.sin_port = htons(p);
-            memcpy(&remote_addr.sin_addr.s_addr, host->h_addr_list[0], host->h_length);
-
+            memcpy(&remote_addr.sin_addr.s_addr, host->h_addr_list[0],
+                   host->h_length);
             return remote_fd;
         }
 
