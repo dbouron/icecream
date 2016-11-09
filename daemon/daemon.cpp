@@ -633,41 +633,45 @@ namespace icecream
 
                         // If it is a native environment, allow removing it only after a longer period,
                         // unless there are many native environments.
-                        for (std::map<std::string, NativeEnvironment>::const_iterator it2 = native_environments.begin();
-                             it2 != native_environments.end(); ++it2) {
-                            if (it2->second.name == cit.first) {
-                                native_env_key = it2->first;
+                        for (const auto &lcit : native_environments)
+                        {
+                            if (lcit.second.name == cit.first) {
+                                native_env_key = lcit.first;
 
                                 if (native_environments.size() < 5) {
                                     keep_timeout = 24 * 60 * 60;    // 1 day
                                 }
 
-                                if (it2->second.create_env_pipe) {
+                                if (lcit.second.create_env_pipe) {
                                     keep_timeout = 365 * 24 * 60 * 60; // do not remove if it's still being created
                                 }
                                 break;
                             }
                         }
 
-                        if (cit.second < oldest_time && now - cit.second > keep_timeout) {
+                        if (cit.second < oldest_time && now - cit.second > keep_timeout)
+                        {
                             bool env_currently_in_use = false;
 
-                            for (Clients::const_iterator it2 = clients.begin(); it2 != clients.end(); ++it2)  {
-                                if (it2->second->status == Status::TOCOMPILE
-                                    || it2->second->status == Status::TOINSTALL
-                                    || it2->second->status == Status::WAITFORCHILD) {
+                            for (const auto &lcit : clients)
+                            {
+                                if (lcit.second->status == Status::TOCOMPILE
+                                    || lcit.second->status == Status::TOINSTALL
+                                    || lcit.second->status == Status::WAITFORCHILD)
+                                {
+                                    assert(lcit.second->job);
+                                    std::string envforjob = lcit.second->job->targetPlatform() + "/"
+                                        + lcit.second->job->environmentVersion();
 
-                                    assert(it2->second->job);
-                                    std::string envforjob = it2->second->job->targetPlatform() + "/"
-                                        + it2->second->job->environmentVersion();
-
-                                    if (envforjob == cit.first) {
+                                    if (envforjob == cit.first)
+                                    {
                                         env_currently_in_use = true;
                                     }
                                 }
                             }
 
-                            if (!env_currently_in_use) {
+                            if (!env_currently_in_use)
+                            {
                                 oldest_time = cit.second;
                                 oldest = cit.first;
                                 oldest_native_env_key = native_env_key;
@@ -675,7 +679,8 @@ namespace icecream
                         }
                     }
 
-                    if (oldest.empty() || oldest == new_env) {
+                    if (oldest.empty() || oldest == new_env)
+                    {
                         break;
                     }
 

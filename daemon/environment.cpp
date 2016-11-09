@@ -87,7 +87,7 @@ namespace icecream
 
             string tdir = dir + "/";
 
-            for (struct dirent *ent = readdir(envdir); ent; ent = readdir(envdir)) {
+            for (auto ent = readdir(envdir); ent; ent = readdir(envdir)) {
                 if (!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, "..")) {
                     continue;
                 }
@@ -118,7 +118,7 @@ namespace icecream
                 return;
             }
 
-            for (struct dirent *ent = readdir(envdir); ent; ent = readdir(envdir)) {
+            for (auto ent = readdir(envdir); ent; ent = readdir(envdir)) {
                 string dirname = ent->d_name;
 
                 if (!access(string(targetdir + "/" + dirname + "/usr/bin/as").c_str(), X_OK)) {
@@ -225,7 +225,7 @@ namespace icecream
             if (!envdir) {
                 log_info() << "can't open envs dir " << strerror(errno) << endl;
             } else {
-                for (struct dirent *target_ent = readdir(envdir); target_ent; target_ent = readdir(envdir)) {
+                for (auto target_ent = readdir(envdir); target_ent; target_ent = readdir(envdir)) {
                     string dirname = target_ent->d_name;
 
                     if (dirname.at(0) == '.') {

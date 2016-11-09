@@ -455,8 +455,8 @@ int main(int argc, char **argv)
         list<string> nl = get_netnames(200, d.scheduler_port);
         trace() << "Netnames:" << endl;
 
-        for (list<string>::const_iterator it = nl.begin(); it != nl.end(); ++it) {
-            trace() << *it << endl;
+        for (const auto &cit : nl) {
+            trace() << cit << endl;
         }
 
         if (!d.setup_listen_fds()) { // error
