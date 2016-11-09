@@ -45,7 +45,6 @@ namespace icecream
         {
             status = static_cast<Status>(-1);
             channel = nullptr;
-            delete usecsmsg;
             usecsmsg = nullptr;
             job = nullptr;
 

@@ -25,28 +25,6 @@
 
 using namespace icecream::services;
 
-using namespace std;
-
-static int death_pipe[2];
-
-extern "C" {
-
-    static void theSigCHLDHandler(int)
-    {
-        char foo = 0;
-        ignore_result(write(death_pipe[1], &foo, 1));
-    }
-
-}
-
-static void
-error_client(Channel *client, string error)
-{
-    if (is_protocol<23>()(*client)) {
-        client->send_msg(StatusText(error));
-    }
-}
-
 /*
  * This is all happening in a forked child.
  * That means that we can block and be lazy about closing fds
@@ -57,6 +35,24 @@ namespace icecream
 {
     namespace daemon
     {
+        static int death_pipe[2];
+
+        namespace
+        {
+            void theSigCHLDHandler(int)
+            {
+                char foo = 0;
+                ignore_result(write(death_pipe[1], &foo, 1));
+            }
+
+            void error_client(Channel *client, std::string error)
+            {
+                if (is_protocol<23>()(*client)) {
+                    client->send_msg(StatusText(error));
+                }
+            }
+        } // icecream::daemon::{anonymous}
+
         int work_it(CompileJob &j, unsigned int job_stat[],
                     Channel *client, CompileResult &rmsg,
                     const std::string &tmp_root,
@@ -68,7 +64,7 @@ namespace icecream
             rmsg.out.erase(rmsg.out.begin(), rmsg.out.end());
             rmsg.out.erase(rmsg.out.begin(), rmsg.out.end());
 
-            std::list<string> list = j.remoteFlags();
+            std::list<std::string> list = j.remoteFlags();
             appendList(list, j.restFlags());
 
             if (j.dwarfFissionEnabled()) {
@@ -177,7 +173,7 @@ namespace icecream
 
                 if (is_protocol<30>()(*client)) {
                     assert(!j.compilerName().empty());
-                    clang = (j.compilerName().find("clang") != string::npos);
+                    clang = (j.compilerName().find("clang") != std::string::npos);
                     argv[i++] = strdup(("/usr/bin/" + j.compilerName()).c_str());
                 } else {
                     if (j.language() == Language::C) {
@@ -216,13 +212,14 @@ namespace icecream
 
                 bool hasPipe = false;
 
-                for (std::list<string>::const_iterator it = list.begin();
-                     it != list.end(); ++it) {
-                    if (*it == "-pipe") {
+                for (const auto &cit : list)
+                {
+                    if (cit == "-pipe")
+                    {
                         hasPipe = true;
                     }
 
-                    argv[i++] = strdup(it->c_str());
+                    argv[i++] = strdup(cit.c_str());
                 }
 
                 if (!clang) {
@@ -354,13 +351,13 @@ namespace icecream
                                     sock_in[1] = -1;
                                 }
                             } else if (msg->type == MsgType::FILE_CHUNK) {
-                                fcmsg = static_pointer_cast<FileChunk>(msg);
+                                fcmsg = std::static_pointer_cast<FileChunk>(msg);
                                 off = 0;
 
                                 job_stat[JobStats::in_uncompressed] += fcmsg->len;
                                 job_stat[JobStats::in_compressed] += fcmsg->compressed;
                             } else {
-                                log_error() << "protocol error while reading preprocessed file" << endl;
+                                log_error() << "protocol error while reading preprocessed file" << std::endl;
                                 return_value = EXIT_IO_ERROR;
                                 client_fd = -1;
                                 kill(pid, SIGTERM);
@@ -368,7 +365,7 @@ namespace icecream
                             }
                         }
                     } else if (client->at_eof()) {
-                        log_error() << "unexpected EOF while reading preprocessed file" << endl;
+                        log_error() << "unexpected EOF while reading preprocessed file" << std::endl;
                         return_value = EXIT_IO_ERROR;
                         client_fd = -1;
                         kill(pid, SIGTERM);
@@ -435,7 +432,7 @@ namespace icecream
 
                     if (!input_complete)
                     {
-                        log_error() << "timeout while reading preprocessed file" << endl;
+                        log_error() << "timeout while reading preprocessed file" << std::endl;
                         kill(pid, SIGTERM); // Won't need it any more ...
                         return_value = EXIT_IO_ERROR;
                         client_fd = -1;
@@ -549,11 +546,11 @@ namespace icecream
                             rmsg.status = EXIT_OUT_OF_MEMORY;
 
                             if (((mem_used * 100) > (85 * mem_limit * 1024))
-                                || (rmsg.err.find("memory exhausted") != string::npos)
-                                || (rmsg.err.find("out of memory allocating") != string::npos)
-                                || (rmsg.err.find("annot allocate memory") != string::npos)
-                                || (rmsg.err.find("terminate called after throwing an instance of 'std::bad_alloc'") != string::npos)
-                                || (rmsg.err.find("llvm::MallocSlabAllocator::Allocate") != string::npos)) {
+                                || (rmsg.err.find("memory exhausted") != std::string::npos)
+                                || (rmsg.err.find("out of memory allocating") != std::string::npos)
+                                || (rmsg.err.find("annot allocate memory") != std::string::npos)
+                                || (rmsg.err.find("terminate called after throwing an instance of 'std::bad_alloc'") != std::string::npos)
+                                || (rmsg.err.find("llvm::MallocSlabAllocator::Allocate") != std::string::npos)) {
                                 // the relation between ulimit and memory used is pretty thin ;(
                                 return EXIT_OUT_OF_MEMORY;
                             }

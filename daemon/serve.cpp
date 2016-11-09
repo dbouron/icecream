@@ -24,7 +24,6 @@
 # include "serve.h"
 
 using namespace icecream::services;
-using namespace std;
 
 namespace icecream
 {
@@ -32,66 +31,68 @@ namespace icecream
     {
         int nice_level = 5;
 
-        static void
-        error_client(Channel *client, string error)
+        namespace
         {
-            if (is_protocol<22>()(*client)) {
-                client->send_msg(StatusText(error));
-            }
-        }
-
-        static void write_output_file( const string& file, Channel* client )
-        {
-            int obj_fd = -1;
-            try {
-                obj_fd = open(file.c_str(), O_RDONLY | O_LARGEFILE);
-
-                if (obj_fd == -1) {
-                    log_error() << "open failed" << endl;
-                    error_client(client, "open of object file failed");
-                    throw myexception(EXIT_DISTCC_FAILED);
+            void error_client(Channel *client, std::string error)
+            {
+                if (is_protocol<22>()(*client)) {
+                    client->send_msg(StatusText(error));
                 }
+            }
 
-                unsigned char buffer[100000];
+            void write_output_file( const std::string& file, Channel* client )
+            {
+                int obj_fd = -1;
+                try {
+                    obj_fd = open(file.c_str(), O_RDONLY | O_LARGEFILE);
 
-                do {
-                    ssize_t bytes = read(obj_fd, buffer, sizeof(buffer));
-
-                    if (bytes < 0) {
-                        if (errno == EINTR) {
-                            continue;
-                        }
-
+                    if (obj_fd == -1) {
+                        log_error() << "open failed" << std::endl;
+                        error_client(client, "open of object file failed");
                         throw myexception(EXIT_DISTCC_FAILED);
                     }
 
-                    if (!bytes) {
-                        if( !client->send_msg(End())) {
-                            log_info() << "write of obj end failed " << endl;
+                    unsigned char buffer[100000];
+
+                    do {
+                        ssize_t bytes = read(obj_fd, buffer, sizeof(buffer));
+
+                        if (bytes < 0) {
+                            if (errno == EINTR) {
+                                continue;
+                            }
+
                             throw myexception(EXIT_DISTCC_FAILED);
                         }
-                        break;
-                    }
 
-                    FileChunk fcmsg(buffer, bytes);
+                        if (!bytes) {
+                            if( !client->send_msg(End())) {
+                                log_info() << "write of obj end failed " << std::endl;
+                                throw myexception(EXIT_DISTCC_FAILED);
+                            }
+                            break;
+                        }
 
-                    if (!client->send_msg(fcmsg)) {
-                        log_info() << "write of obj chunk failed " << bytes << endl;
-                        throw myexception(EXIT_DISTCC_FAILED);
-                    }
-                } while (1);
+                        FileChunk fcmsg(buffer, bytes);
 
-            } catch(...) {
-                if( obj_fd != -1 )
-                    close( obj_fd );
-                throw;
+                        if (!client->send_msg(fcmsg)) {
+                            log_info() << "write of obj chunk failed " << bytes << std::endl;
+                            throw myexception(EXIT_DISTCC_FAILED);
+                        }
+                    } while (1);
+
+                } catch(...) {
+                    if( obj_fd != -1 )
+                        close( obj_fd );
+                    throw;
+                }
             }
-        }
+        } // icecream::daemon::{anonymous}
 
-/**
- * Read a request, run the compiler, and send a response.
- **/
-        int handle_connection(const string &basedir,
+        /**
+         ** Read a request, run the compiler, and send a response.
+         */
+        int handle_connection(const std::string &basedir,
                               std::shared_ptr<services::CompileJob> job,
                               std::shared_ptr<services::Channel> client,
                               int &out_fd,
@@ -128,33 +129,33 @@ namespace icecream
             (void) niceval;
             if (errno != 0) {
                 log_warning() << "failed to set nice value: " << strerror(errno)
-                              << endl;
+                              << std::endl;
             }
 
             Msg *msg = nullptr; // The current read message
             unsigned int job_id = 0;
-            string tmp_path, obj_file, dwo_file;
+            std::string tmp_path, obj_file, dwo_file;
 
             try {
                 if (job->environmentVersion().size()) {
-                    string dirname = basedir + "/target=" + job->targetPlatform() + "/" + job->environmentVersion();
+                    std::string dirname = basedir + "/target=" + job->targetPlatform() + "/" + job->environmentVersion();
 
-                    if (::access(string(dirname + "/usr/bin/as").c_str(), X_OK)) {
+                    if (::access(std::string(dirname + "/usr/bin/as").c_str(), X_OK)) {
                         error_client(client.get(), dirname + "/usr/bin/as is not executable");
-                        log_error() << "I don't have environment " << job->environmentVersion() << "(" << job->targetPlatform() << ") " << job->jobID() << endl;
+                        log_error() << "I don't have environment " << job->environmentVersion() << "(" << job->targetPlatform() << ") " << job->jobID() << std::endl;
                         throw myexception(EXIT_DISTCC_FAILED);   // the scheduler didn't listen to us!
                     }
 
                     chdir_to_environment(client.get(), dirname, user_uid, user_gid);
                 } else {
                     error_client(client.get(), "empty environment");
-                    log_error() << "Empty environment (" << job->targetPlatform() << ") " << job->jobID() << endl;
+                    log_error() << "Empty environment (" << job->targetPlatform() << ") " << job->jobID() << std::endl;
                     throw myexception(EXIT_DISTCC_FAILED);
                 }
 
                 if (::access(_PATH_TMP + 1, W_OK)) {
                     error_client(client.get(), "can't write to " _PATH_TMP);
-                    log_error() << "can't write into " << _PATH_TMP << " " << strerror(errno) << endl;
+                    log_error() << "can't write into " << _PATH_TMP << " " << strerror(errno) << std::endl;
                     throw myexception(-1);
                 }
 
@@ -184,12 +185,12 @@ namespace icecream
                     // letting us set up a "chroot"ed environment inside the build folder and letting
                     // us set up the paths to mimic the client system
 
-                    string job_output_file = job->outputFile();
-                    string job_working_dir = job->workingDirectory();
+                    std::string job_output_file = job->outputFile();
+                    std::string job_working_dir = job->workingDirectory();
 
                     size_t slash_index = job_output_file.find_last_of('/');
-                    string file_dir, file_name;
-                    if (slash_index != string::npos) {
+                    std::string file_dir, file_name;
+                    if (slash_index != std::string::npos) {
                         file_dir = job_output_file.substr(0, slash_index);
                         file_name = job_output_file.substr(slash_index+1);
                     }
@@ -197,13 +198,13 @@ namespace icecream
                         file_name = job_output_file;
                     }
 
-                    string output_dir, relative_file_path;
+                    std::string output_dir, relative_file_path;
                     if (!file_dir.empty() && file_dir[0] == '/') { // output dir is absolute, convert to relative
                         relative_file_path = get_relative_path(get_canonicalized_path(job_output_file), get_canonicalized_path(job_working_dir));
                         output_dir = tmp_path + get_canonicalized_path(file_dir);
                     }
                     else { // output file is already relative, canonicalize in relation to working dir
-                        string canonicalized_dir = get_canonicalized_path(job_working_dir + '/' + file_dir);
+                        std::string canonicalized_dir = get_canonicalized_path(job_working_dir + '/' + file_dir);
                         relative_file_path = get_relative_path(canonicalized_dir + '/' + file_name, get_canonicalized_path(job_working_dir));
                         output_dir = tmp_path + canonicalized_dir;
                     }
@@ -225,8 +226,8 @@ namespace icecream
                 else if ((ret = dcc_make_tmpnam(prefix_output, ".o", &tmp_output, 0)) == 0) {
                     obj_file = tmp_output;
                     free(tmp_output);
-                    string build_path = obj_file.substr(0, obj_file.find_last_of('/'));
-                    string file_name = obj_file.substr(obj_file.find_last_of('/')+1);
+                    std::string build_path = obj_file.substr(0, obj_file.find_last_of('/'));
+                    std::string file_name = obj_file.substr(obj_file.find_last_of('/')+1);
 
                     ret = work_it(*job, job_stat, client.get(), rmsg, build_path, "", file_name, mem_limit, client->fd, -1);
                 }
@@ -240,7 +241,7 @@ namespace icecream
                 }
 
                 if (!client->send_msg(rmsg)) {
-                    log_info() << "write of result failed" << endl;
+                    log_info() << "write of result failed" << std::endl;
                     throw myexception(EXIT_DISTCC_FAILED);
                 }
 

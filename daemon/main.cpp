@@ -52,99 +52,102 @@
 #include <all.h>
 #include "daemon.h"
 
-static std::string pidFilePath;
 
 using namespace icecream::services;
 using namespace icecream::daemon;
-using namespace std;
 
-static int set_new_pgrp(void)
+namespace
 {
-    /* If we're a session group leader, then we are not able to call
-     * setpgid().  However, setsid will implicitly have put us into a new
-     * process group, so we don't have to do anything. */
+    static std::string pidFilePath;
 
-    /* Does everyone have getpgrp()?  It's in POSIX.1.  We used to call
-     * getpgid(0), but that is not available on BSD/OS. */
-    if (getpgrp() == getpid()) {
-        trace() << "already a process group leader\n";
-        return 0;
-    }
-
-    if (setpgid(0, 0) == 0) {
-        trace() << "entered process group\n";
-        return 0;
-    }
-
-    trace() << "setpgid(0, 0) failed: " << strerror(errno) << endl;
-    return EXIT_DISTCC_FAILED;
-}
-
-static void dcc_daemon_terminate(int);
-
-/**
- * Catch all relevant termination signals.  Set up in parent and also
- * applies to children.
- **/
-void dcc_daemon_catch_signals(void)
-{
-    /* SIGALRM is caught to allow for built-in timeouts when running test
-     * cases. */
-
-    signal(SIGTERM, &dcc_daemon_terminate);
-    signal(SIGINT, &dcc_daemon_terminate);
-    signal(SIGALRM, &dcc_daemon_terminate);
-}
-
-pid_t dcc_master_pid;
-
-/**
- * Called when a daemon gets a fatal signal.
- *
- * Some cleanup is done only if we're the master/parent daemon.
- **/
-static void dcc_daemon_terminate(int whichsig)
-{
-    /**
-     * This is a signal handler. don't do stupid stuff.
-     * Don't call printf. and especially don't call the log_*() functions.
-     */
-
-    if (exit_main_loop > 1) {
-        // The > 1 is because we get one more signal from the kill(0,...) below.
-        // hmm, we got killed already twice. try better
-        static const char msg[] = "forced exit.\n";
-        ignore_result(write(STDERR_FILENO, msg, strlen( msg )));
-        _exit(1);
-    }
-
-    // make BSD happy
-    signal(whichsig, dcc_daemon_terminate);
-
-    bool am_parent = (getpid() == dcc_master_pid);
-
-    if (am_parent && exit_main_loop == 0) {
-        /* kill whole group */
-        kill(0, whichsig);
-
-        /* Remove pid file */
-        unlink(pidFilePath.c_str());
-    }
-
-    ++exit_main_loop;
-}
-
-void usage(const char *reason = nullptr)
-{
-    if (reason)
+    int set_new_pgrp(void)
     {
-        cerr << reason << endl;
+        /* If we're a session group leader, then we are not able to call
+         * setpgid().  However, setsid will implicitly have put us into a new
+         * process group, so we don't have to do anything. */
+
+        /* Does everyone have getpgrp()?  It's in POSIX.1.  We used to call
+         * getpgid(0), but that is not available on BSD/OS. */
+        if (getpgrp() == getpid()) {
+            trace() << "already a process group leader\n";
+            return 0;
+        }
+
+        if (setpgid(0, 0) == 0) {
+            trace() << "entered process group\n";
+            return 0;
+        }
+
+        trace() << "setpgid(0, 0) failed: " << strerror(errno) << std::endl;
+        return EXIT_DISTCC_FAILED;
     }
 
-    cerr << "usage: iceccd [-n <netname>] [-m <max_processes>] [--no-remote] [-w] [-d|--daemonize] [-l logfile] [-s <schedulerhost[:port]>]"
-        " [-v[v[v]]] [-u|--user-uid <user_uid>] [-b <env-basedir>] [--cache-limit <MB>] [-N <node_name>]" << endl;
-    exit(1);
-}
+    void dcc_daemon_terminate(int);
+
+    /**
+     * Catch all relevant termination signals.  Set up in parent and also
+     * applies to children.
+     **/
+    void dcc_daemon_catch_signals(void)
+    {
+        /* SIGALRM is caught to allow for built-in timeouts when running test
+         * cases. */
+
+        signal(SIGTERM, &dcc_daemon_terminate);
+        signal(SIGINT, &dcc_daemon_terminate);
+        signal(SIGALRM, &dcc_daemon_terminate);
+    }
+
+    pid_t dcc_master_pid;
+
+    /**
+     * Called when a daemon gets a fatal signal.
+     *
+     * Some cleanup is done only if we're the master/parent daemon.
+     **/
+    void dcc_daemon_terminate(int whichsig)
+    {
+        /**
+         * This is a signal handler. don't do stupid stuff.
+         * Don't call printf. and especially don't call the log_*() functions.
+         */
+
+        if (exit_main_loop > 1) {
+            // The > 1 is because we get one more signal from the kill(0,...) below.
+            // hmm, we got killed already twice. try better
+            static const char msg[] = "forced exit.\n";
+            ignore_result(write(STDERR_FILENO, msg, strlen( msg )));
+            _exit(1);
+        }
+
+        // make BSD happy
+        signal(whichsig, dcc_daemon_terminate);
+
+        bool am_parent = (getpid() == dcc_master_pid);
+
+        if (am_parent && exit_main_loop == 0) {
+            /* kill whole group */
+            kill(0, whichsig);
+
+            /* Remove pid file */
+            unlink(pidFilePath.c_str());
+        }
+
+        ++exit_main_loop;
+    }
+
+    void usage(const char *reason = nullptr)
+    {
+        if (reason)
+        {
+            std::cerr << reason << std::endl;
+        }
+
+        std::cerr << "usage: iceccd [-n <netname>] [-m <max_processes>] [--no-remote] [-w] [-d|--daemonize] [-l logfile] [-s <schedulerhost[:port]>]"
+            " [-v[v[v]]] [-u|--user-uid <user_uid>] [-b <env-basedir>] [--cache-limit <MB>] [-N <node_name>]" << std::endl;
+        exit(1);
+    }
+} // anonymous
 
 int main(int argc, char **argv)
 {
@@ -154,7 +157,7 @@ int main(int argc, char **argv)
     Daemon d;
 
     int debug_level = Error;
-    string logfile;
+    std::string logfile;
     bool detach = false;
     nice_level = 5; // defined in serve.h
 
@@ -185,7 +188,7 @@ int main(int argc, char **argv)
 
         switch (c) {
         case 0: {
-            string optname = long_options[option_index].name;
+            std::string optname = long_options[option_index].name;
 
             if (optname == "nice") {
                 if (optarg && *optarg) {
@@ -275,9 +278,9 @@ int main(int argc, char **argv)
         case 's':
 
             if (optarg && *optarg) {
-                string scheduler = optarg;
+                std::string scheduler = optarg;
                 size_t colon = scheduler.rfind( ':' );
-                if( colon == string::npos ) {
+                if( colon == std::string::npos ) {
                     d.schedname = scheduler;
                 } else {
                     d.schedname = scheduler.substr(0, colon);
@@ -362,7 +365,7 @@ int main(int argc, char **argv)
         int r = capng_change_id(d.user_uid, d.user_gid,
                                 (capng_flags_t)(CAPNG_DROP_SUPP_GRP | CAPNG_CLEAR_BOUNDING));
         if (r) {
-            log_error() << "Error: capng_change_id failed: " << r << endl;
+            log_error() << "Error: capng_change_id failed: " << r << std::endl;
             exit(EXIT_SETUID_FAILED);
         }
 #endif
@@ -381,9 +384,9 @@ int main(int argc, char **argv)
         setup_debug(debug_level, logfile);
 
         log_info() << "ICECREAM daemon " VERSION " starting up (nice level "
-                   << nice_level << ") " << endl;
+                   << nice_level << ") " << std::endl;
         if (remote_disabled)
-            log_error() << "Cannot use chroot, no remote jobs accepted." << endl;
+            log_error() << "Cannot use chroot, no remote jobs accepted." << std::endl;
         if (d.noremote)
             d.daemon_port = 0;
 
@@ -391,7 +394,7 @@ int main(int argc, char **argv)
 
         if (chdir("/") != 0) {
             log_error() << "failed to switch to root directory: "
-                        << strerror(errno) << endl;
+                        << strerror(errno) << std::endl;
             exit(EXIT_DISTCC_FAILED);
         }
 
@@ -403,7 +406,7 @@ int main(int argc, char **argv)
             }
 
         if (dcc_ncpus(&d.num_cpus) == 0) {
-            log_info() << d.num_cpus << " CPU(s) online on this server" << endl;
+            log_info() << d.num_cpus << " CPU(s) online on this server" << std::endl;
         }
 
         if (max_processes < 0) {
@@ -412,7 +415,7 @@ int main(int argc, char **argv)
             max_kids = max_processes;
         }
 
-        log_info() << "allowing up to " << max_kids << " active jobs" << endl;
+        log_info() << "allowing up to " << max_kids << " active jobs" << std::endl;
 
         int ret;
 
@@ -427,12 +430,12 @@ int main(int argc, char **argv)
         dcc_daemon_catch_signals();
 
         if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
-            log_warning() << "signal(SIGPIPE, ignore) failed: " << strerror(errno) << endl;
+            log_warning() << "signal(SIGPIPE, ignore) failed: " << strerror(errno) << std::endl;
             exit(EXIT_DISTCC_FAILED);
         }
 
         if (signal(SIGCHLD, SIG_DFL) == SIG_ERR) {
-            log_warning() << "signal(SIGCHLD) failed: " << strerror(errno) << endl;
+            log_warning() << "signal(SIGCHLD) failed: " << strerror(errno) << std::endl;
             exit(EXIT_DISTCC_FAILED);
         }
 
@@ -440,23 +443,23 @@ int main(int argc, char **argv)
          * not.  */
         dcc_master_pid = getpid();
 
-        ofstream pidFile;
-        string progName = argv[0];
+        std::ofstream pidFile;
+        std::string progName = argv[0];
         progName = progName.substr(progName.rfind('/') + 1);
-        pidFilePath = string(RUNDIR) + string("/") + progName + string(".pid");
+        pidFilePath = std::string(RUNDIR) + std::string("/") + progName + std::string(".pid");
         pidFile.open(pidFilePath.c_str());
-        pidFile << dcc_master_pid << endl;
+        pidFile << dcc_master_pid << std::endl;
         pidFile.close();
 
         if (!cleanup_cache(d.envbasedir, d.user_uid, d.user_gid)) {
             return 1;
         }
 
-        list<string> nl = get_netnames(200, d.scheduler_port);
-        trace() << "Netnames:" << endl;
+        auto nl = get_netnames(200, d.scheduler_port);
+        trace() << "Netnames:" << std::endl;
 
         for (const auto &cit : nl) {
-            trace() << cit << endl;
+            trace() << cit << std::endl;
         }
 
         if (!d.setup_listen_fds()) { // error

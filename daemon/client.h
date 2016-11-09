@@ -82,9 +82,9 @@ namespace icecream
             uint32_t job_id;
             // only useful for LINKJOB or TOINSTALL
             std::string outfile;
-            std::shared_ptr<services::Channel> channel;
-            services::UseCS *usecsmsg;
-            std::shared_ptr<services::CompileJob> job;
+            std::shared_ptr<Channel> channel;
+            std::shared_ptr<UseCS> usecsmsg;
+            std::shared_ptr<CompileJob> job;
             int client_id;
             // pipe to child process, only valid if WAITFORCHILD or TOINSTALL
             int pipe_to_child;

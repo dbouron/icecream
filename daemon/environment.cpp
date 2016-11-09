@@ -24,57 +24,138 @@
 
 
 using namespace icecream::services;
-using namespace std;
 
 namespace icecream
 {
     namespace daemon
     {
-#if 0
-        static string read_fromFILE(FILE *f)
+        namespace
         {
-            string output;
+#if 0
+            std::string read_fromFILE(FILE *f)
+            {
+                std::string output;
 
-            if (!f) {
-                log_error() << "no pipe " << strerror(errno) << endl;
+                if (!f) {
+                    log_error() << "no pipe " << strerror(errno) << std::endl;
+                    return output;
+                }
+
+                char buffer[100];
+
+                while (!feof(f)) {
+                    size_t bytes = fread(buffer, 1, 99, f);
+                    buffer[bytes] = 0;
+                    output += buffer;
+                }
+
+                pclose(f);
                 return output;
             }
 
-            char buffer[100];
+            bool extract_version(string &version)
+            {
+                auto pos = version.find_last_of('\n');
 
-            while (!feof(f)) {
-                size_t bytes = fread(buffer, 1, 99, f);
-                buffer[bytes] = 0;
-                output += buffer;
-            }
-
-            pclose(f);
-            return output;
-        }
-
-        static bool extract_version(string &version)
-        {
-            string::size_type pos = version.find_last_of('\n');
-
-            if (pos == string::npos) {
-                return false;
-            }
-
-            while (pos + 1 == version.size()) {
-                version.resize(version.size() - 1);
-                pos = version.find_last_of('\n');
-
-                if (pos == string::npos) {
+                if (pos == std::string::npos) {
                     return false;
                 }
-            }
 
-            version = version.substr(pos + 1);
-            return true;
-        }
+                while (pos + 1 == version.size()) {
+                    version.resize(version.size() - 1);
+                    pos = version.find_last_of('\n');
+
+                    if (pos == std::string::npos) {
+                        return false;
+                    }
+                }
+
+                version = version.substr(pos + 1);
+                return true;
+            }
 #endif
 
-        size_t sumup_dir(const string &dir)
+            void list_target_dirs(const std::string &current_target, const std::string &targetdir, Environments &envs)
+            {
+                DIR *envdir = opendir(targetdir.c_str());
+
+                if (!envdir) {
+                    return;
+                }
+
+                for (auto ent = readdir(envdir); ent; ent = readdir(envdir)) {
+                    std::string dirname = ent->d_name;
+
+                    if (!access(std::string(targetdir + "/" + dirname + "/usr/bin/as").c_str(), X_OK)) {
+                        envs.push_back(make_pair(current_target, dirname));
+                    }
+                }
+
+                closedir(envdir);
+            }
+
+            /* Returns true if the child exited with success */
+            bool exec_and_wait(const char *const argv[])
+            {
+                pid_t pid = fork();
+
+                if (pid == -1) {
+                    log_perror("fork");
+                    return false;
+                }
+
+                if (pid) {
+                    // parent
+                    int status;
+
+                    while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {}
+
+                    return shell_exit_status(status) == 0;
+                }
+
+                // child
+                _exit(execv(argv[0], const_cast<char * const *>(argv)));
+            }
+
+            // Removes everything in the directory recursively, but not the directory itself.
+            bool cleanup_directory(const std::string &directory)
+            {
+                DIR *dir = opendir(directory.c_str());
+
+                if (dir == NULL) {
+                    return false;
+                }
+
+                while (dirent *f = readdir(dir)) {
+                    if (strcmp(f->d_name, ".") == 0 || strcmp(f->d_name, "..") == 0) {
+                        continue;
+                    }
+
+                    std::string fullpath = directory + '/' + f->d_name;
+                    struct stat st;
+
+                    if (lstat(fullpath.c_str(), &st)) {
+                        perror("stat");
+                        return false;
+                    }
+
+                    if (S_ISDIR(st.st_mode)) {
+                        if (!cleanup_directory(fullpath) || rmdir(fullpath.c_str()) != 0) {
+                            return false;
+                        }
+                    } else {
+                        if (unlink(fullpath.c_str()) != 0) {
+                            return false;
+                        }
+                    }
+                }
+
+                closedir(dir);
+                return true;
+            }
+        } // icecream::daemon::{anonymous}
+
+        size_t sumup_dir(const std::string &dir)
         {
             size_t res = 0;
             DIR *envdir = opendir(dir.c_str());
@@ -85,7 +166,7 @@ namespace icecream
 
             struct stat st;
 
-            string tdir = dir + "/";
+            std::string tdir = dir + "/";
 
             for (auto ent = readdir(envdir); ent; ent = readdir(envdir)) {
                 if (!strcmp(ent->d_name, ".") || !strcmp(ent->d_name, "..")) {
@@ -110,97 +191,18 @@ namespace icecream
             return res;
         }
 
-        static void list_target_dirs(const string &current_target, const string &targetdir, Environments &envs)
-        {
-            DIR *envdir = opendir(targetdir.c_str());
-
-            if (!envdir) {
-                return;
-            }
-
-            for (auto ent = readdir(envdir); ent; ent = readdir(envdir)) {
-                string dirname = ent->d_name;
-
-                if (!access(string(targetdir + "/" + dirname + "/usr/bin/as").c_str(), X_OK)) {
-                    envs.push_back(make_pair(current_target, dirname));
-                }
-            }
-
-            closedir(envdir);
-        }
-
-        /* Returns true if the child exited with success */
-        static bool exec_and_wait(const char *const argv[])
-        {
-            pid_t pid = fork();
-
-            if (pid == -1) {
-                log_perror("fork");
-                return false;
-            }
-
-            if (pid) {
-                // parent
-                int status;
-
-                while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {}
-
-                return shell_exit_status(status) == 0;
-            }
-
-            // child
-            _exit(execv(argv[0], const_cast<char * const *>(argv)));
-        }
-
-// Removes everything in the directory recursively, but not the directory itself.
-        static bool cleanup_directory(const string &directory)
-        {
-            DIR *dir = opendir(directory.c_str());
-
-            if (dir == NULL) {
-                return false;
-            }
-
-            while (dirent *f = readdir(dir)) {
-                if (strcmp(f->d_name, ".") == 0 || strcmp(f->d_name, "..") == 0) {
-                    continue;
-                }
-
-                string fullpath = directory + '/' + f->d_name;
-                struct stat st;
-
-                if (lstat(fullpath.c_str(), &st)) {
-                    perror("stat");
-                    return false;
-                }
-
-                if (S_ISDIR(st.st_mode)) {
-                    if (!cleanup_directory(fullpath) || rmdir(fullpath.c_str()) != 0) {
-                        return false;
-                    }
-                } else {
-                    if (unlink(fullpath.c_str()) != 0) {
-                        return false;
-                    }
-                }
-            }
-
-            closedir(dir);
-            return true;
-        }
-
-        bool cleanup_cache(const string &basedir, uid_t user_uid, gid_t user_gid)
+        bool cleanup_cache(const std::string &basedir, uid_t user_uid, gid_t user_gid)
         {
             flush_debug();
 
             if (access(basedir.c_str(), R_OK) == 0 && !cleanup_directory(basedir)) {
-                log_error() << "failed to clean up envs dir" << endl;
+                log_error() << "failed to clean up envs dir" << std::endl;
                 return false;
             }
 
             if (mkdir(basedir.c_str(), 0755) && errno != EEXIST) {
                 if (errno == EPERM) {
-                    log_error() << "permission denied on mkdir " << basedir << endl;
+                    log_error() << "permission denied on mkdir " << basedir << std::endl;
                 } else {
                     log_perror("mkdir in cleanup_cache() failed");
                 }
@@ -216,24 +218,24 @@ namespace icecream
             return true;
         }
 
-        Environments available_environmnents(const string &basedir)
+        Environments available_environmnents(const std::string &basedir)
         {
             Environments envs;
 
             DIR *envdir = opendir(basedir.c_str());
 
             if (!envdir) {
-                log_info() << "can't open envs dir " << strerror(errno) << endl;
+                log_info() << "can't open envs dir " << strerror(errno) << std::endl;
             } else {
                 for (auto target_ent = readdir(envdir); target_ent; target_ent = readdir(envdir)) {
-                    string dirname = target_ent->d_name;
+                    std::string dirname = target_ent->d_name;
 
                     if (dirname.at(0) == '.') {
                         continue;
                     }
 
                     if (dirname.substr(0, 7) == "target=") {
-                        string current_target = dirname.substr(7, dirname.length() - 7);
+                        std::string current_target = dirname.substr(7, dirname.length() - 7);
                         list_target_dirs(current_target, basedir + "/" + dirname, envs);
                     }
                 }
@@ -305,10 +307,10 @@ namespace icecream
         }
 
         // Returns fd for icecc-create-env output
-        int start_create_env(const string &basedir, uid_t user_uid, gid_t user_gid,
-                             const std::string &compiler, const list<string> &extrafiles)
+        int start_create_env(const std::string &basedir, uid_t user_uid, gid_t user_gid,
+                             const std::string &compiler, const std::list<std::string> &extrafiles)
         {
-            string nativedir = basedir + "/native/";
+            std::string nativedir = basedir + "/native/";
 
             if (compiler == "clang") {
                 if (::access("/usr/bin/clang", X_OK) != 0) {
@@ -334,7 +336,7 @@ namespace icecream
             flush_debug();
             int pipes[2];
             if (pipe(pipes) == -1) {
-                log_error() << "failed to create pipe: " << strerror(errno) << endl;
+                log_error() << "failed to create pipe: " << strerror(errno) << std::endl;
                 _exit(147);
             }
             pid_t pid = fork();
@@ -384,24 +386,25 @@ namespace icecream
             argv[pos++] = "--build-native";
             argv[pos++] = strdup(compiler.c_str());
 
-            for (list<string>::const_iterator it = extrafiles.begin(); it != extrafiles.end(); ++it) {
-                argv[pos++] = strdup(it->c_str());
+            for (const auto &cit : extrafiles)
+            {
+                argv[pos++] = strdup(cit.c_str());
             }
 
             argv[pos++] = NULL;
 
             if (!exec_and_wait(argv)) {
-                log_error() << BINDIR "/icecc --build-native failed" << endl;
+                log_error() << BINDIR "/icecc --build-native failed" << std::endl;
                 _exit(1);
             }
 
             _exit(0);
         }
 
-        size_t finish_create_env(int pipe, const string &basedir, string &native_environment)
+        size_t finish_create_env(int pipe, const std::string &basedir, std::string &native_environment)
         {
-// We don't care about waitpid() , icecc-create-env prints the name of the tarball as the very last
-// action before exit, so if there's something in the pipe, just block on it until it closes.
+            // We don't care about waitpid() , icecc-create-env prints the name of the tarball as the very last
+            // action before exit, so if there's something in the pipe, just block on it until it closes.
 
             char buf[1024];
             buf[0] = '\0';
@@ -412,11 +415,11 @@ namespace icecream
                 *nl = '\0';
             }
 
-            string nativedir = basedir + "/native/";
+            std::string nativedir = basedir + "/native/";
             native_environment = nativedir + buf;
 
             close(pipe);
-            trace() << "native_environment " << native_environment << endl;
+            trace() << "native_environment " << native_environment << std::endl;
             struct stat st;
 
             if (!native_environment.empty()
@@ -439,20 +442,20 @@ namespace icecream
                                         gid_t user_gid)
         {
             if (!name.size()) {
-                log_error() << "illegal name for environment " << name << endl;
+                log_error() << "illegal name for environment " << name << std::endl;
                 return 0;
             }
 
-            for (string::size_type i = 0; i < name.size(); ++i) {
+            for (auto i = 0u; i < name.size(); ++i) {
                 if (isascii(name[i]) && !isspace(name[i]) && name[i] != '/' && isprint(name[i])) {
                     continue;
                 }
 
-                log_error() << "illegal char '" << name[i] << "' - rejecting environment " << name << endl;
+                log_error() << "illegal char '" << name[i] << "' - rejecting environment " << name << std::endl;
                 return 0;
             }
 
-            string dirname = basename + "/target=" + target;
+            std::string dirname = basename + "/target=" + target;
             Msg *msg = c->get_msg(30).get();
 
             if (!msg || msg->type != MsgType::FILE_CHUNK) {
@@ -503,7 +506,7 @@ namespace icecream
             pid_t pid = fork();
 
             if (pid) {
-                trace() << "pid " << pid << endl;
+                trace() << "pid " << pid << std::endl;
                 close(fds[0]);
                 pipe_to_stdin = fds[1];
 
@@ -567,12 +570,12 @@ namespace icecream
             while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {}
 
             if (shell_exit_status(status) != 0) {
-                log_error() << "exit code: " << shell_exit_status(status) << endl;
+                log_error() << "exit code: " << shell_exit_status(status) << std::endl;
                 remove_environment(basename, target);
                 return 0;
             }
 
-            string dirname = basename + "/target=" + target;
+            std::string dirname = basename + "/target=" + target;
 
             errno = 0;
             mkdir((dirname + "/tmp").c_str(), 01775);
@@ -580,15 +583,15 @@ namespace icecream
             chmod((dirname + "/tmp").c_str(), 01775);
             if (errno == -1) {
                 log_error() << "failed to setup " << dirname << "/tmp :"
-                            << strerror(errno) << endl;
+                            << strerror(errno) << std::endl;
             }
 
             return sumup_dir(dirname);
         }
 
-        size_t remove_environment(const string &basename, const string &env)
+        size_t remove_environment(const std::string &basename, const std::string &env)
         {
-            string dirname = basename + "/target=" + env;
+            std::string dirname = basename + "/target=" + env;
 
             size_t res = sumup_dir(dirname);
 
@@ -621,7 +624,7 @@ namespace icecream
             _exit(execv(argv[0], argv));
         }
 
-        size_t remove_native_environment(const string &env)
+        size_t remove_native_environment(const std::string &env)
         {
             if (env.empty()) {
                 return 0;
@@ -638,7 +641,7 @@ namespace icecream
         }
 
         static void
-        error_client(Channel *client, string error)
+        error_client(Channel *client, std::string error)
         {
             if (is_protocol<23>()(*client))
             {
@@ -646,18 +649,18 @@ namespace icecream
             }
         }
 
-        void chdir_to_environment(Channel *client, const string &dirname, uid_t user_uid, gid_t user_gid)
+        void chdir_to_environment(Channel *client, const std::string &dirname, uid_t user_uid, gid_t user_gid)
         {
 #ifdef HAVE_LIBCAP_NG
 
             if (chdir(dirname.c_str()) < 0) {
-                error_client(client, string("chdir to ") + dirname + "failed");
+                error_client(client, std::string("chdir to ") + dirname + "failed");
                 log_perror("chdir() failed");
                 _exit(145);
             }
 
             if (chroot(dirname.c_str()) < 0) {
-                error_client(client, string("chroot ") + dirname + "failed");
+                error_client(client, std::string("chroot ") + dirname + "failed");
                 log_perror("chroot() failed");
                 _exit(144);
             }
@@ -670,31 +673,31 @@ namespace icecream
                 // without the chdir, the chroot will escape the
                 // jail right away
                 if (chdir(dirname.c_str()) < 0) {
-                    error_client(client, string("chdir to ") + dirname + "failed");
+                    error_client(client, std::string("chdir to ") + dirname + "failed");
                     log_perror("chdir() failed");
                     _exit(145);
                 }
 
                 if (chroot(dirname.c_str()) < 0) {
-                    error_client(client, string("chroot ") + dirname + "failed");
+                    error_client(client, std::string("chroot ") + dirname + "failed");
                     log_perror("chroot() failed");
                     _exit(144);
                 }
 
                 if (setgroups(0, NULL) < 0) {
-                    error_client(client, string("setgroups failed"));
+                    error_client(client, std::string("setgroups failed"));
                     log_perror("setgroups() failed");
                     _exit(143);
                 }
 
                 if (setgid(user_gid) < 0) {
-                    error_client(client, string("setgid failed"));
+                    error_client(client, std::string("setgid failed"));
                     log_perror("setgid() failed");
                     _exit(143);
                 }
 
                 if (setuid(user_uid) < 0) {
-                    error_client(client, string("setuid failed"));
+                    error_client(client, std::string("setuid failed"));
                     log_perror("setuid() failed");
                     _exit(142);
                 }
@@ -707,18 +710,18 @@ namespace icecream
         }
 
         // Verify that the environment works by simply running the bundled bin/true.
-        bool verify_env(Channel *client, const string &basedir, const string &target, const string &env,
+        bool verify_env(Channel *client, const std::string &basedir, const std::string &target, const std::string &env,
                         uid_t user_uid, gid_t user_gid)
         {
             if (target.empty() || env.empty()) {
                 return false;
             }
 
-            string dirname = basedir + "/target=" + target + "/" + env;
+            std::string dirname = basedir + "/target=" + target + "/" + env;
 
-            if (::access(string(dirname + "/bin/true").c_str(), X_OK)) {
+            if (::access(std::string(dirname + "/bin/true").c_str(), X_OK)) {
                 error_client(client, dirname + "/bin/true is not executable");
-                log_error() << "I don't have environment " << env << "(" << target << ") to verify." << endl;
+                log_error() << "I don't have environment " << env << "(" << target << ") to verify." << std::endl;
                 return false;
             }
 

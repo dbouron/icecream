@@ -498,12 +498,20 @@ namespace icecream
                 }
 
                 if (msg->hostname == remote_name && int(msg->port) == daemon_port) {
-                    c->usecsmsg = new UseCS(msg->host_platform, "127.0.0.1", daemon_port, msg->job_id, true, 1,
-                                            msg->matched_job_id);
+                    c->usecsmsg = std::make_shared<UseCS>(msg->host_platform,
+                                                          "127.0.0.1",
+                                                          daemon_port,
+                                                          msg->job_id,
+                                                          true, 1,
+                                                          msg->matched_job_id);
                     c->status = Status::PENDING_USE_CS;
                 } else {
-                    c->usecsmsg = new UseCS(msg->host_platform, msg->hostname, msg->port,
-                                            msg->job_id, true, 1, msg->matched_job_id);
+                    c->usecsmsg = std::make_shared<UseCS>(msg->host_platform,
+                                                          msg->hostname,
+                                                          msg->port,
+                                                          msg->job_id,
+                                                          true, 1,
+                                                          msg->matched_job_id);
 
                     if (!c->channel->send_msg(*msg)) {
                         handle_end(c, 143);
@@ -1161,8 +1169,11 @@ namespace icecream
                     /* now the thing is this: if there is no scheduler
                        there is no point in trying to ask him. So we just
                        redefine this as local job */
-                    client->usecsmsg = new UseCS(umsg->target, "127.0.0.1", daemon_port,
-                                                 umsg->client_id, true, 1, 0);
+                    client->usecsmsg = std::make_shared<UseCS>(umsg->target,
+                                                               "127.0.0.1",
+                                                               daemon_port,
+                                                               umsg->client_id,
+                                                               true, 1, 0);
                     client->status = Status::PENDING_USE_CS;
                     client->job_id = umsg->client_id;
                     return true;

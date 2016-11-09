@@ -35,14 +35,16 @@ namespace icecream
     {
         struct NativeEnvironment
         {
-            std::string name; // the hash
+            /// the hash
+            std::string name;
             std::map<std::string, time_t> extrafilestimes;
-            // Timestamps for compiler binaries, if they have changed since the time
-            // the native env was built, it needs to be rebuilt.
+            /// Timestamps for compiler binaries, if they have changed since the time
+            /// the native env was built, it needs to be rebuilt.
             time_t gcc_bin_timestamp;
             time_t gpp_bin_timestamp;
             time_t clang_bin_timestamp;
-            int create_env_pipe; // if in progress of creating the environment
+            /// if in progress of creating the environment
+            int create_env_pipe;
         };
 
     }

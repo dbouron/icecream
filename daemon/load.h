@@ -68,6 +68,34 @@ namespace icecream
         /// What the kernel puts as ticks in /proc/stat.
         using load_t = unsigned long long;
 
+        struct CPULoadInfo
+        {
+            /* A CPU can be loaded with user processes, reniced processes and
+             * system processes. Unused processing time is called idle load.
+             * These variable store the percentage of each load type. */
+            int userLoad;
+            int niceLoad;
+            int sysLoad;
+            int idleLoad;
+
+            /* To calculate the loads we need to remember the tick values for each
+             * load type. */
+            load_t userTicks;
+            load_t niceTicks;
+            load_t sysTicks;
+            load_t idleTicks;
+            load_t waitTicks;
+
+            CPULoadInfo()
+                : userTicks(0)
+                , niceTicks(0)
+                , sysTicks(0)
+                , idleTicks(0)
+                , waitTicks(0)
+                {
+                }
+        };
+
         // 'hint' is used to approximate the load, whenever getloadavg() is unavailable.
         bool fill_stats(unsigned long &myidleload,
                         unsigned long &myniceload,
