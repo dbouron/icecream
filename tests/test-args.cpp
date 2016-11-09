@@ -102,7 +102,7 @@ TEST_F(ArgsTest, AmbiguousArgs)
     const char * argv[] = { "clang", "-D", "TEST1=1", "-I.", "-c", "make1.cpp", "-o", "make.o", nullptr};
 
     EXPECT_EQ("local:0 language:C++ compiler:clang local:'-D, TEST1=1, -I.' remote:'-c' rest:''",
-              test_run(argv3));
+              test_run(argv));
 }
 
 int main(int argc, char **argv)
