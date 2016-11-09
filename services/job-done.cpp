@@ -30,10 +30,10 @@ namespace icecream
     namespace services
     {
         JobDone::JobDone(int id, int exit, unsigned int _flags)
-                : Msg(MsgType::JOB_DONE)
-                , exitcode(exit)
-                , flags(_flags)
-                , job_id(id)
+            : Msg(MsgType::JOB_DONE)
+            , exitcode(exit)
+            , flags(_flags)
+            , job_id(id)
         {
             real_msec = 0;
             user_msec = 0;

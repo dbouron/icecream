@@ -569,9 +569,9 @@ namespace icecream
         {
             *this << static_cast<uint32_t>(l.size());
 
-            for (std::list<std::string>::const_iterator it = l.begin(); it != l.end(); ++it)
+            for (const auto &cit : l)
             {
-                *this << *it;
+                *this << cit;
             }
 
             return *this;
@@ -581,10 +581,10 @@ namespace icecream
         {
             *this << envs.size();
 
-            for (Environments::const_iterator it = envs.begin(); it != envs.end(); ++it)
+            for (const auto &cit : envs)
             {
-                *this << it->first;
-                *this << it->second;
+                *this << cit.first;
+                *this << cit.second;
             }
         }
 
@@ -604,8 +604,9 @@ namespace icecream
             }
         }
 
-        void Channel::readcompressed(unsigned char **uncompressed_buf, size_t &_uclen,
-                size_t &_clen)
+        void Channel::readcompressed(unsigned char **uncompressed_buf,
+                                     size_t &_uclen,
+                                     size_t &_clen)
         {
             lzo_uint uncompressed_len;
             lzo_uint compressed_len;
@@ -618,11 +619,13 @@ namespace icecream
             /* If there was some input, but nothing compressed,
              or lengths are bigger than the whole chunk message
              or we don't have everything to uncompress, there was an error.  */
-            if (uncompressed_len > MAX_MSG_SIZE || compressed_len > (inofs - intogo)
-                    || (uncompressed_len && !compressed_len)
-                    || inofs < intogo + compressed_len)
+            if (uncompressed_len > MAX_MSG_SIZE
+                || compressed_len > (inofs - intogo)
+                || (uncompressed_len && !compressed_len)
+                || inofs < intogo + compressed_len)
             {
-                log_error() << "failure in readcompressed() length checking" << std::endl;
+                log_error() << "failure in readcompressed() length checking"
+                            << std::endl;
                 *uncompressed_buf = nullptr;
                 uncompressed_len = 0;
                 _uclen = uncompressed_len;
@@ -647,7 +650,8 @@ namespace icecream
                      but don't reset the compressed_len, so our caller know,
                      that there actually was something read in.  */
                     log_error() << "internal error - decompression of data from "
-                            << dump().c_str() << " failed: " << ret << std::endl;
+                                << dump().c_str() << " failed: "
+                                << ret << std::endl;
                     delete[] *uncompressed_buf;
                     *uncompressed_buf = nullptr;
                     uncompressed_len = 0;
@@ -662,8 +666,9 @@ namespace icecream
             _clen = compressed_len;
         }
 
-        void Channel::writecompressed(const unsigned char *in_buf, size_t _in_len,
-                size_t &_out_len)
+        void Channel::writecompressed(const unsigned char *in_buf,
+                                      size_t _in_len,
+                                      size_t &_out_len)
         {
             lzo_uint in_len = _in_len;
             lzo_uint out_len = _out_len;
@@ -676,7 +681,7 @@ namespace icecream
             {
                 /* Realloc to a multiple of 128.  */
                 msgbuflen = (msgtogo + out_len + 127) & ~static_cast<size_t>(127);
-                msgbuf = (char *) realloc(msgbuf, msgbuflen);
+                msgbuf = static_cast<char *>(realloc(msgbuf, msgbuflen));
             }
 
             lzo_byte *out_buf = reinterpret_cast<lzo_byte*>(msgbuf + msgtogo);
@@ -730,16 +735,18 @@ namespace icecream
         bool Channel::eq_ip(const Channel &s) const
         {
             struct sockaddr_in *s1, *s2;
-            s1 = (struct sockaddr_in *) addr;
-            s2 = (struct sockaddr_in *) s.addr;
+            s1 = reinterpret_cast<struct sockaddr_in *>(addr);
+            s2 = reinterpret_cast<struct sockaddr_in *>(s.addr);
             return (addr_len == s.addr_len
                     && memcmp(&s1->sin_addr, &s2->sin_addr, sizeof(s1->sin_addr)) == 0);
         }
 
         std::string Channel::dump() const
         {
-            return name + ": (" + char((int) instate + 'A') + " eof: " + char(eof + '0')
-                    + ")";
+            return name + ": (" + char((int) instate + 'A')
+                + " eof: "
+                + char(eof + '0')
+                + ")";
         }
 
         /* Wait blocking until the protocol setup for this channel is complete.
@@ -770,7 +777,7 @@ namespace icecream
                 if (ret == 0)
                 {
                     log_error() << "no response from local daemon within timeout."
-                            << std::endl;
+                                << std::endl;
                     return false; /* timeout. Consider it a fatal error. */
                 }
 

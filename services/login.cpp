@@ -31,13 +31,13 @@ namespace icecream
         Login::Login(unsigned int myport,
                     const std::string &_nodename,
                     const std::string _host_platform)
-                : Msg(MsgType::LOGIN)
-                , port(myport)
-                , max_kids(0)
-                , noremote(false)
-                , chroot_possible(false)
-                , nodename(_nodename)
-                , host_platform(_host_platform)
+            : Msg(MsgType::LOGIN)
+            , port(myport)
+            , max_kids(0)
+            , noremote(false)
+            , chroot_possible(false)
+            , nodename(_nodename)
+            , host_platform(_host_platform)
         {
 #ifdef HAVE_LIBCAP_NG
             chroot_possible = capng_have_capability(CAPNG_EFFECTIVE, CAP_SYS_CHROOT);

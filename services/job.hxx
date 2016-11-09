@@ -32,6 +32,138 @@ namespace icecream
     namespace services
     {
         inline
+        void CompileJob::setCompilerName(const std::string &name)
+        {
+            m_compiler_name = name;
+        }
+
+        inline
+        std::string CompileJob::compilerName() const
+        {
+            return m_compiler_name;
+        }
+
+        inline
+        void CompileJob::setLanguage(Language lg)
+        {
+            m_language = lg;
+        }
+
+        inline
+        Language CompileJob::language() const
+        {
+            return m_language;
+        }
+
+        inline
+        void CompileJob::setCompilerPathname(const std::string& pathname)
+        {
+            m_compiler_pathname = pathname;
+        }
+
+        inline
+        std::string CompileJob::compilerPathname() const
+        {
+            return m_compiler_pathname;
+        }
+
+        inline
+        void CompileJob::setEnvironmentVersion(const std::string &ver)
+        {
+            m_environment_version = ver;
+        }
+
+        inline
+        std::string CompileJob::environmentVersion() const
+        {
+            return m_environment_version;
+        }
+
+        inline
+        void CompileJob::setFlags(const ArgumentList &flags)
+        {
+            m_flags = flags;
+        }
+
+        inline
+        void CompileJob::setInputFile(const std::string &file)
+        {
+            m_input_file = file;
+        }
+
+        inline
+        std::string CompileJob::inputFile() const
+        {
+            return m_input_file;
+        }
+
+        inline
+        void CompileJob::setOutputFile(const std::string &file)
+        {
+            m_output_file = file;
+        }
+
+        inline
+        std::string CompileJob::outputFile() const
+        {
+            return m_output_file;
+        }
+
+        inline
+        void CompileJob::setDwarfFissionEnabled(bool flag)
+        {
+            m_dwarf_fission = flag;
+        }
+
+        inline
+        bool CompileJob::dwarfFissionEnabled() const
+        {
+            return m_dwarf_fission;
+        }
+
+        inline
+        void CompileJob::setWorkingDirectory(const std::string& dir)
+        {
+            m_working_directory = dir;
+        }
+
+        inline
+        std::string CompileJob::workingDirectory() const
+        {
+            return m_working_directory;
+        }
+
+        inline
+        void CompileJob::setJobID(unsigned int id)
+        {
+            m_id = id;
+        }
+
+        inline
+        unsigned int CompileJob::jobID() const
+        {
+            return m_id;
+        }
+
+        inline
+        std::string CompileJob::targetPlatform() const
+        {
+            return m_target_platform;
+        }
+
+        inline
+        void CompileJob::setTargetPlatform(const std::string &_target)
+        {
+            m_target_platform = _target;
+        }
+
+        inline
+        void CompileJob::appendFlag(std::string arg, ArgumentType argumentType)
+        {
+            m_flags.push_back(std::make_pair(arg, argumentType));
+        }
+
+        inline
         void appendList(std::list<std::string> &list,
                         const std::list<std::string> &toadd)
         {
@@ -67,9 +199,9 @@ namespace icecream
             std::stringstream str;
             str << "'";
 
-            for (auto cit = args.cbegin(); cit != args.cend(); ++cit)
+            for (auto cit = args.cbegin(); cit != args.cend();)
             {
-                str << *cit;
+                str << *cit++;
                 if (std::next(cit) != args.cend())
                     str << ", ";
             }

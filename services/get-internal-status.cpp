@@ -29,5 +29,15 @@ namespace icecream
 {
     namespace services
     {
+        GetInternalStatus::GetInternalStatus()
+            : Msg(MsgType::GET_INTERNALS)
+        {
+        }
+
+        GetInternalStatus::GetInternalStatus(const GetInternalStatus &)
+            : Msg(MsgType::GET_INTERNALS)
+        {
+        }
+
     } // services
 } // icecream

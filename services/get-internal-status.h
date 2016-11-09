@@ -35,15 +35,8 @@ namespace icecream
         class GetInternalStatus : public Msg
         {
         public:
-            GetInternalStatus()
-                    : Msg(MsgType::GET_INTERNALS)
-            {
-            }
-
-            GetInternalStatus(const GetInternalStatus &)
-                    : Msg(MsgType::GET_INTERNALS)
-            {
-            }
+            GetInternalStatus();
+            GetInternalStatus(const GetInternalStatus &);
         };
     } // services
 } // icecream
