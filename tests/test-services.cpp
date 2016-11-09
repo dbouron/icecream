@@ -58,26 +58,26 @@ protected:
 TEST_F(FlagTest, ValidFlag)
 {
     SetUp({"-g", "-O2"});
-    ASSERT_EQ(Flag::g | Flag::O2, compile_job_.argumentFlags());
-    ASSERT_NE(Flag::O2, compile_job_.argumentFlags());
-    ASSERT_NE(Flag::g, compile_job_.argumentFlags());
+    EXPECT_EQ(Flag::g | Flag::O2, compile_job_.argumentFlags());
+    EXPECT_NE(Flag::O2, compile_job_.argumentFlags());
+    EXPECT_NE(Flag::g, compile_job_.argumentFlags());
 }
 
 /// \test Check with valid flags in reverse order.
 TEST_F(FlagTest, ReverseValidFlag)
 {
     SetUp({"-O2", "-g"});
-    ASSERT_EQ(Flag::g | Flag::O2, compile_job_.argumentFlags());
-    ASSERT_NE(Flag::O2, compile_job_.argumentFlags());
-    ASSERT_NE(Flag::g, compile_job_.argumentFlags());
+    EXPECT_EQ(Flag::g | Flag::O2, compile_job_.argumentFlags());
+    EXPECT_NE(Flag::O2, compile_job_.argumentFlags());
+    EXPECT_NE(Flag::g, compile_job_.argumentFlags());
 }
 
 /// \test Check with multiple valid flags, looking for some flag overwritting.
 TEST_F(FlagTest, MultiValidFlag)
 {
     SetUp({"-O1", "-g", "-O3", "-g3"});
-    ASSERT_EQ(Flag::Ol2 | Flag::g3, compile_job_.argumentFlags());
-    ASSERT_NE(Flag::O2 | Flag::g | Flag::Ol2 | Flag::g3,
+    EXPECT_EQ(Flag::Ol2 | Flag::g3, compile_job_.argumentFlags());
+    EXPECT_NE(Flag::O2 | Flag::g | Flag::Ol2 | Flag::g3,
               compile_job_.argumentFlags());
 }
 
@@ -85,7 +85,7 @@ TEST_F(FlagTest, MultiValidFlag)
 TEST_F(FlagTest, MonkeyTestFlag)
 {
     SetUp({"-", "----", "test.cpp", "-o", "test"});
-    ASSERT_EQ(Flag::None, compile_job_.argumentFlags());
+    EXPECT_EQ(Flag::None, compile_job_.argumentFlags());
 }
 
 int main(int argc, char **argv)

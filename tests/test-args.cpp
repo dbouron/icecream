@@ -34,7 +34,24 @@
 
 #include "client.h"
 
-/// using namespace icecream::client;
+namespace
+{
+    std::string test_run(const char * const *argv, bool icerun = false)
+    {
+        std::list<std::string> extrafiles;
+        CompileJob job;
+        bool local = analyse_argv(argv, job, icerun, &extrafiles);
+        std::stringstream ss;
+
+        ss << "local:" << local;
+        ss << " language:" << job.language();
+        ss << " compiler:" << job.compilerName();
+        ss << " local:" << concat_args(job.localFlags());
+        ss << " remote:" << concat_args(job.remoteFlags());
+        ss << " rest:" << concat_args(job.restFlags());
+        return ss.str();
+    }
+} // anonymous
 
 /**
  ** \class ArgsTest
@@ -63,25 +80,6 @@ private:
     const char *ICECC_COLOR_DIAGNOSTICS;
 };
 
-namespace
-{
-    std::string test_run(const char * const *argv, bool icerun = false)
-    {
-        std::list<std::string> extrafiles;
-        CompileJob job;
-        bool local = analyse_argv(argv, job, icerun, &extrafiles);
-        std::stringstream ss;
-
-        ss << "local:" << local;
-        ss << " language:" << job.language();
-        ss << " compiler:" << job.compilerName();
-        ss << " local:" << concat_args(job.localFlags());
-        ss << " remote:" << concat_args(job.remoteFlags());
-        ss << " rest:" << concat_args(job.restFlags());
-        return ss.str();
-    }
-} // anonymous
-
 /// \test Check with valid arguments.
 TEST_F(ArgsTest, ValidArgs)
 {
@@ -101,7 +99,7 @@ TEST_F(ArgsTest, ValidArgs)
  */
 TEST_F(ArgsTest, AmbiguousArgs)
 {
-    const char * argv3[] = { "clang", "-D", "TEST1=1", "-I.", "-c", "make1.cpp", "-o", "make.o", nullptr};
+    const char * argv[] = { "clang", "-D", "TEST1=1", "-I.", "-c", "make1.cpp", "-o", "make.o", nullptr};
 
     EXPECT_EQ("local:0 language:C++ compiler:clang local:'-D, TEST1=1, -I.' remote:'-c' rest:''",
               test_run(argv3));

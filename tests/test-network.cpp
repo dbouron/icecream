@@ -46,7 +46,7 @@ TEST(LocalHostname, NetworkTest)
     struct sockaddr_in remote_addr;
 
     EXPECT_GE(prepare_connect("localhost", 8765, remote_addr), 0);
-    ASSERT_GE(prepare_connect("127.0.0.1", 8765, remote_addr), 0);
+    EXPECT_GE(prepare_connect("127.0.0.1", 8765, remote_addr), 0);
 }
 
 int main(int argc, char **argv)
