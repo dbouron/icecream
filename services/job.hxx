@@ -199,9 +199,9 @@ namespace icecream
             std::stringstream str;
             str << "'";
 
-            for (auto cit = args.cbegin(); cit != args.cend();)
+            for (auto cit = args.cbegin(); cit != args.cend(); ++cit)
             {
-                str << *cit++;
+                str << *cit;
                 if (std::next(cit) != args.cend())
                     str << ", ";
             }
