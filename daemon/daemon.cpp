@@ -27,6 +27,12 @@ namespace icecream
 {
     namespace daemon
     {
+        volatile sig_atomic_t exit_main_loop = 0;
+        int mem_limit = 100;
+        unsigned int max_kids = 0;
+        size_t cache_size_limit = 100 * 1024 * 1024;
+        struct timeval last_stat;
+
         Daemon::Daemon()
             : envbasedir("/tmp/icecc-envs")
             , warn_icecc_user_errno(0)
@@ -479,7 +485,7 @@ namespace icecream
                 std::find_if(std::begin(clients), std::end(clients),
                              [msg, &c](auto &e)
                              {
-                                 if (e.second->client_id == msg->client_id)
+                                 if (static_cast<uint32_t>(e.second->client_id) == msg->client_id)
                                  {
                                      c = e.second;
                                      return true;

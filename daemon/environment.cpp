@@ -153,6 +153,14 @@ namespace icecream
                 closedir(dir);
                 return true;
             }
+
+            void error_client(Channel *client, std::string error)
+            {
+                if (is_protocol<23>()(*client))
+                {
+                    client->send_msg(StatusText(error));
+                }
+            }
         } // icecream::daemon::{anonymous}
 
         size_t sumup_dir(const std::string &dir)
@@ -638,15 +646,6 @@ namespace icecream
             }
 
             return 0;
-        }
-
-        static void
-        error_client(Channel *client, std::string error)
-        {
-            if (is_protocol<23>()(*client))
-            {
-                client->send_msg(StatusText(error));
-            }
         }
 
         void chdir_to_environment(Channel *client, const std::string &dirname, uid_t user_uid, gid_t user_gid)

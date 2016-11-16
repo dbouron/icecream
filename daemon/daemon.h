@@ -105,14 +105,10 @@ namespace icecream
 {
     namespace daemon
     {
-        /** \todo Remove static global variable.
-         ** Maybe using getter/setter?
-         */
-        static volatile sig_atomic_t exit_main_loop = 0;
-        static struct timeval last_stat;
-        static int mem_limit = 100;
-        static unsigned int max_kids = 0;
-        static size_t cache_size_limit = 100 * 1024 * 1024;
+        extern volatile sig_atomic_t exit_main_loop;
+        extern int mem_limit;
+        extern unsigned int max_kids;
+        extern size_t cache_size_limit;
 
         class Daemon
         {
