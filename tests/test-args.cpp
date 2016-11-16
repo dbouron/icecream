@@ -101,7 +101,7 @@ TEST_F(ArgsTest, ValidArgs)
  ** when clang >= 3.5 is installed on the system.
  ** Tested on several OS (OpenSuse 13.1, Debian 8, Fedora 24).
  */
-TEST_F(ArgsTest, AmbiguousArgs)
+TEST_F(ArgsTest, DISABLED_AmbiguousArgs)
 {
     const char * argv[] = { "clang", "-D", "TEST1=1", "-I.", "-c", "make1.cpp", "-o", "make.o", nullptr};
 
