@@ -21,49 +21,48 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef _CLIENT_H_
-#define _CLIENT_H_
+#ifndef ICECREAM_LOCAL_H
+# define ICECREAM_LOCAL_H
 
-#include <job.h>
-#include <comm.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
+# include <string>
 
-#include <stdexcept>
+# include "config.h"
 
-#include "exitcode.h"
-#include "logging.h"
-#include "util.h"
-#include "service.h"
-#include "channel.h"
-#include "protocol.h"
+# include <sys/types.h>
+# include <sys/stat.h>
+# include <sys/wait.h>
+# include <unistd.h>
+# include <limits.h>
+# include <stdio.h>
+# include <string.h>
+# include <errno.h>
+# ifdef HAVE_SIGNAL_H
+#  include <signal.h>
+# endif
 
-using namespace icecream::services;
+# define CLIENT_DEBUG 0
+
+# include "client.h"
+# include "util.h"
+# include "safeguard.h"
+
+# include "channel.h"
+# include "job.h"
 
 namespace icecream
 {
     namespace client
     {
-        class client_error :  public std::runtime_error
-        {
-        public:
-            client_error(int code, const std::string& what)
-                : std::runtime_error(what)
-                , errorCode(code)
-                {}
+        /* Name of this program, for trace.c */
+        extern const char *rs_program_name;
 
-            const int errorCode;
-        };
+        int build_local(services::CompileJob &job, services::Channel *daemon, struct rusage *usage = nullptr);
+        std::string find_compiler(const services::CompileJob &job);
+        bool compiler_is_clang(const services::CompileJob &job);
+        bool compiler_only_rewrite_includes(const services::CompileJob &job);
+        std::string compiler_path_lookup(const std::string &compiler);
 
-        class remote_error : public client_error
-        {
-        public:
-            remote_error(int code, const std::string& what)
-                : client_error(code, what)
-                {}
-        };
     } // client
 } // icecream
 
-#endif
+#endif /* !ICECREAM_LOCAL_H */

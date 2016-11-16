@@ -20,6 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#pragma once
+
 #include <string>
 
 #include <stdio.h>
@@ -38,24 +40,31 @@
 
 #include "config.h"
 #include "client.h"
+#include "local.h"
 #include "exitcode.h"
 #include "job.h"
 #include "logging.h"
 
 using namespace icecream::services;
 
-/* util.c */
-extern int set_cloexec_flag(int desc, int value);
-extern int dcc_ignore_sigpipe(int val);
+namespace icecream
+{
+    namespace client
+    {
+        /* util.c */
+        int set_cloexec_flag(int desc, int value);
+        int dcc_ignore_sigpipe(int val);
 
-extern std::string find_basename(const std::string &sfile);
-extern std::string find_prefix(const std::string &basename);
-extern void colorify_output(const std::string &s_ccout);
-extern bool colorify_wanted(const CompileJob &job);
-extern bool compiler_has_color_output(const CompileJob &job);
-extern bool output_needs_workaround(const CompileJob &job);
-extern bool ignore_unverified();
-extern int resolve_link(const std::string &file, std::string &resolved);
+        std::string find_basename(const std::string &sfile);
+        std::string find_prefix(const std::string &basename);
+        void colorify_output(const std::string &s_ccout);
+        bool colorify_wanted(const CompileJob &job);
+        bool compiler_has_color_output(const CompileJob &job);
+        bool output_needs_workaround(const CompileJob &job);
+        bool ignore_unverified();
+        int resolve_link(const std::string &file, std::string &resolved);
 
-extern bool dcc_unlock(int lock_fd);
-extern bool dcc_lock_host(int &lock_fd);
+        bool dcc_unlock(int lock_fd);
+        bool dcc_lock_host(int &lock_fd);
+    } // client
+} // icecream

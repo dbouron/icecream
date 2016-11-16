@@ -97,7 +97,8 @@ TEST_F(ArgsTest, ValidArgs)
 
 /// \test Check with ambiguous arguments.
 /** \todo I am not sure about the exact result expected.
- ** Originally, this test should succeed, but it fails.
+ ** Originally, this test should succeed, but it fails
+ ** when clang >= 3.5 is installed on the system.
  ** Tested on several OS (OpenSuse 13.1, Debian 8, Fedora 24).
  */
 TEST_F(ArgsTest, AmbiguousArgs)

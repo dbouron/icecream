@@ -21,7 +21,12 @@ icecc_LDADD = \
 noinst_HEADERS = \
 	client.h \
 	md5.h \
-	util.h
+	util.h \
+	remote.h \
+	arg.h \
+	cpp.h \
+	local.h \
+	safeguard.h
 AM_CPPFLAGS = \
 	-DPLIBDIR=\"$(pkglibexecdir)\" \
 	-I$(top_srcdir)/services \

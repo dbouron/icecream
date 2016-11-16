@@ -21,49 +21,29 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef _CLIENT_H_
-#define _CLIENT_H_
+#ifndef ICECREAM_CPP_H
+# define ICECREAM_CPP_H
 
-#include <job.h>
-#include <comm.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
+# include <stdio.h>
+# include <stdlib.h>
+# include <unistd.h>
+# include <string.h>
+# include <errno.h>
+# include <assert.h>
 
-#include <stdexcept>
-
-#include "exitcode.h"
-#include "logging.h"
-#include "util.h"
-#include "service.h"
-#include "channel.h"
-#include "protocol.h"
-
-using namespace icecream::services;
+# include "config.h"
+# include "local.h"
+# include "safeguard.h"
+# include "util.h"
+# include "job.h"
 
 namespace icecream
 {
     namespace client
     {
-        class client_error :  public std::runtime_error
-        {
-        public:
-            client_error(int code, const std::string& what)
-                : std::runtime_error(what)
-                , errorCode(code)
-                {}
-
-            const int errorCode;
-        };
-
-        class remote_error : public client_error
-        {
-        public:
-            remote_error(int code, const std::string& what)
-                : client_error(code, what)
-                {}
-        };
+        pid_t call_cpp(services::CompileJob &job, int fdwrite, int fdread = -1);
     } // client
 } // icecream
 
-#endif
+
+#endif /* !ICECREAM_CPP_H */

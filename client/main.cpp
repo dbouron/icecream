@@ -31,8 +31,6 @@
  * mustereth the host of the battle.
  *      -- Isaiah 13 */
 
-
-
 #include "config.h"
 
 // Required by strsignal() on some systems.
@@ -61,13 +59,15 @@
 #include <sys/wait.h>
 
 #include "client.h"
+#include "local.h"
+#include "arg.h"
+#include "safeguard.h"
+#include "remote.h"
 #include "platform.h"
 #include "all.h"
 
 using namespace icecream::services;
-using namespace std;
-
-extern const char *rs_program_name;
+using namespace icecream::client;
 
 static void dcc_show_usage(void)
 {
@@ -125,9 +125,9 @@ static void dcc_client_signalled(int whichsig)
 {
     if (!local) {
 #ifdef HAVE_STRSIGNAL
-        log_info() << rs_program_name << ": " << strsignal(whichsig) << endl;
+        log_info() << rs_program_name << ": " << strsignal(whichsig) << std::endl;
 #else
-        log_info() << "terminated by signal " << whichsig << endl;
+        log_info() << "terminated by signal " << whichsig << std::endl;
 #endif
         //    dcc_cleanup_tempfiles();
     }
@@ -143,13 +143,13 @@ static void dcc_client_catch_signals(void)
     signal(SIGHUP, &dcc_client_signalled);
 }
 
-static string read_output(const char *command)
+static std::string read_output(const char *command)
 {
     FILE *f = popen(command, "r");
-    string output;
+    std::string output;
 
     if (!f) {
-        log_error() << "no pipe " << strerror(errno) << endl;
+        log_error() << "no pipe " << strerror(errno) << std::endl;
         return output;
     }
 
@@ -162,7 +162,7 @@ static string read_output(const char *command)
     }
 
     pclose(f);
-    // get rid of the endline
+    // get rid of the std::endline
     return output.substr(0, output.length() - 1);
 }
 
@@ -173,7 +173,7 @@ static int create_native(char **args)
 {
     bool is_clang = false;
     char **extrafiles = args;
-    string machine_name = determine_platform();
+    std::string machine_name = determine_platform();
 
     if (machine_name.find("Darwin") == 0)
         is_clang = true;
@@ -183,26 +183,26 @@ static int create_native(char **args)
         extrafiles++;
     }
 
-    vector<char*> argv;
+    std::vector<char*> argv;
     struct stat st;
 
     if (lstat(BINDIR "/icecc-create-env", &st)) {
-        log_error() << BINDIR "/icecc-create-env does not exist" << endl;
+        log_error() << BINDIR "/icecc-create-env does not exist" << std::endl;
         return 1;
     }
 
     argv.push_back(strdup(BINDIR "/icecc-create-env"));
 
     if (is_clang) {
-        string clang = compiler_path_lookup("clang");
+        std::string clang = compiler_path_lookup("clang");
 
         if (clang.empty()) {
-            log_error() << "clang compiler not found" << endl;
+            log_error() << "clang compiler not found" << std::endl;
             return 1;
         }
 
         if (lstat(PLIBDIR "/compilerwrapper", &st)) {
-            log_error() << PLIBDIR "/compilerwrapper does not exist" << endl;
+            log_error() << PLIBDIR "/compilerwrapper does not exist" << std::endl;
             return 1;
         }
 
@@ -210,11 +210,11 @@ static int create_native(char **args)
         argv.push_back(strdup(clang.c_str()));
         argv.push_back(strdup(PLIBDIR "/compilerwrapper"));
     } else { // "gcc" (default)
-        string gcc, gpp;
+        std::string gcc, gpp;
 
         // perhaps we're on gentoo
         if (!lstat("/usr/bin/gcc-config", &st)) {
-            string gccpath = read_output("/usr/bin/gcc-config -B") + "/";
+            std::string gccpath = read_output("/usr/bin/gcc-config -B") + "/";
             gcc = gccpath + "gcc";
             gpp = gccpath + "g++";
         } else {
@@ -224,7 +224,7 @@ static int create_native(char **args)
 
         // both C and C++ compiler are required
         if (gcc.empty() || gpp.empty()) {
-            log_error() << "gcc compiler not found" << endl;
+            log_error() << "gcc compiler not found" << std::endl;
             return 1;
         }
 
@@ -269,7 +269,7 @@ int main(int argc, char **argv)
     CompileJob job;
     bool icerun = false;
 
-    string compiler_name = argv[0];
+    std::string compiler_name = argv[0];
     dcc_client_catch_signals();
 
     char cwd[ PATH_MAX ];
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
 
     if (find_basename(compiler_name) == rs_program_name) {
         if (argc > 1) {
-            string arg = argv[1];
+            std::string arg = argv[1];
 
             if (arg == "--help") {
                 dcc_show_usage();
@@ -303,7 +303,7 @@ int main(int argc, char **argv)
         icerun = true;
 
         if (argc > 1) {
-            string arg = argv[1];
+            std::string arg = argv[1];
 
             if (arg == "--help") {
                 icerun_show_usage();
@@ -332,7 +332,7 @@ int main(int argc, char **argv)
     int sg_level = dcc_recursion_safeguard();
 
     if (sg_level > 0) {
-        log_error() << "icecream seems to have invoked itself recursively!" << endl;
+        log_error() << "icecream seems to have invoked itself recursively!" << std::endl;
         return EXIT_RECURSION;
     }
 
@@ -340,7 +340,7 @@ int main(int argc, char **argv)
      * see the EPIPE. */
     dcc_ignore_sigpipe(1);
 
-    list<string> extrafiles;
+    std::list<std::string> extrafiles;
     local |= analyse_argv(argv, job, icerun, &extrafiles);
 
     /* If ICECC is set to disable, then run job locally, without contacting
@@ -362,12 +362,12 @@ int main(int argc, char **argv)
     if (const char *extrafilesenv = getenv("ICECC_EXTRAFILES")) {
         for (;;) {
             const char *colon = strchr(extrafilesenv, ':');
-            string file;
+            std::string file;
 
             if (colon == NULL) {
                 file = extrafilesenv;
             } else {
-                file = string(extrafilesenv, colon - extrafilesenv);
+                file = std::string(extrafilesenv, colon - extrafilesenv);
             }
 
             file = get_absfilename(file);
@@ -376,7 +376,7 @@ int main(int argc, char **argv)
             if (stat(file.c_str(), &st) == 0) {
                 extrafiles.push_back(file);
             } else {
-                log_warning() << "File in ICECC_EXTRAFILES not found: " << file << endl;
+                log_warning() << "File in ICECC_EXTRAFILES not found: " << file << std::endl;
                 return build_local(job, nullptr);
             }
 
@@ -398,7 +398,7 @@ int main(int argc, char **argv)
         }
 
         if (!local_daemon && getenv("HOME")) {
-            string path = getenv("HOME");
+            std::string path = getenv("HOME");
             path += "/.iceccd.socket";
             local_daemon = Service::createChannel(path);
         }
@@ -409,13 +409,13 @@ int main(int argc, char **argv)
     } else {
         local_daemon = Service::createChannel(getenv("ICECC_TEST_SOCKET"));
         if (!local_daemon) {
-            log_error() << "test socket error" << endl;
+            log_error() << "test socket error" << std::endl;
             return EXIT_TEST_SOCKET_ERROR;
         }
     }
 
     if (!local_daemon) {
-        log_warning() << "no local daemon found" << endl;
+        log_warning() << "no local daemon found" << std::endl;
         return build_local(job, nullptr);
     }
 
@@ -429,18 +429,18 @@ int main(int argc, char **argv)
                 // we just build locally
             }
         } else if (!extrafiles.empty() && !is_protocol<32>()(*local_daemon)) {
-            log_warning() << "Local daemon is too old to handle compiler plugins." << endl;
+            log_warning() << "Local daemon is too old to handle compiler plugins." << std::endl;
             local = true;
         } else {
             if (!local_daemon->send_msg(GetNativeEnv(compiler_is_clang(job)
                                         ? "clang" : "gcc", extrafiles))) {
-                log_warning() << "failed to write get native environment" << endl;
+                log_warning() << "failed to write get native environment" << std::endl;
                 goto do_local_error;
             }
 
             // the timeout is high because it creates the native version
             Msg *umsg = local_daemon->get_msg(4 * 60).get();
-            string native;
+            std::string native;
 
             if (umsg && umsg->type == MsgType::NATIVE_ENV) {
                 native = static_cast<UseNativeEnv*>(umsg)->nativeVersion;
@@ -451,7 +451,7 @@ int main(int argc, char **argv)
                               "Set $ICECC_VERSION to an icecc environment.\n";
             } else {
                 envs.push_back(make_pair(job.targetPlatform(), native));
-                log_info() << "native " << native << endl;
+                log_info() << "native " << native << std::endl;
             }
 
             delete umsg;
@@ -463,10 +463,10 @@ int main(int argc, char **argv)
         }
 
         for (Environments::const_iterator it = envs.begin(); it != envs.end(); ++it) {
-            trace() << "env: " << it->first << " '" << it->second << "'" << endl;
+            trace() << "env: " << it->first << " '" << it->second << "'" << std::endl;
 
             if (::access(it->second.c_str(), R_OK)) {
-                log_error() << "can't read environment " << it->second << endl;
+                log_error() << "can't read environment " << it->second << std::endl;
                 local = true;
             }
         }
@@ -509,16 +509,16 @@ int main(int argc, char **argv)
                 local_daemon->send_msg(End());
             }
         } catch (remote_error& error) {
-            log_info() << "local build forced by remote exception: " << error.what() << endl;
+            log_info() << "local build forced by remote exception: " << error.what() << std::endl;
             goto do_local_error;
         }
         catch (client_error& error) {
             if (remote_daemon.size()) {
                 log_error() << "got exception " << error.what()
-                            << " (" << remote_daemon.c_str() << ") " << endl;
+                            << " (" << remote_daemon.c_str() << ") " << std::endl;
             } else {
                 log_error() << "got exception " << error.what() << " (this should be an exception!)" <<
-                            endl;
+                            std::endl;
             }
 
             /* currently debugging a client? throw an error then */

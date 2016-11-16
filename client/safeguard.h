@@ -21,49 +21,18 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef _CLIENT_H_
-#define _CLIENT_H_
+#ifndef ICECREAM_SAFEGUARD_H
+# define ICECREAM_SAFEGUARD_H
 
-#include <job.h>
-#include <comm.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-
-#include <stdexcept>
-
-#include "exitcode.h"
-#include "logging.h"
-#include "util.h"
-#include "service.h"
-#include "channel.h"
-#include "protocol.h"
-
-using namespace icecream::services;
+# include "logging.h"
 
 namespace icecream
 {
     namespace client
     {
-        class client_error :  public std::runtime_error
-        {
-        public:
-            client_error(int code, const std::string& what)
-                : std::runtime_error(what)
-                , errorCode(code)
-                {}
-
-            const int errorCode;
-        };
-
-        class remote_error : public client_error
-        {
-        public:
-            remote_error(int code, const std::string& what)
-                : client_error(code, what)
-                {}
-        };
+        void dcc_increment_safeguard(void);
+        int dcc_recursion_safeguard(void);
     } // client
 } // icecream
 
-#endif
+#endif /* !ICECREAM_SAFEGUARD_H */

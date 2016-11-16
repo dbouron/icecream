@@ -20,9 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "logging.h"
-
-using namespace std;
+#include "safeguard.h"
 
 /**
  * @file
@@ -36,37 +34,44 @@ using namespace std;
  * recursively invoking itself, thinking it's the real compiler.
  **/
 
-static const char dcc_safeguard_name[] = "_ICECC_SAFEGUARD";
-static char dcc_safeguard_set[] = "_ICECC_SAFEGUARD=1";
-static int dcc_safeguard_level;
-
-int dcc_recursion_safeguard(void)
+namespace icecream
 {
-    char *env = getenv(dcc_safeguard_name);
+    namespace client
+    {
+        static constexpr char dcc_safeguard_name[] = "_ICECC_SAFEGUARD";
+        static char dcc_safeguard_set[] = "_ICECC_SAFEGUARD=1";
+        static int dcc_safeguard_level;
 
-    if (env) {
-        //trace() << "safeguard: " << env << endl;
-        if (!(dcc_safeguard_level = atoi(env))) {
-            dcc_safeguard_level = 1;
+        int dcc_recursion_safeguard(void)
+        {
+            char *env = getenv(dcc_safeguard_name);
+
+            if (env) {
+                //trace() << "safeguard: " << env << endl;
+                if (!(dcc_safeguard_level = atoi(env))) {
+                    dcc_safeguard_level = 1;
+                }
+            } else {
+                dcc_safeguard_level = 0;
+            }
+
+            //trace() << "safeguard level=" << dcc_safeguard_level << endl;
+
+            return dcc_safeguard_level;
         }
-    } else {
-        dcc_safeguard_level = 0;
-    }
-
-    //trace() << "safeguard level=" << dcc_safeguard_level << endl;
-
-    return dcc_safeguard_level;
-}
 
 
-void dcc_increment_safeguard(void)
-{
-    if (dcc_safeguard_level > 0) {
-        dcc_safeguard_set[sizeof dcc_safeguard_set - 2] = dcc_safeguard_level + '1';
-    }
+        void dcc_increment_safeguard(void)
+        {
+            if (dcc_safeguard_level > 0) {
+                dcc_safeguard_set[sizeof dcc_safeguard_set - 2] =
+                    dcc_safeguard_level + '1';
+            }
 
-    //trace() << "setting safeguard: " << dcc_safeguard_set << endl;
-    if ((putenv(strdup(dcc_safeguard_set)) == -1)) {
-        log_error() << "putenv failed" << endl;
-    }
-}
+            //trace() << "setting safeguard: " << dcc_safeguard_set << endl;
+            if ((putenv(strdup(dcc_safeguard_set)) == -1)) {
+                log_error() << "putenv failed" << std::endl;
+            }
+        }
+    } // client
+} // icecream
