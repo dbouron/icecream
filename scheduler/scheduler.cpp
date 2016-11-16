@@ -2183,7 +2183,8 @@ int main(int argc, char *argv[])
                 }
             }
             /* Daemon is searching for a scheduler, only answer if daemon would be able to talk to us. */
-            else if (buflen == 1 && buf[0] >= MIN_PROTOCOL_VERSION) {
+            else if (buflen == 1
+                     && static_cast<uint32_t>(buf[0]) >= MIN_PROTOCOL_VERSION) {
                 log_info() << "broadcast from " << inet_ntoa(broad_addr.sin_addr)
                            << ":" << ntohs(broad_addr.sin_port)
                            << " (version " << int(buf[0]) << ")\n";
@@ -2199,7 +2200,8 @@ int main(int argc, char *argv[])
                 uint64_t tmp_time;
                 memcpy(&tmp_time, buf + 4, sizeof(uint64_t));
                 time_t other_time = tmp_time;
-                if (buf[3] > PROTOCOL_VERSION || other_time < starttime) {
+                if (static_cast<uint32_t>(buf[3]) > PROTOCOL_VERSION
+                    || other_time < starttime) {
                     if (!css.empty() || !monitors.empty()) {
                         log_info() << "Scheduler from " << inet_ntoa(broad_addr.sin_addr)
                                << ":" << ntohs(broad_addr.sin_port)
