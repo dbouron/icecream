@@ -231,8 +231,8 @@ namespace icecream
             char **argv = new char*[arguments.size() + 1];
             int argc = 0;
 
-            for (std::list<std::string>::const_iterator it = arguments.begin(); it != arguments.end(); ++it) {
-                argv[argc++] = strdup(it->c_str());
+            for (const auto &cit : arguments) {
+                argv[argc++] = strdup(cit.c_str());
             }
 
             argv[argc] = nullptr;

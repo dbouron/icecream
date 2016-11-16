@@ -462,11 +462,11 @@ int main(int argc, char **argv)
             local = true;
         }
 
-        for (Environments::const_iterator it = envs.begin(); it != envs.end(); ++it) {
-            trace() << "env: " << it->first << " '" << it->second << "'" << std::endl;
+        for (const auto &cit : envs) {
+            trace() << "env: " << cit.first << " '" << cit.second << "'" << std::endl;
 
-            if (::access(it->second.c_str(), R_OK)) {
-                log_error() << "can't read environment " << it->second << std::endl;
+            if (::access(cit.second.c_str(), R_OK)) {
+                log_error() << "can't read environment " << cit.second << std::endl;
                 local = true;
             }
         }
