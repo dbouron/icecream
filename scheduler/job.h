@@ -22,106 +22,107 @@
 */
 
 #ifndef JOB_H
-#define JOB_H
+# define JOB_H
 
-#include <list>
-#include <string>
-#include <time.h>
+# include <list>
+# include <string>
+# include <time.h>
 
-#include "../services/comm.h"
-#include "../services/channel.h"
+# include "../services/comm.h"
+# include "../services/channel.h"
+# include "compileserver.h"
 
-using namespace icecream::services;
-
-
-class CompileServer;
-
-class Job
+namespace icecream
 {
-public:
-    enum State {
-        PENDING,
-        WAITINGFORCS,
-        COMPILING
-    };
+    namespace scheduler
+    {
+        class Job
+        {
+        public:
+            enum State {
+                PENDING,
+                WAITINGFORCS,
+                COMPILING
+            };
 
-    Job(const unsigned int _id, CompileServer *subm);
-    ~Job();
+            Job(const unsigned int _id, CompileServer *subm);
+            ~Job();
 
-    unsigned int id() const;
-    void setId(const unsigned int id);
+            unsigned int id() const;
+            void setId(const unsigned int id);
 
-    unsigned int localClientId() const;
-    void setLocalClientId(const unsigned int id);
+            unsigned int localClientId() const;
+            void setLocalClientId(const unsigned int id);
 
-    State state() const;
-    void setState(const State state);
+            State state() const;
+            void setState(const State state);
 
-    CompileServer *server() const;
-    void setServer(CompileServer *server);
+            CompileServer *server() const;
+            void setServer(CompileServer *server);
 
-    CompileServer *submitter() const;
-    void setSubmitter(CompileServer *submitter);
+            CompileServer *submitter() const;
+            void setSubmitter(CompileServer *submitter);
 
-    Environments environments() const;
-    void setEnvironments(const Environments &environments);
-    void appendEnvironment(const std::pair<std::string, std::string> &env);
-    void clearEnvironments();
+            services::Environments environments() const;
+            void setEnvironments(const services::Environments &environments);
+            void appendEnvironment(const std::pair<std::string, std::string> &env);
+            void clearEnvironments();
 
-    time_t startTime() const;
-    void setStartTime(const time_t time);
+            time_t startTime() const;
+            void setStartTime(const time_t time);
 
-    time_t startOnScheduler() const;
-    void setStartOnScheduler(const time_t time);
+            time_t startOnScheduler() const;
+            void setStartOnScheduler(const time_t time);
 
-    time_t doneTime() const;
-    void setDoneTime(const time_t time);
+            time_t doneTime() const;
+            void setDoneTime(const time_t time);
 
-    std::string targetPlatform() const;
-    void setTargetPlatform(const std::string &platform);
+            std::string targetPlatform() const;
+            void setTargetPlatform(const std::string &platform);
 
-    std::string fileName() const;
-    void setFileName(const std::string &fileName);
+            std::string fileName() const;
+            void setFileName(const std::string &fileName);
 
-    std::list<Job *> masterJobFor() const;
-    void appendJob(Job *job);
+            std::list<Job *> masterJobFor() const;
+            void appendJob(Job *job);
 
-    unsigned int argFlags() const;
-    void setArgFlags(const unsigned int argFlags);
+            unsigned int argFlags() const;
+            void setArgFlags(const unsigned int argFlags);
 
-    std::string language() const;
-    void setLanguage(const std::string &language);
+            std::string language() const;
+            void setLanguage(const std::string &language);
 
-    std::string preferredHost() const;
-    void setPreferredHost(const std::string &host);
+            std::string preferredHost() const;
+            void setPreferredHost(const std::string &host);
 
-    int minimalHostVersion() const;
-    void setMinimalHostVersion( int version );
+            int minimalHostVersion() const;
+            void setMinimalHostVersion( int version );
 
-private:
-    unsigned int m_id;
-    unsigned int m_localClientId;
-    State m_state;
-    CompileServer *m_server;  // on which server we build
-    CompileServer *m_submitter;  // who submitted us
-    Environments m_environments;
-    time_t m_startTime;  // _local_ to the compiler server
-    time_t m_startOnScheduler;  // starttime local to scheduler
-    /**
-     * the end signal from client and daemon is a bit of a race and
-     * in 99.9% of all cases it's catched correctly. But for the remaining
-     * 0.1% we need a solution too - otherwise these jobs are eating up slots.
-     * So the solution is to track done jobs (client exited, daemon didn't signal)
-     * and after 10s no signal, kill the daemon (and let it rehup) **/
-    time_t m_doneTime;
+        private:
+            unsigned int m_id;
+            unsigned int m_localClientId;
+            State m_state;
+            CompileServer *m_server;  // on which server we build
+            CompileServer *m_submitter;  // who submitted us
+            services::Environments m_environments;
+            time_t m_startTime;  // _local_ to the compiler server
+            time_t m_startOnScheduler;  // starttime local to scheduler
+            /**
+             * the end signal from client and daemon is a bit of a race and
+             * in 99.9% of all cases it's catched correctly. But for the remaining
+             * 0.1% we need a solution too - otherwise these jobs are eating up slots.
+             * So the solution is to track done jobs (client exited, daemon didn't signal)
+             * and after 10s no signal, kill the daemon (and let it rehup) **/
+            time_t m_doneTime;
 
-    std::string m_targetPlatform;
-    std::string m_fileName;
-    std::list<Job *> m_masterJobFor;
-    unsigned int m_argFlags;
-    std::string m_language; // for debugging
-    std::string m_preferredHost; // for debugging daemons
-    int m_minimalHostVersion; // minimal version required for the the remote server
-};
-
+            std::string m_targetPlatform;
+            std::string m_fileName;
+            std::list<Job *> m_masterJobFor;
+            unsigned int m_argFlags;
+            std::string m_language; // for debugging
+            std::string m_preferredHost; // for debugging daemons
+            int m_minimalHostVersion; // minimal version required for the the remote server
+        };
+    } // scheduler
+} // icecream
 #endif

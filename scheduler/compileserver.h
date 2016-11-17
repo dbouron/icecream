@@ -33,138 +33,141 @@
 #include "../services/comm.h"
 #include "jobstat.h"
 
-class Job;
-
-using namespace icecream::services;
-using namespace std;
-
-/* One compile server (receiver, compile daemon)  */
-class CompileServer : public Channel
+namespace icecream
 {
-public:
-    enum State {
-        CONNECTED,
-        LOGGEDIN
-    };
+    namespace scheduler
+    {
+        class Job;
 
-    enum Type {
-        UNKNOWN,
-        DAEMON,
-        MONITOR,
-        LINE
-    };
+        /* One compile server (receiver, compile daemon)  */
+        class CompileServer : public services::Channel
+        {
+        public:
+            enum State {
+                CONNECTED,
+                LOGGEDIN
+            };
 
-    CompileServer(const int fd, struct sockaddr *_addr, const socklen_t _len, const bool text_based);
+            enum Type {
+                UNKNOWN,
+                DAEMON,
+                MONITOR,
+                LINE
+            };
 
-    void pick_new_id();
+            CompileServer(const int fd, struct sockaddr *_addr,
+                          const socklen_t _len, const bool text_based);
 
-    bool check_remote(const Job *job) const;
-    bool platforms_compatible(const string &target) const;
-    string can_install(const Job *job);
-    bool is_eligible(const Job *job);
+            void pick_new_id();
 
-    unsigned int remotePort() const;
-    void setRemotePort(const unsigned int port);
+            bool check_remote(const Job *job) const;
+            bool platforms_compatible(const std::string &target) const;
+            std::string can_install(const Job *job);
+            bool is_eligible(const Job *job);
 
-    unsigned int hostId() const;
-    void setHostId(const unsigned int id);
+            unsigned int remotePort() const;
+            void setRemotePort(const unsigned int port);
 
-    string nodeName() const;
-    void setNodeName(const string &name);
+            unsigned int hostId() const;
+            void setHostId(const unsigned int id);
 
-    bool matches(const string& nm) const;
+            std::string nodeName() const;
+            void setNodeName(const std::string &name);
 
-    time_t busyInstalling() const;
-    void setBusyInstalling(const time_t time);
+            bool matches(const std::string& nm) const;
 
-    string hostPlatform() const;
-    void setHostPlatform(const string &platform);
+            time_t busyInstalling() const;
+            void setBusyInstalling(const time_t time);
 
-    unsigned int load() const;
-    void setLoad(const unsigned int load);
+            std::string hostPlatform() const;
+            void setHostPlatform(const std::string &platform);
 
-    int maxJobs() const;
-    void setMaxJobs(const int jobs);
+            unsigned int load() const;
+            void setLoad(const unsigned int load);
 
-    bool noRemote() const;
-    void setNoRemote(const bool value);
+            int maxJobs() const;
+            void setMaxJobs(const int jobs);
 
-    list<Job *> jobList() const;
-    void appendJob(Job *job);
-    void removeJob(Job *job);
+            bool noRemote() const;
+            void setNoRemote(const bool value);
 
-    int submittedJobsCount() const;
-    void submittedJobsIncrement();
-    void submittedJobsDecrement();
+            std::list<Job *> jobList() const;
+            void appendJob(Job *job);
+            void removeJob(Job *job);
 
-    State state() const;
-    void setState(const State state);
+            int submittedJobsCount() const;
+            void submittedJobsIncrement();
+            void submittedJobsDecrement();
 
-    Type type() const;
-    void setType(const Type type);
+            State state() const;
+            void setState(const State state);
 
-    bool chrootPossible() const;
-    void setChrootPossible(const bool possible);
+            Type type() const;
+            void setType(const Type type);
 
-    Environments compilerVersions() const;
-    void setCompilerVersions(const Environments &environments);
+            bool chrootPossible() const;
+            void setChrootPossible(const bool possible);
 
-    list<JobStat> lastCompiledJobs() const;
-    void appendCompiledJob(const JobStat &stats);
-    void popCompiledJob();
+            services::Environments compilerVersions() const;
+            void setCompilerVersions(const services::Environments &environments);
 
-    list<JobStat> lastRequestedJobs() const;
-    void appendRequestedJobs(const JobStat &stats);
-    void popRequestedJobs();
+            std::list<JobStat> lastCompiledJobs() const;
+            void appendCompiledJob(const JobStat &stats);
+            void popCompiledJob();
 
-    JobStat cumCompiled() const;
-    void setCumCompiled(const JobStat &stats);
+            std::list<JobStat> lastRequestedJobs() const;
+            void appendRequestedJobs(const JobStat &stats);
+            void popRequestedJobs();
 
-    JobStat cumRequested() const;
-    void setCumRequested(const JobStat &stats);
+            JobStat cumCompiled() const;
+            void setCumCompiled(const JobStat &stats);
+
+            JobStat cumRequested() const;
+            void setCumRequested(const JobStat &stats);
 
 
-    unsigned int hostidCounter() const;
+            unsigned int hostidCounter() const;
 
-    int getClientJobId(const int localJobId);
-    void insertClientJobId(const int localJobId, const int newJobId);
-    void eraseClientJobId(const int localJobId);
+            int getClientJobId(const int localJobId);
+            void insertClientJobId(const int localJobId, const int newJobId);
+            void eraseClientJobId(const int localJobId);
 
-    map<CompileServer *, Environments> blacklist() const;
-    Environments getEnvsForBlacklistedCS(CompileServer *cs);
-    void blacklistCompileServer(CompileServer *cs, const std::pair<std::string, std::string> &env);
-    void eraseCSFromBlacklist(CompileServer *cs);
+            std::map<CompileServer *, services::Environments> blacklist() const;
+            services::Environments getEnvsForBlacklistedCS(CompileServer *cs);
+            void blacklistCompileServer(CompileServer *cs, const std::pair<std::string, std::string> &env);
+            void eraseCSFromBlacklist(CompileServer *cs);
 
-private:
-    bool blacklisted(const Job *job, const pair<string, string> &environment);
+        private:
+            bool blacklisted(const Job *job, const std::pair<std::string, std::string> &environment);
 
-    /* The listener port, on which it takes compile requests.  */
-    unsigned int m_remotePort;
-    unsigned int m_hostId;
-    string m_nodeName;
-    time_t m_busyInstalling;
-    string m_hostPlatform;
+            /* The listener port, on which it takes compile requests.  */
+            unsigned int m_remotePort;
+            unsigned int m_hostId;
+            std::string m_nodeName;
+            time_t m_busyInstalling;
+            std::string m_hostPlatform;
 
-    // LOAD is load * 1000
-    unsigned int m_load;
-    int m_maxJobs;
-    bool m_noRemote;
-    list<Job *> m_jobList;
-    int m_submittedJobsCount;
-    State m_state;
-    Type m_type;
-    bool m_chrootPossible;
+            // LOAD is load * 1000
+            unsigned int m_load;
+            int m_maxJobs;
+            bool m_noRemote;
+            std::list<Job *> m_jobList;
+            int m_submittedJobsCount;
+            State m_state;
+            Type m_type;
+            bool m_chrootPossible;
 
-    Environments m_compilerVersions;  // Available compilers
+            services::Environments m_compilerVersions;  // Available compilers
 
-    list<JobStat> m_lastCompiledJobs;
-    list<JobStat> m_lastRequestedJobs;
-    JobStat m_cumCompiled;  // cumulated
-    JobStat m_cumRequested;
+            std::list<JobStat> m_lastCompiledJobs;
+            std::list<JobStat> m_lastRequestedJobs;
+            JobStat m_cumCompiled;  // cumulated
+            JobStat m_cumRequested;
 
-    static unsigned int s_hostIdCounter;
-    map<int, int> m_clientMap; // map client ID for daemon to our IDs
-    map<CompileServer *, Environments> m_blacklist;
-};
-
+            static unsigned int s_hostIdCounter;
+            std::map<int, int> m_clientMap; // map client ID for daemon to our IDs
+            std::map<CompileServer *, services::Environments> m_blacklist;
+        };
+    } // scheduler
+} // icecream
 #endif

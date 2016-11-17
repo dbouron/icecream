@@ -94,11 +94,11 @@
  */
 
 using namespace icecream::services;
-using namespace std;
+using namespace icecream::scheduler;
 
-static string pidFilePath;
+static std::string pidFilePath;
 
-static map<int, CompileServer *> fd2cs;
+static std::map<int, CompileServer *> fd2cs;
 static volatile sig_atomic_t exit_main_loop = false;
 
 time_t starttime;
@@ -106,23 +106,23 @@ time_t last_announce;
 static unsigned int scheduler_port = 8765;
 
 // A subset of connected_hosts representing the compiler servers
-static list<CompileServer *> css;
-static list<CompileServer *> monitors;
-static list<CompileServer *> controls;
-static list<string> block_css;
+static std::list<CompileServer *> css;
+static std::list<CompileServer *> monitors;
+static std::list<CompileServer *> controls;
+static std::list<std::string> block_css;
 static unsigned int new_job_id;
-static map<unsigned int, Job *> jobs;
+static std::map<unsigned int, Job *> jobs;
 
 /* XXX Uah.  Don't use a queue for the job requests.  It's a hell
    to delete anything out of them (for clean up).  */
 struct UnansweredList {
-    list<Job *> l;
+    std::list<Job *> l;
     CompileServer *server;
     bool remove_job(Job *);
 };
-static list<UnansweredList *> toanswer;
+static std::list<UnansweredList *> toanswer;
 
-static list<JobStat> all_job_stats;
+static std::list<JobStat> all_job_stats;
 static JobStat cum_job_stats;
 
 static float server_speed(CompileServer *cs, Job *job = nullptr);
@@ -132,7 +132,7 @@ static void broadcast_scheduler_version();
    Returns true if something was deleted.  */
 bool UnansweredList::remove_job(Job *job)
 {
-    list<Job *>::iterator it;
+    std::list<Job *>::iterator it;
 
     for (it = l.begin(); it != l.end(); ++it)
         if (*it == job) {
@@ -225,7 +225,7 @@ static void add_job_stats(Job *job, JobDone *msg)
                 << " " << st.outputSize() << " " << msg->out_uncompressed << " "
                 << job->server()->nodeName() << " "
                 << float(msg->out_uncompressed) / st.compileTimeUser() << " "
-                << server_speed(job->server()) << endl;
+                << server_speed(job->server()) << std::endl;
     }
 #endif
 }
@@ -234,15 +234,15 @@ static bool handle_end(CompileServer *cs, Msg *);
 
 static void notify_monitors(Msg *m)
 {
-    list<CompileServer *>::iterator it;
-    list<CompileServer *>::iterator it_old;
+    std::list<CompileServer *>::iterator it;
+    std::list<CompileServer *>::iterator it_old;
 
     for (it = monitors.begin(); it != monitors.end();) {
         it_old = it++;
 
         /* If we can't send it, don't be clever, simply close this monitor.  */
         if (!(*it_old)->send_msg(*m,SendFlag::SendNonBlocking /*|SendFlag::SendBulkOnly*/)) {
-            trace() << "monitor is blocking... removing" << endl;
+            trace() << "monitor is blocking... removing" << std::endl;
             handle_end(*it_old, nullptr);
         }
     }
@@ -293,7 +293,7 @@ static void handle_monitor_stats(CompileServer *cs, Stats *m = nullptr)
         return;
     }
 
-    string msg;
+    std::string msg;
     char buffer[1000];
     sprintf(buffer, "Name:%s\n", cs->nodeName().c_str());
     msg += buffer;
@@ -378,7 +378,7 @@ static void remove_job_request(void)
     }
 }
 
-static string dump_job(Job *job);
+static std::string dump_job(Job *job);
 
 static bool handle_cs_request(Channel *cs, Msg *_m)
 {
@@ -418,7 +418,7 @@ static bool handle_cs_request(Channel *cs, Msg *_m)
             }
         }
 
-        dbg << "] " << m->filename << " " << job->language() << endl;
+        dbg << "] " << m->filename << " " << job->language() << std::endl;
         notify_monitors(new MonGetCS(job->id(), submitter->hostId(), m));
 
         if (!master_job) {
@@ -440,7 +440,7 @@ static bool handle_local_job(CompileServer *cs, Msg *_m)
     }
 
     ++new_job_id;
-    trace() << "handle_local_job " << m->outfile << " " << m->id << endl;
+    trace() << "handle_local_job " << m->outfile << " " << m->id << std::endl;
     cs->insertClientJobId(m->id, new_job_id);
     notify_monitors(new MonLocalJobBegin(new_job_id, m->outfile, m->stime, cs->hostId()));
     return true;
@@ -454,74 +454,71 @@ static bool handle_local_job_done(CompileServer *cs, Msg *_m)
         return false;
     }
 
-    trace() << "handle_local_job_done " << m->job_id << endl;
+    trace() << "handle_local_job_done " << m->job_id << std::endl;
     notify_monitors(new JobLocalDone(cs->getClientJobId(m->job_id)));
     cs->eraseClientJobId(m->job_id);
     return true;
 }
 
 /* Given a candidate CS and a JOB, check all installed environments
-   on the CS for a match.  Return an empty string if none of the required
+   on the CS for a match.  Return an empty std::string if none of the required
    environments for this job is installed.  Otherwise return the
    host platform of the first found installed environment which is among
    the requested.  That can be send to the client, which then completely
    specifies which environment to use (name, host platform and target
    platform).  */
-static string envs_match(CompileServer *cs, const Job *job)
+static std::string envs_match(CompileServer *cs, const Job *job)
 {
     if (job->submitter() == cs) {
         return cs->hostPlatform();    // it will compile itself
     }
 
-    Environments compilerVersions = cs->compilerVersions();
+    auto compilerVersions = cs->compilerVersions();
 
     /* Check all installed envs on the candidate CS ...  */
-    for (Environments::const_iterator it = compilerVersions.begin();
-            it != compilerVersions.end(); ++it) {
-        if (it->first == job->targetPlatform()) {
+    for (const auto &cit : compilerVersions) {
+        if (cit.first == job->targetPlatform()) {
             /* ... IT now is an installed environment which produces code for
                the requested target platform.  Now look at each env which
                could be installed from the client (i.e. those coming with the
                job) if it matches in name and additionally could be run
                by the candidate CS.  */
-            Environments environments = job->environments();
-            for (Environments::const_iterator it2 = environments.begin();
-                    it2 != environments.end(); ++it2) {
-                if (it->second == it2->second && cs->platforms_compatible(it2->first)) {
-                    return it2->first;
+            auto environments = job->environments();
+            for (const auto &cit2 : environments) {
+                if (cit.second == cit2.second && cs->platforms_compatible(cit2.first)) {
+                    return cit2.first;
                 }
             }
         }
     }
 
-    return string();
+    return std::string();
 }
 
 static CompileServer *pick_server(Job *job)
 {
 #if DEBUG_SCHEDULER > 1
-    trace() << "pick_server " << job->id() << " " << job->targetPlatform() << endl;
+    trace() << "pick_server " << job->id() << " " << job->targetPlatform() << std::endl;
 #endif
 
 #if DEBUG_SCHEDULER > 0
 
     /* consistency checking for now */
-    for (list<CompileServer *>::iterator it = css.begin(); it != css.end(); ++it) {
-        CompileServer *cs = *it;
+    for (auto &it : css) {
+        auto cs = it;
 
-        list<Job *> jobList = cs->jobList();
-        for (list<Job *>::const_iterator it2 = jobList.begin(); it2 != jobList.end(); ++it2) {
-            assert(jobs.find((*it2)->id()) != jobs.end());
+        auto jobList = cs->jobList();
+        for (const auto &cit : jobList) {
+            assert(jobs.find(cit.id()) != jobs.end());
         }
     }
 
-    for (map<unsigned int, Job *>::const_iterator it = jobs.begin();
-            it != jobs.end(); ++it) {
-        Job *j = it->second;
+    for (const auto &cit : jobs) {
+        auto j = cit.second;
 
         if (j->state() == Job::COMPILING) {
-            CompileServer *cs = j->server();
-            list<Job *> jobList = cs->jobList();
+            auto cs = j->server();
+            auto jobList = cs->jobList();
             assert(find(jobList.begin(), jobList.end(), j) != jobList.end());
         }
     }
@@ -530,9 +527,9 @@ static CompileServer *pick_server(Job *job)
 
     /* if the user wants to test/prefer one specific daemon, we look for that one first */
     if (!job->preferredHost().empty()) {
-        for (list<CompileServer *>::iterator it = css.begin(); it != css.end(); ++it) {
-            if ((*it)->matches(job->preferredHost()) && (*it)->is_eligible(job)) {
-                return *it;
+        for (auto &it : css) {
+            if (it->matches(job->preferredHost()) && it->is_eligible(job)) {
+                return it;
             }
         }
 
@@ -544,18 +541,18 @@ static CompileServer *pick_server(Job *job)
         CompileServer *selected = nullptr;
         int eligible_count = 0;
 
-        for (list<CompileServer *>::iterator it = css.begin(); it != css.end(); ++it) {
-            if ((*it)->is_eligible( job )) {
+        for (auto &it : css) {
+            if (it->is_eligible(job)) {
                 ++eligible_count;
                 // Do not select the first one (which could be broken and so we might never get job stats),
                 // but rather select randomly.
-                if( random() % eligible_count == 0 )
-                  selected = *it;
+                if (random() % eligible_count == 0)
+                  selected = it;
             }
         }
 
         if( selected != nullptr ) {
-            trace() << "no job stats - returning randomly selected " << selected->nodeName() << " load: " << selected->load() << " can install: " << selected->can_install(job) << endl;
+            trace() << "no job stats - returning randomly selected " << selected->nodeName() << " load: " << selected->load() << " can install: " << selected->can_install(job) << std::endl;
             return selected;
         }
 
@@ -582,15 +579,14 @@ static CompileServer *pick_server(Job *job)
 
     uint matches = 0;
 
-    for (list<CompileServer *>::iterator it = css.begin(); it != css.end(); ++it) {
-        CompileServer *cs = *it;
+    for (auto &cs : css) {
 
         /* For now ignore overloaded servers.  */
         /* Pre-loadable (cs->jobList().size()) == (cs->maxJobs()) is checked later.  */
         if ((int(cs->jobList().size()) > cs->maxJobs()) || (cs->load() >= 1000)) {
 #if DEBUG_SCHEDULER > 1
             trace() << "overloaded " << cs->nodeName() << " " << cs->jobList().size() << "/"
-                    <<  cs->maxJobs() << " jobs, load:" << cs->load() << endl;
+                    <<  cs->maxJobs() << " jobs, load:" << cs->load() << std::endl;
 #endif
             continue;
         }
@@ -598,7 +594,7 @@ static CompileServer *pick_server(Job *job)
         // incompatible architecture or busy installing
         if (!cs->can_install(job).size()) {
 #if DEBUG_SCHEDULER > 2
-            trace() << cs->nodeName() << " can't install " << job->id() << endl;
+            trace() << cs->nodeName() << " can't install " << job->id() << std::endl;
 #endif
             continue;
         }
@@ -619,7 +615,7 @@ static CompileServer *pick_server(Job *job)
 #if DEBUG_SCHEDULER > 1
         trace() << cs->nodeName() << " compiled " << cs->lastCompiledJobs().size() << " got now: " <<
                 cs->jobList().size() << " speed: " << server_speed(cs, job) << " compile time " <<
-                cs->cumCompiled().compileTimeUser() << " produced code " << cs->cumCompiled().outputSize() << endl;
+                cs->cumCompiled().compileTimeUser() << " produced code " << cs->cumCompiled().outputSize() << std::endl;
 #endif
 
         if ((cs->lastCompiledJobs().size() == 0) && (cs->jobList().size() == 0) && cs->maxJobs()) {
@@ -678,21 +674,21 @@ static CompileServer *pick_server(Job *job)
 
     if (best) {
 #if DEBUG_SCHEDULER > 1
-        trace() << "taking best installed " << best->nodeName() << " " <<  server_speed(best, job) << endl;
+        trace() << "taking best installed " << best->nodeName() << " " <<  server_speed(best, job) << std::endl;
 #endif
         return best;
     }
 
     if (bestui) {
 #if DEBUG_SCHEDULER > 1
-        trace() << "taking best uninstalled " << bestui->nodeName() << " " <<  server_speed(bestui, job) << endl;
+        trace() << "taking best uninstalled " << bestui->nodeName() << " " <<  server_speed(bestui, job) << std::endl;
 #endif
         return bestui;
     }
 
     if (bestpre) {
 #if DEBUG_SCHEDULER > 1
-        trace() << "taking best preload " << bestui->nodeName() << " " <<  server_speed(bestui, job) << endl;
+        trace() << "taking best preload " << bestui->nodeName() << " " <<  server_speed(bestui, job) << std::endl;
 #endif
     }
 
@@ -704,7 +700,7 @@ static CompileServer *pick_server(Job *job)
    we have to cleanup next time. */
 static time_t prune_servers()
 {
-    list<CompileServer *>::iterator it;
+    std::list<CompileServer *>::iterator it;
 
     time_t now = time(nullptr);
     time_t min_time = MAX_SCHEDULER_PING;
@@ -717,13 +713,13 @@ static time_t prune_servers()
             continue;
         }
 
-        min_time = min(min_time, MAX_SCHEDULER_PING - now + (*it)->last_talk);
+        min_time = std::min(min_time, MAX_SCHEDULER_PING - now + (*it)->last_talk);
         ++it;
     }
 
     for (it = css.begin(); it != css.end();) {
         if ((*it)->busyInstalling() && ((now - (*it)->busyInstalling()) >= MAX_BUSY_INSTALLING)) {
-            trace() << "busy installing for a long time - removing " << (*it)->nodeName() << endl;
+            trace() << "busy installing for a long time - removing " << (*it)->nodeName() << std::endl;
             CompileServer *old = *it;
             ++it;
             handle_end(old, nullptr);
@@ -738,34 +734,34 @@ static time_t prune_servers()
 
         if ((now - (*it)->last_talk) >= MAX_SCHEDULER_PING) {
             if ((*it)->maxJobs() >= 0) {
-                trace() << "send ping " << (*it)->nodeName() << endl;
+                trace() << "send ping " << (*it)->nodeName() << std::endl;
                 (*it)->setMaxJobs((*it)->maxJobs() * -1);   // better not give it away
 
                 if ((*it)->send_msg(Ping())) {
                     // give it MAX_SCHEDULER_PONG to answer a ping
                     (*it)->last_talk = time(nullptr) - MAX_SCHEDULER_PING
                                        + 2 * MAX_SCHEDULER_PONG;
-                    min_time = min(min_time, (time_t) 2 * MAX_SCHEDULER_PONG);
+                    min_time = std::min(min_time, (time_t) 2 * MAX_SCHEDULER_PONG);
                     ++it;
                     continue;
                 }
             }
 
             // R.I.P.
-            trace() << "removing " << (*it)->nodeName() << endl;
-            CompileServer *old = *it;
+            trace() << "removing " << (*it)->nodeName() << std::endl;
+            auto old = *it;
             ++it;
             handle_end(old, nullptr);
             continue;
         } else {
-            min_time = min(min_time, MAX_SCHEDULER_PING - now + (*it)->last_talk);
+            min_time = std::min(min_time, MAX_SCHEDULER_PING - now + (*it)->last_talk);
         }
 
 #if DEBUG_SCHEDULER > 1
         if ((random() % 400) < 0) {
             // R.I.P.
-            trace() << "FORCED removing " << (*it)->nodeName() << endl;
-            CompileServer *old = *it;
+            trace() << "FORCED removing " << (*it)->nodeName() << std::endl;
+            auto old = *it;
             ++it;
             handle_end(old, nullptr);
             continue;
@@ -823,7 +819,7 @@ static bool empty_queue()
             job = delay_current_job();
 
             if ((job == first_job) || !job) { // no job found in the whole toanswer list
-                trace() << "No suitable host found, delaying" << endl;
+                trace() << "No suitable host found, delaying" << std::endl;
                 return false;
             }
         } else {
@@ -836,7 +832,7 @@ static bool empty_queue()
     job->setState(Job::WAITINGFORCS);
     job->setServer(cs);
 
-    string host_platform = envs_match(cs, job);
+    std::string host_platform = envs_match(cs, job);
     bool gotit = true;
 
     if (host_platform.empty()) {
@@ -848,16 +844,14 @@ static bool empty_queue()
     unsigned matched_job_id = 0;
     unsigned count = 0;
 
-    list<JobStat> lastRequestedJobs = job->submitter()->lastRequestedJobs();
-    for (list<JobStat>::const_iterator l = lastRequestedJobs.begin();
-            l != lastRequestedJobs.end(); ++l) {
+    auto lastRequestedJobs = job->submitter()->lastRequestedJobs();
+    for (const auto &l : lastRequestedJobs) {
         unsigned rcount = 0;
 
-        list<JobStat> lastCompiledJobs = cs->lastCompiledJobs();
-        for (list<JobStat>::const_iterator r = lastCompiledJobs.begin();
-                r != lastCompiledJobs.end(); ++r) {
-            if (l->jobId() == r->jobId()) {
-                matched_job_id = l->jobId();
+        auto lastCompiledJobs = cs->lastCompiledJobs();
+        for (const auto &r : lastCompiledJobs) {
+            if (l.jobId() == r.jobId()) {
+                matched_job_id = l.jobId();
             }
 
             if (++rcount > 16) {
@@ -874,16 +868,16 @@ static bool empty_queue()
                 gotit, job->localClientId(), matched_job_id);
 
     if (!job->submitter()->send_msg(m2)) {
-        trace() << "failed to deliver job " << job->id() << endl;
+        trace() << "failed to deliver job " << job->id() << std::endl;
         handle_end(job->submitter(), nullptr);   // will care for the rest
         return true;
     }
 
 #if DEBUG_SCHEDULER >= 0
     if (!gotit) {
-        trace() << "put " << job->id() << " in joblist of " << cs->nodeName() << " (will install now)" << endl;
+        trace() << "put " << job->id() << " in joblist of " << cs->nodeName() << " (will install now)" << std::endl;
     } else {
-        trace() << "put " << job->id() << " in joblist of " << cs->nodeName() << endl;
+        trace() << "put " << job->id() << " in joblist of " << cs->nodeName() << std::endl;
     }
 #endif
     cs->appendJob(job);
@@ -893,24 +887,24 @@ static bool empty_queue()
         cs->setBusyInstalling(time(nullptr));
     }
 
-    string env;
+    std::string env;
 
     if (!job->masterJobFor().empty()) {
-        Environments environments = job->environments();
-        for (Environments::const_iterator it = environments.begin(); it != environments.end(); ++it) {
-            if (it->first == cs->hostPlatform()) {
-                env = it->second;
+        auto environments = job->environments();
+        for (const auto &cit : environments) {
+            if (cit.first == cs->hostPlatform()) {
+                env = cit.second;
                 break;
             }
         }
     }
 
     if (!env.empty()) {
-        list<Job *> masterJobFor = job->masterJobFor();
-        for (list<Job *>::iterator it = masterJobFor.begin(); it != masterJobFor.end(); ++it) {
+        auto masterJobFor = job->masterJobFor();
+        for (auto &it : masterJobFor) {
             // remove all other environments
-            (*it)->clearEnvironments();
-            (*it)->appendEnvironment(make_pair(cs->hostPlatform(), env));
+            it->clearEnvironments();
+            it->appendEnvironment(make_pair(cs->hostPlatform(), env));
         }
     }
 
@@ -919,7 +913,7 @@ static bool empty_queue()
 
 static bool handle_login(CompileServer *cs, Msg *_m)
 {
-    Login *m = dynamic_cast<Login *>(_m);
+    auto m = dynamic_cast<Login *>(_m);
 
     if (!m) {
         return false;
@@ -942,8 +936,8 @@ static bool handle_login(CompileServer *cs, Msg *_m)
     cs->setChrootPossible(m->chroot_possible);
     cs->pick_new_id();
 
-    for (list<string>::const_iterator it = block_css.begin(); it != block_css.end(); ++it)
-        if (cs->matches(*it)) {
+    for (const auto &cit : block_css)
+        if (cs->matches(cit)) {
             return false;
         }
 
@@ -951,17 +945,17 @@ static bool handle_login(CompileServer *cs, Msg *_m)
 #if 1
     dbg << " [";
 
-    for (Environments::const_iterator it = m->envs.begin(); it != m->envs.end(); ++it) {
-        dbg << it->second << "(" << it->first << "), ";
+    for (const auto &cit : m->envs) {
+        dbg << cit.second << "(" << cit.first << "), ";
     }
 
-    dbg << "]" << endl;
+    dbg << "]" << std::endl;
 #endif
 
     handle_monitor_stats(cs);
 
     /* remove any other clients with the same IP and name, they must be stale */
-    for (list<CompileServer *>::iterator it = css.begin(); it != css.end();) {
+    for (auto it = css.begin(); it != css.end();) {
         if (cs->eq_ip(*(*it)) && cs->nodeName() == (*it)->nodeName()) {
             CompileServer *old = *it;
             ++it;
@@ -984,24 +978,24 @@ static bool handle_login(CompileServer *cs, Msg *_m)
 
 static bool handle_relogin(Channel *mc, Msg *_m)
 {
-    Login *m = dynamic_cast<Login *>(_m);
+    auto m = dynamic_cast<Login *>(_m);
 
     if (!m) {
         return false;
     }
 
-    CompileServer *cs = static_cast<CompileServer *>(mc);
+    auto cs = static_cast<CompileServer *>(mc);
     cs->setCompilerVersions(m->envs);
     cs->setBusyInstalling(0);
 
     std::ostream &dbg = trace();
     dbg << "RELOGIN " << cs->nodeName() << "(" << cs->hostPlatform() << "): [";
 
-    for (Environments::const_iterator it = m->envs.begin(); it != m->envs.end(); ++it) {
-        dbg << it->second << "(" << it->first << "), ";
+    for (const auto &cit : m->envs) {
+        dbg << cit.second << "(" << cit.first << "), ";
     }
 
-    dbg << "]" << endl;
+    dbg << "]" << std::endl;
 
     /* Configure the daemon */
     if (is_protocol<24>()(*cs)) {
@@ -1013,7 +1007,7 @@ static bool handle_relogin(Channel *mc, Msg *_m)
 
 static bool handle_mon_login(CompileServer *cs, Msg *_m)
 {
-    MonLogin *m = dynamic_cast<MonLogin *>(_m);
+    auto m = dynamic_cast<MonLogin *>(_m);
 
     if (!m) {
         return false;
@@ -1023,8 +1017,8 @@ static bool handle_mon_login(CompileServer *cs, Msg *_m)
     // monitors really want to be fed lazily
     cs->setBulkTransfer();
 
-    for (list<CompileServer *>::const_iterator it = css.begin(); it != css.end(); ++it) {
-        handle_monitor_stats(*it);
+    for (const auto &cit : css) {
+        handle_monitor_stats(cit);
     }
 
     fd2cs.erase(cs->fd);   // no expected data from them
@@ -1033,21 +1027,21 @@ static bool handle_mon_login(CompileServer *cs, Msg *_m)
 
 static bool handle_job_begin(CompileServer *cs, Msg *_m)
 {
-    JobBegin *m = dynamic_cast<JobBegin *>(_m);
+    auto m = dynamic_cast<JobBegin *>(_m);
 
     if (!m) {
         return false;
     }
 
     if (jobs.find(m->job_id) == jobs.end()) {
-        trace() << "handle_job_begin: no valid job id " << m->job_id << endl;
+        trace() << "handle_job_begin: no valid job id " << m->job_id << std::endl;
         return false;
     }
 
-    Job *job = jobs[m->job_id];
+    auto job = jobs[m->job_id];
 
     if (job->server() != cs) {
-        trace() << "that job isn't handled by " << cs->name << endl;
+        trace() << "that job isn't handled by " << cs->name << std::endl;
         return false;
     }
 
@@ -1059,7 +1053,7 @@ static bool handle_job_begin(CompileServer *cs, Msg *_m)
     trace() << "BEGIN: " << m->job_id << " client=" << job->submitter()->nodeName()
             << "(" << job->targetPlatform() << ")" << " server="
             << job->server()->nodeName() << "(" << job->server()->hostPlatform()
-            << ")" << endl;
+            << ")" << std::endl;
 #endif
 
     return true;
@@ -1068,7 +1062,7 @@ static bool handle_job_begin(CompileServer *cs, Msg *_m)
 
 static bool handle_job_done(CompileServer *cs, Msg *_m)
 {
-    JobDone *m = dynamic_cast<JobDone *>(_m);
+    auto m = dynamic_cast<JobDone *>(_m);
 
     if (!m) {
         return false;
@@ -1078,30 +1072,30 @@ static bool handle_job_done(CompileServer *cs, Msg *_m)
 
     if (m->exitcode == CLIENT_WAS_WAITING_FOR_CS) {
         // the daemon saw a cancel of what he believes is waiting in the scheduler
-        map<unsigned int, Job *>::iterator mit;
+        auto mit = jobs.begin();
 
-        for (mit = jobs.begin(); mit != jobs.end(); ++mit) {
+        for (; mit != jobs.end(); ++mit) {
             Job *job = mit->second;
             trace() << "looking for waitcs " << job->server() << " " << job->submitter()  << " " << cs
                     << " " << job->state() << " " << job->localClientId() << " " << m->job_id
-                    << endl;
+                    << std::endl;
 
             if (job->server() == nullptr && job->submitter() == cs && job->state() == Job::PENDING
                     && job->localClientId() == m->job_id) {
-                trace() << "STOP (WAITFORCS) FOR " << mit->first << endl;
+                trace() << "STOP (WAITFORCS) FOR " << mit->first << std::endl;
                 j = job;
                 m->job_id = j->id(); // that's faked
 
                 /* Unfortunately the toanswer queues are also tagged based on the daemon,
                 so we need to clean them up also.  */
-                list<UnansweredList *>::iterator it;
+                std::list<UnansweredList *>::iterator it;
 
-                for (it = toanswer.begin(); it != toanswer.end(); ++it)
+                for (; it != toanswer.end(); ++it)
                     if ((*it)->server == cs) {
-                        UnansweredList *l = *it;
-                        list<Job *>::iterator jit;
+                        auto l = *it;
+                        auto jit = l->l.begin();
 
-                        for (jit = l->l.begin(); jit != l->l.end(); ++jit) {
+                        for (; jit != l->l.end(); ++jit) {
                             if (*jit == j) {
                                 l->l.erase(jit);
                                 break;
@@ -1120,28 +1114,28 @@ static bool handle_job_done(CompileServer *cs, Msg *_m)
     }
 
     if (!j) {
-        trace() << "job ID not present " << m->job_id << endl;
+        trace() << "job ID not present " << m->job_id << std::endl;
         return false;
     }
 
     if (j->state() == Job::PENDING) {
-        trace() << "job ID still pending ?! scheduler recently restarted? " << m->job_id << endl;
+        trace() << "job ID still pending ?! scheduler recently restarted? " << m->job_id << std::endl;
         return false;
     }
 
     if (m->is_from_server() && (j->server() != cs)) {
-        log_info() << "the server isn't the same for job " << m->job_id << endl;
-        log_info() << "server: " << j->server()->nodeName() << endl;
-        log_info() << "msg came from: " << cs->nodeName() << endl;
+        log_info() << "the server isn't the same for job " << m->job_id << std::endl;
+        log_info() << "server: " << j->server()->nodeName() << std::endl;
+        log_info() << "msg came from: " << cs->nodeName() << std::endl;
         // the daemon is not following matz's rules: kick him
         handle_end(cs, nullptr);
         return false;
     }
 
     if (!m->is_from_server() && (j->submitter() != cs)) {
-        log_info() << "the submitter isn't the same for job " << m->job_id << endl;
-        log_info() << "submitter: " << j->submitter()->nodeName() << endl;
-        log_info() << "msg came from: " << cs->nodeName() << endl;
+        log_info() << "the submitter isn't the same for job " << m->job_id << std::endl;
+        log_info() << "submitter: " << j->submitter()->nodeName() << std::endl;
+        log_info() << "msg came from: " << cs->nodeName() << std::endl;
         // the daemon is not following matz's rules: kick him
         handle_end(cs, nullptr);
         return false;
@@ -1171,10 +1165,10 @@ static bool handle_job_done(CompileServer *cs, Msg *_m)
             << " sys=" << m->sys_msec
             << " pfaults=" << m->pfaults
             << " server=" << j->server()->nodeName()
-            << endl;
+            << std::endl;
     } else {
         trace() << "END " << m->job_id
-                << " status=" << m->exitcode << endl;
+                << " status=" << m->exitcode << std::endl;
     }
 
     if (j->server()) {
@@ -1202,7 +1196,7 @@ static bool handle_ping(CompileServer *cs, Msg * /*_m*/)
 
 static bool handle_stats(CompileServer *cs, Msg *_m)
 {
-    Stats *m = dynamic_cast<Stats *>(_m);
+    auto m = dynamic_cast<Stats *>(_m);
 
     if (!m) {
         return false;
@@ -1218,10 +1212,10 @@ static bool handle_stats(CompileServer *cs, Msg *_m)
         }
     }
 
-    for (list<CompileServer *>::iterator it = css.begin(); it != css.end(); ++it)
-        if (*it == cs) {
-            (*it)->setLoad(m->load);
-            handle_monitor_stats(*it, m);
+    for (auto &it : css)
+        if (it == cs) {
+            it->setLoad(m->load);
+            handle_monitor_stats(it, m);
             return true;
         }
 
@@ -1230,28 +1224,28 @@ static bool handle_stats(CompileServer *cs, Msg *_m)
 
 static bool handle_blacklist_host_env(CompileServer *cs, Msg *_m)
 {
-    BlacklistHostEnv *m = dynamic_cast<BlacklistHostEnv *>(_m);
+    auto m = dynamic_cast<BlacklistHostEnv *>(_m);
 
     if (!m) {
         return false;
     }
 
-    for (list<CompileServer *>::const_iterator it = css.begin(); it != css.end(); ++it)
-        if ((*it)->name == m->hostname_get()) {
+    for (const auto &cit : css)
+        if (cit->name == m->hostname_get()) {
             trace() << "Blacklisting host " << m->hostname_get() << " for environment " << m->environment_get()
-                    << " (" << m->target_get() << ")" << endl;
-            cs->blacklistCompileServer(*it, make_pair(m->target_get(), m->environment_get()));
+                    << " (" << m->target_get() << ")" << std::endl;
+            cs->blacklistCompileServer(cit, make_pair(m->target_get(), m->environment_get()));
         }
 
     return true;
 }
 
-static string dump_job(Job *job)
+static std::string dump_job(Job *job)
 {
     char buffer[1000];
-    string line;
+    std::string line;
 
-    string jobState;
+    std::string jobState;
     switch(job->state()) {
     case Job::PENDING:
         jobState = "PEND";
@@ -1277,14 +1271,15 @@ static string dump_job(Job *job)
 }
 
 /* Splits the string S between characters in SET and add them to list L.  */
-static void split_string(const string &s, const char *set, list<string> &l)
+static void split_string(const std::string &s, const char *set,
+                         std::list<std::string> &l)
 {
-    string::size_type end = 0;
+    std::string::size_type end = 0;
 
-    while (end != string::npos) {
-        string::size_type start = s.find_first_not_of(set, end);
+    while (end != std::string::npos) {
+        std::string::size_type start = s.find_first_not_of(set, end);
 
-        if (start == string::npos) {
+        if (start == std::string::npos) {
             break;
         }
 
@@ -1292,8 +1287,8 @@ static void split_string(const string &s, const char *set, list<string> &l)
 
         /* Do we really need to check end here or is the subtraction
            defined on every platform correctly (with GCC it's ensured,
-        that (npos - start) is the rest of the string).  */
-        if (end != string::npos) {
+        that (npos - start) is the rest of the std::string).  */
+        if (end != std::string::npos) {
             l.push_back(s.substr(start, end - start));
         } else {
             l.push_back(s.substr(start));
@@ -1315,24 +1310,24 @@ static bool handle_control_login(CompileServer *cs)
       << time(nullptr) - starttime << "s uptime, "
       << css.size() << " hosts, "
       << jobs.size() << " jobs in queue "
-      << "(" << new_job_id << " total)." << endl;
-    o << "200 Use 'help' for help and 'quit' to quit." << endl;
+      << "(" << new_job_id << " total)." << std::endl;
+    o << "200 Use 'help' for help and 'quit' to quit." << std::endl;
     return cs->send_msg(Text(o.str()));
 }
 
 static bool handle_line(CompileServer *cs, Msg *_m)
 {
-    Text *m = dynamic_cast<Text *>(_m);
+    auto m = dynamic_cast<Text *>(_m);
 
     if (!m) {
         return false;
     }
 
     char buffer[1000];
-    string line;
-    list<string> l;
+    std::string line;
+    std::list<std::string> l;
     split_string(m->text, " \t\n", l);
-    string cmd;
+    std::string cmd;
 
     cs->last_talk = time(nullptr);
 
@@ -1345,16 +1340,16 @@ static bool handle_line(CompileServer *cs, Msg *_m)
     }
 
     if (cmd == "listcs") {
-        for (list<CompileServer *>::iterator it = css.begin(); it != css.end(); ++it) {
-            sprintf(buffer, " (%s:%d) ", (*it)->name.c_str(), (*it)->remotePort());
-            line = " " + (*it)->nodeName() + buffer;
-            line += "[" + (*it)->hostPlatform() + "] speed=";
-            sprintf(buffer, "%.2f jobs=%d/%d load=%d", server_speed(*it),
-                    (int)(*it)->jobList().size(), (*it)->maxJobs(), (*it)->load());
+        for (const auto &cit : css) {
+            sprintf(buffer, " (%s:%d) ", cit->name.c_str(), cit->remotePort());
+            line = " " + cit->nodeName() + buffer;
+            line += "[" + cit->hostPlatform() + "] speed=";
+            sprintf(buffer, "%.2f jobs=%d/%d load=%d", server_speed(cit),
+                    (int)cit->jobList().size(), cit->maxJobs(), cit->load());
             line += buffer;
 
-            if ((*it)->busyInstalling()) {
-                sprintf(buffer, " busy installing since %ld s",  time(nullptr) - (*it)->busyInstalling());
+            if (cit->busyInstalling()) {
+                sprintf(buffer, " busy installing since %ld s",  time(nullptr) - cit->busyInstalling());
                 line += buffer;
             }
 
@@ -1362,23 +1357,22 @@ static bool handle_line(CompileServer *cs, Msg *_m)
                 return false;
             }
 
-            list<Job *> jobList = (*it)->jobList();
-            for (list<Job *>::const_iterator it2 = jobList.begin(); it2 != jobList.end(); ++it2) {
-                if (!cs->send_msg(Text("   " + dump_job(*it2)))) {
+            auto jobList = cit->jobList();
+            for (const auto &cit2 : jobList) {
+                if (!cs->send_msg(Text("   " + dump_job(cit2)))) {
                     return false;
                 }
             }
         }
     } else if (cmd == "listblocks") {
-        for (list<string>::const_iterator it = block_css.begin(); it != block_css.end(); ++it) {
-            if (!cs->send_msg(Text("   " + (*it)))) {
+        for (const auto &cit : block_css) {
+            if (!cs->send_msg(Text("   " + cit))) {
                 return false;
             }
         }
     } else if (cmd == "listjobs") {
-        for (map<unsigned int, Job *>::const_iterator it = jobs.begin();
-                it != jobs.end(); ++it)
-            if (!cs->send_msg(Text(" " + dump_job(it->second)))) {
+        for (const auto &cit : jobs)
+            if (!cs->send_msg(Text(" " + dump_job(cit.second)))) {
                 return false;
             }
     } else if (cmd == "quit" || cmd == "exit") {
@@ -1386,17 +1380,17 @@ static bool handle_line(CompileServer *cs, Msg *_m)
         return false;
     } else if (cmd == "removecs" || cmd == "blockcs") {
         if (l.empty()) {
-            if (!cs->send_msg(Text(string("401 Sure. But which hosts?")))) {
+            if (!cs->send_msg(Text(std::string("401 Sure. But which hosts?")))) {
                 return false;
             }
         } else {
-            for (list<string>::const_iterator si = l.begin(); si != l.end(); ++si) {
+            for (const auto &si : l) {
                 if (cmd == "blockcs")
-                    block_css.push_back(*si);
-                for (list<CompileServer *>::iterator it = css.begin(); it != css.end(); ++it) {
-                    if ((*it)->matches(*si)) {
-                        if (cs->send_msg(Text(string("removing host ") + *si))) {
-                            handle_end(*it, nullptr);
+                    block_css.push_back(si);
+                for (auto &it : css) {
+                    if (it->matches(si)) {
+                        if (cs->send_msg(Text(std::string("removing host ") + si))) {
+                            handle_end(it, nullptr);
                         }
                         break;
                     }
@@ -1405,12 +1399,12 @@ static bool handle_line(CompileServer *cs, Msg *_m)
         }
     } else if (cmd == "unblockcs") {
         if (l.empty()) {
-            if(!cs->send_msg (Text (string ("401 Sure. But which host?"))))
+            if(!cs->send_msg (Text (std::string ("401 Sure. But which host?"))))
                 return false;
         } else {
-            for (list<string>::const_iterator si = l.begin(); si != l.end(); ++si) {
-                for (list<string>::iterator it = block_css.begin(); it != block_css.end(); ++it) {
-                    if (*si == *it) {
+            for (const auto &si : l) {
+                for (auto it = block_css.begin(); it != block_css.end(); ++it) {
+                    if (si == *it) {
                         block_css.erase(it);
                         break;
                     }
@@ -1420,25 +1414,25 @@ static bool handle_line(CompileServer *cs, Msg *_m)
     } else if (cmd == "crashme") {
         *(volatile int *)0 = 42;  // ;-)
     } else if (cmd == "internals") {
-        for (list<CompileServer *>::iterator it = css.begin(); it != css.end(); ++it) {
+        for (const auto &it : css) {
             Msg *msg = nullptr;
 
             if (!l.empty()) {
-                list<string>::const_iterator si;
+                auto si = l.cbegin();
 
-                for (si = l.begin(); si != l.end(); ++si) {
-                    if ((*it)->matches(*si)) {
+                for (; si != l.cend(); ++si) {
+                    if (it->matches(*si)) {
                         break;
                     }
                 }
 
-                if (si == l.end()) {
+                if (si == l.cend()) {
                     continue;
                 }
             }
 
-            if ((*it)->send_msg(GetInternalStatus())) {
-                msg = (*it)->get_msg().get();
+            if (it->send_msg(GetInternalStatus())) {
+                msg = it->get_msg().get();
             }
 
             if (msg && msg->type == MsgType::STATUS_TEXT) {
@@ -1446,7 +1440,7 @@ static bool handle_line(CompileServer *cs, Msg *_m)
                     return false;
                 }
             } else {
-                if (!cs->send_msg(Text((*it)->nodeName() + " not reporting\n"))) {
+                if (!cs->send_msg(Text(it->nodeName() + " not reporting\n"))) {
                     return false;
                 }
             }
@@ -1459,7 +1453,7 @@ static bool handle_line(CompileServer *cs, Msg *_m)
             return false;
         }
     } else {
-        string txt = "Invalid command '";
+        std::string txt = "Invalid command '";
         txt += m->text;
         txt += "'";
 
@@ -1468,7 +1462,7 @@ static bool handle_line(CompileServer *cs, Msg *_m)
         }
     }
 
-    return cs->send_msg(Text(string("200 done")));
+    return cs->send_msg(Text(std::string("200 done")));
 }
 
 // return false if some error occurred, leaves C open.  */
@@ -1486,7 +1480,7 @@ static bool try_login(CompileServer *cs, Msg *m)
         ret = handle_mon_login(cs, m);
         break;
     default:
-        log_info() << "Invalid first message " << (char)m->type << endl;
+        log_info() << "Invalid first message " << (char)m->type << std::endl;
         ret = false;
         break;
     }
@@ -1504,7 +1498,7 @@ static bool try_login(CompileServer *cs, Msg *m)
 static bool handle_end(CompileServer *toremove, Msg *m)
 {
 #if DEBUG_SCHEDULER > 1
-    trace() << "Handle_end " << toremove << " " << m << endl;
+    trace() << "Handle_end " << toremove << " " << m << std::endl;
 #else
     (void)m;
 #endif
@@ -1514,11 +1508,11 @@ static bool handle_end(CompileServer *toremove, Msg *m)
         assert(find(monitors.begin(), monitors.end(), toremove) != monitors.end());
         monitors.remove(toremove);
 #if DEBUG_SCHEDULER > 1
-        trace() << "handle_end(moni) " << monitors.size() << endl;
+        trace() << "handle_end(moni) " << monitors.size() << std::endl;
 #endif
         break;
     case CompileServer::DAEMON:
-        log_info() << "remove daemon " << toremove->nodeName() << endl;
+        log_info() << "remove daemon " << toremove->nodeName() << std::endl;
 
         notify_monitors(new MonStats(toremove->hostId(), "State:Offline\n"));
 
@@ -1532,13 +1526,13 @@ static bool handle_end(CompileServer *toremove, Msg *m)
         /* Unfortunately the toanswer queues are also tagged based on the daemon,
            so we need to clean them up also.  */
 
-        for (list<UnansweredList *>::iterator it = toanswer.begin(); it != toanswer.end();) {
+        for (auto it = toanswer.begin(); it != toanswer.end();) {
             if ((*it)->server == toremove) {
-                UnansweredList *l = *it;
-                list<Job *>::iterator jit;
+                auto l = *it;
+                auto jit = l->l.cbegin();
 
-                for (jit = l->l.begin(); jit != l->l.end(); ++jit) {
-                    trace() << "STOP (DAEMON) FOR " << (*jit)->id() << endl;
+                for (; jit != l->l.end(); ++jit) {
+                    trace() << "STOP (DAEMON) FOR " << (*jit)->id() << std::endl;
                     notify_monitors(new MonJobDone(JobDone((*jit)->id(),  255)));
 
                     if ((*jit)->server()) {
@@ -1556,11 +1550,11 @@ static bool handle_end(CompileServer *toremove, Msg *m)
             }
         }
 
-        for (map<unsigned int, Job *>::iterator mit = jobs.begin(); mit != jobs.end();) {
+        for (auto mit = jobs.cbegin(); mit != jobs.cend();) {
             Job *job = mit->second;
 
             if (job->server() == toremove || job->submitter() == toremove) {
-                trace() << "STOP (DAEMON2) FOR " << mit->first << endl;
+                trace() << "STOP (DAEMON2) FOR " << mit->first << std::endl;
                 notify_monitors(new MonJobDone(JobDone(job->id(),  255)));
 
                 /* If this job is removed because the submitter is removed
@@ -1580,8 +1574,8 @@ static bool handle_end(CompileServer *toremove, Msg *m)
             }
         }
 
-        for (list<CompileServer *>::iterator itr = css.begin(); itr != css.end(); ++itr) {
-            (*itr)->eraseCSFromBlacklist(toremove);
+        for (const auto &itr : css) {
+            itr->eraseCSFromBlacklist(toremove);
         }
 
         break;
@@ -1591,7 +1585,7 @@ static bool handle_end(CompileServer *toremove, Msg *m)
 
         break;
     default:
-        trace() << "remote end had UNKNOWN type?" << endl;
+        trace() << "remote end had UNKNOWN type?" << std::endl;
         break;
     }
 
@@ -1653,7 +1647,8 @@ static bool handle_activity(CompileServer *cs)
         ret = handle_blacklist_host_env(cs, m);
         break;
     default:
-        log_info() << "Invalid message type arrived " << (char)m->type << endl;
+        log_info() << "Invalid message type arrived "
+                   << (char)m->type << std::endl;
         handle_end(cs, m);
         ret = false;
         break;
@@ -1774,20 +1769,20 @@ static void broadcast_scheduler_version()
 static void usage(const char *reason = nullptr)
 {
     if (reason) {
-        cerr << reason << endl;
+        std::cerr << reason << std::endl;
     }
 
-    cerr << "ICECREAM scheduler " VERSION "\n";
-    cerr << "usage: icecc-scheduler [options] \n"
-         << "Options:\n"
-         << "  -n, --netname <name>\n"
-         << "  -p, --port <port>\n"
-         << "  -h, --help\n"
-         << "  -l, --log-file <file>\n"
-         << "  -d, --daemonize\n"
-         << "  -u, --user-uid\n"
-         << "  -v[v[v]]]\n"
-         << endl;
+    std::cerr << "ICECREAM scheduler " VERSION "\n";
+    std::cerr << "usage: icecc-scheduler [options] \n"
+              << "Options:\n"
+              << "  -n, --netname <name>\n"
+              << "  -p, --port <port>\n"
+              << "  -h, --help\n"
+              << "  -l, --log-file <file>\n"
+              << "  -d, --daemonize\n"
+              << "  -u, --user-uid\n"
+              << "  -v[v[v]]]\n"
+              << std::endl;
 
     exit(1);
 }
@@ -1815,7 +1810,7 @@ int main(int argc, char *argv[])
     char *netname = (char *)"ICECREAM";
     bool detach = false;
     int debug_level = Error;
-    string logfile;
+    std::string logfile;
     uid_t user_uid;
     gid_t user_gid;
     int warn_icecc_user_errno = 0;
@@ -1965,7 +1960,7 @@ int main(int argc, char *argv[])
 
     setup_debug(debug_level, logfile);
 
-    log_info() << "ICECREAM scheduler " VERSION " starting up, port " << scheduler_port << endl;
+    log_info() << "ICECREAM scheduler " VERSION " starting up, port " << scheduler_port << std::endl;
 
     if (detach) {
         daemon(0, 0);
@@ -1990,18 +1985,18 @@ int main(int argc, char *argv[])
     }
 
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
-        log_warning() << "signal(SIGPIPE, ignore) failed: " << strerror(errno) << endl;
+        log_warning() << "signal(SIGPIPE, ignore) failed: " << strerror(errno) << std::endl;
         return 1;
     }
 
     starttime = time(nullptr);
 
-    ofstream pidFile;
-    string progName = argv[0];
+    std::ofstream pidFile;
+    std::string progName = argv[0];
     progName = progName.substr(progName.rfind('/') + 1);
-    pidFilePath = string(RUNDIR) + string("/") + progName + string(".pid");
+    pidFilePath = std::string(RUNDIR) + std::string("/") + progName + std::string(".pid");
     pidFile.open(pidFilePath.c_str());
-    pidFile << getpid() << endl;
+    pidFile << getpid() << std::endl;
     pidFile.close();
 
     signal(SIGTERM, trigger_exit);
@@ -2051,7 +2046,7 @@ int main(int argc, char *argv[])
 
         FD_SET(broad_fd, &read_set);
 
-        for (map<int, CompileServer *>::const_iterator it = fd2cs.begin(); it != fd2cs.end();) {
+        for (std::map<int, CompileServer *>::const_iterator it = fd2cs.begin(); it != fd2cs.end();) {
             int i = it->first;
             CompileServer *cs = it->second;
             bool ok = true;
@@ -2108,7 +2103,7 @@ int main(int argc, char *argv[])
 
                 if (remote_fd >= 0) {
                     CompileServer *cs = new CompileServer(remote_fd, (struct sockaddr *) &remote_addr, remote_len, false);
-                    trace() << "accepted " << cs->name << endl;
+                    trace() << "accepted " << cs->name << std::endl;
                     cs->last_talk = time(nullptr);
 
                     if (!cs->protocol) { // protocol mismatch
@@ -2167,7 +2162,7 @@ int main(int argc, char *argv[])
                announcing itself (4 bytes + time). */
             const int schedbuflen = 4 + sizeof(uint64_t);
 
-            int buflen = recvfrom(broad_fd, buf, max( 1, schedbuflen), 0, (struct sockaddr *) &broad_addr,
+            int buflen = recvfrom(broad_fd, buf, std::max( 1, schedbuflen), 0, (struct sockaddr *) &broad_addr,
                                   &broad_len);
             if (buflen != 1 && buflen != schedbuflen) {
                 int err = errno;
@@ -2206,7 +2201,7 @@ int main(int argc, char *argv[])
                         log_info() << "Scheduler from " << inet_ntoa(broad_addr.sin_addr)
                                << ":" << ntohs(broad_addr.sin_port)
                                << " (version " << int(buf[3]) << ") has announced itself as a preferred"
-                            " scheduler, disconnecting all connections." << endl;
+                            " scheduler, disconnecting all connections." << std::endl;
                         while (!css.empty())
                             handle_end(css.front(), nullptr);
                         while (!monitors.empty())
@@ -2216,8 +2211,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        for (map<int, CompileServer *>::const_iterator it = fd2cs.begin();
-                max_fd && it != fd2cs.end();) {
+        for (auto it = fd2cs.cbegin(); max_fd && it != fd2cs.cend();) {
             int i = it->first;
             CompileServer *cs = it->second;
             /* handle_activity can delete the channel from the fd2cs list,

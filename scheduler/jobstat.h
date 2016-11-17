@@ -22,45 +22,50 @@
 */
 
 #ifndef JOBSTAT_H
-#define JOBSTAT_H
+# define JOBSTAT_H
 
-struct JobStat {
-public:
-    JobStat();
+namespace icecream
+{
+    namespace scheduler
+    {
+        struct JobStat {
+        public:
+            JobStat();
 
-    unsigned long outputSize() const;
-    void setOutputSize(unsigned long size);
+            unsigned long outputSize() const;
+            void setOutputSize(unsigned long size);
 
-    unsigned long compileTimeReal() const;
-    void setCompileTimeReal(unsigned long time);
+            unsigned long compileTimeReal() const;
+            void setCompileTimeReal(unsigned long time);
 
-    unsigned long compileTimeUser() const;
-    void setCompileTimeUser(unsigned long time);
+            unsigned long compileTimeUser() const;
+            void setCompileTimeUser(unsigned long time);
 
-    unsigned long compileTimeSys() const;
-    void setCompileTimeSys(unsigned long time);
+            unsigned long compileTimeSys() const;
+            void setCompileTimeSys(unsigned long time);
 
-    unsigned int jobId() const;
-    void setJobId(unsigned int id);
+            unsigned int jobId() const;
+            void setJobId(unsigned int id);
 
-    JobStat &operator+(const JobStat &st);
+            JobStat &operator+(const JobStat &st);
 
-    JobStat &operator+=(const JobStat &st);
+            JobStat &operator+=(const JobStat &st);
 
-    JobStat &operator-(const JobStat &st);
+            JobStat &operator-(const JobStat &st);
 
-    JobStat &operator-=(const JobStat &st);
+            JobStat &operator-=(const JobStat &st);
 
-    JobStat operator/(int d) const;
+            JobStat operator/(int d) const;
 
-    JobStat &operator/=(int d);
+            JobStat &operator/=(int d);
 
-private:
-    unsigned long m_outputSize;  // output size (uncompressed)
-    unsigned long m_compileTimeReal;  // in milliseconds
-    unsigned long m_compileTimeUser;
-    unsigned long m_compileTimeSys;
-    unsigned int m_jobId;
-};
-
+        private:
+            unsigned long m_outputSize;  // output size (uncompressed)
+            unsigned long m_compileTimeReal;  // in milliseconds
+            unsigned long m_compileTimeUser;
+            unsigned long m_compileTimeSys;
+            unsigned int m_jobId;
+        };
+    } // scheduler
+} // icecream
 #endif
