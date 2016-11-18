@@ -224,8 +224,14 @@ AC_CHECK_LIB(pthread, pthread_create, [PTHREAD_LDADD=-lpthread],
 AC_SUBST(PTHREAD_LDADD)
 
 # Check Google test library.
+AC_ARG_WITH(google-test,
+    [  --with-google-test=[yes/no]  Enable test with Google test framework,
+    ,with_google_test=yes)
+
+AS_IF([test "x$with_google_test" = "xyes"], [
 AC_CHECK_LIB(gtest_main, main, [HAVE_GTEST=1] [GTEST_LDADD=-lgtest],
-	AC_MSG_ERROR([Could not find gtest library - please install google test library (see https://github.com/google/googletest)]))
+      AC_MSG_ERROR([Could not find gtest library - please install google test library (see https://github.com/google/googletest)]))
+],)
 AC_SUBST(GTEST_LDADD)
 
 # In DragonFlyBSD daemon needs to be linked against libkinfo.
