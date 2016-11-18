@@ -85,26 +85,25 @@ namespace icecream
             // the below doesn't work as the unmapped platform is transferred back to the
             // client and that asks the daemon for a platform he can't install (see TODO)
 
-            static std::multimap<std::string, std::string> platform_map;
+            static const std::multimap<std::string, std::string> platform_map
+            {
+                {"i386", "i486"},
+                {"i386", "i586"},
+                {"i386", "i686"},
+                {"i386", "x86_64"},
 
-            if (platform_map.empty()) {
-                platform_map.insert(make_pair(std::string("i386"), std::string("i486")));
-                platform_map.insert(make_pair(std::string("i386"), std::string("i586")));
-                platform_map.insert(make_pair(std::string("i386"), std::string("i686")));
-                platform_map.insert(make_pair(std::string("i386"), std::string("x86_64")));
+                {"i486", "i586"},
+                {"i486", "i686"},
+                {"i486", "x86_64"},
 
-                platform_map.insert(make_pair(std::string("i486"), std::string("i586")));
-                platform_map.insert(make_pair(std::string("i486"), std::string("i686")));
-                platform_map.insert(make_pair(std::string("i486"), std::string("x86_64")));
+                {"i586", "i686"},
+                {"i586", "x86_64"},
 
-                platform_map.insert(make_pair(std::string("i586"), std::string("i686")));
-                platform_map.insert(make_pair(std::string("i586"), std::string("x86_64")));
+                {"i686", "x86_64"},
 
-                platform_map.insert(make_pair(std::string("i686"), std::string("x86_64")));
-
-                platform_map.insert(make_pair(std::string("ppc"), std::string("ppc64")));
-                platform_map.insert(make_pair(std::string("s390"), std::string("s390x")));
-            }
+                {"ppc", "ppc64"},
+                {"s390", "s390x"},
+            };
 
             std::multimap<std::string, std::string>::const_iterator end = platform_map.upper_bound(target);
 
@@ -119,12 +118,12 @@ namespace icecream
             return false;
         }
 
-/* Given a candidate CS and a JOB, check if any of the requested
-   environments could be installed on the CS.  This is the case if that
-   env can be run there, i.e. if the host platforms of the CS and of the
-   environment are compatible.  Return an empty std::string if none can be
-   installed, otherwise return the platform of the first found
-   environments which can be installed.  */
+        /* Given a candidate CS and a JOB, check if any of the requested
+           environments could be installed on the CS.  This is the case if that
+           env can be run there, i.e. if the host platforms of the CS and of the
+           environment are compatible.  Return an empty std::string if none can be
+           installed, otherwise return the platform of the first found
+           environments which can be installed.  */
         std::string CompileServer::can_install(const Job *job)
         {
             // trace() << "can_install host: '" << cs->host_platform << "' target: '"
