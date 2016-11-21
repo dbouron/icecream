@@ -132,9 +132,7 @@ static void broadcast_scheduler_version();
    Returns true if something was deleted.  */
 bool UnansweredList::remove_job(Job *job)
 {
-    std::list<Job *>::iterator it;
-
-    for (it = l.begin(); it != l.end(); ++it)
+    for (auto it = l.begin(); it != l.end(); ++it)
         if (*it == job) {
             l.erase(it);
             return true;
@@ -234,11 +232,8 @@ static bool handle_end(CompileServer *cs, Msg *);
 
 static void notify_monitors(Msg *m)
 {
-    std::list<CompileServer *>::iterator it;
-    std::list<CompileServer *>::iterator it_old;
-
-    for (it = monitors.begin(); it != monitors.end();) {
-        it_old = it++;
+    for (auto it = monitors.begin(); it != monitors.end();) {
+        auto it_old = it++;
 
         /* If we can't send it, don't be clever, simply close this monitor.  */
         if (!(*it_old)->send_msg(*m,SendFlag::SendNonBlocking /*|SendFlag::SendBulkOnly*/)) {
@@ -409,11 +404,10 @@ static bool handle_cs_request(Channel *cs, Msg *_m)
 
         Environments envs = job->environments();
 
-        for (Environments::const_iterator it = envs.begin();
-                it != envs.end();) {
-            dbg << it->second << "(" << it->first << ")";
+        for (auto cit = envs.cbegin(); cit != envs.cend();) {
+            dbg << cit->second << "(" << cit->first << ")";
 
-            if (++it != envs.end()) {
+            if (++cit != envs.end()) {
                 dbg << ", ";
             }
         }
@@ -700,12 +694,12 @@ static CompileServer *pick_server(Job *job)
    we have to cleanup next time. */
 static time_t prune_servers()
 {
-    std::list<CompileServer *>::iterator it;
+    auto it= controls.begin();
 
     time_t now = time(nullptr);
     time_t min_time = MAX_SCHEDULER_PING;
 
-    for (it = controls.begin(); it != controls.end();) {
+    for (; it != controls.end();) {
         if ((now - (*it)->last_talk) >= MAX_SCHEDULER_PING) {
             CompileServer *old = *it;
             ++it;
@@ -1088,9 +1082,7 @@ static bool handle_job_done(CompileServer *cs, Msg *_m)
 
                 /* Unfortunately the toanswer queues are also tagged based on the daemon,
                 so we need to clean them up also.  */
-                std::list<UnansweredList *>::iterator it;
-
-                for (; it != toanswer.end(); ++it)
+                for (auto it = toanswer.begin(); it != toanswer.end(); ++it)
                     if ((*it)->server == cs) {
                         auto l = *it;
                         auto jit = l->l.begin();
@@ -2046,11 +2038,11 @@ int main(int argc, char *argv[])
 
         FD_SET(broad_fd, &read_set);
 
-        for (std::map<int, CompileServer *>::const_iterator it = fd2cs.begin(); it != fd2cs.end();) {
-            int i = it->first;
-            CompileServer *cs = it->second;
+        for (auto cit = fd2cs.cbegin(); cit != fd2cs.cend();) {
+            int i = cit->first;
+            CompileServer *cs = cit->second;
             bool ok = true;
-            ++it;
+            ++cit;
 
             /* handle_activity() can delete c and make the iterator
                invalid.  */
