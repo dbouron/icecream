@@ -225,8 +225,8 @@ AC_SUBST(PTHREAD_LDADD)
 
 # Check Google test library.
 AC_ARG_WITH(google-test,
-    [  --with-google-test=[yes/no]  Enable test with Google test framework,
-    ,with_google_test=yes)
+        [  --with-google-test=[yes/no]  Enable test with Google test framework],,
+        with_google_test=yes)
 
 AS_IF([test "x$with_google_test" = "xyes"], [
 AC_CHECK_LIB(gtest_main, main, [HAVE_GTEST=1] [GTEST_LDADD=-lgtest],
