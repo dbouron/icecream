@@ -49,15 +49,15 @@
 # include <netinet/in.h>
 # include <arpa/inet.h>
 
-# include <comm.h>
-# include "client.h"
-# include "tempfile.h"
-# include "md5.h"
-# include "../services/util.h"
-# include "all.h"
-# include "cpp.h"
-# include "job.h"
-# include "channel.h"
+# include <services/comm.h>
+# include "client/client.h"
+# include "services/tempfile.h"
+# include "client/md5.h"
+# include "services/util.h"
+# include "services/all.h"
+# include "client/cpp.h"
+# include "services/job.h"
+# include "services/channel.h"
 
 # ifndef O_LARGEFILE
 #  define O_LARGEFILE 0

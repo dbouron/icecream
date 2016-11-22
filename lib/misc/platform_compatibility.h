@@ -1,10 +1,9 @@
 /* -*- mode: C++; indent-tabs-mode: nil; c-basic-offset: 4; fill-column: 99; -*- */
-/* vim: set ts=4 sw=4 et tw=99:  */
 /*
-    This file is part of icecc.
+    This file is part of Icecream.
 
-    Copyright (C) 2002, 2003 by Martin Pool <mbp@samba.org>
-                  2004 Stephan Kulow <coolo@suse.de>
+    Copyright (c) 2004 Michael Matz <matz@suse.de>                                                                      2004 Stephan Kulow <coolo@suse.de>
+                  2016 Dimitri Bouron <bouron.d@gmail.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,18 +20,26 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef ICECREAM_SAFEGUARD_H
-# define ICECREAM_SAFEGUARD_H
+/**
+ ** \file misc/platform_compatibility.h
+ ** \brief Define is_platform_compatible function.
+ */
 
-# include "services/logging.h"
+#ifndef ICECREAM_PLATFORM_COMPATIBILITY_H
+# define ICECREAM_PLATFORM_COMPATIBILITY_H
 
-namespace icecream
+# include <string>
+# include <map>
+
+namespace misc
 {
-    namespace client
-    {
-        void dcc_increment_safeguard(void);
-        int dcc_recursion_safeguard(void);
-    } // client
-} // icecream
+    /** Returns true if target architecture is compatible with host
+     ** architecture.
+     */
+    bool is_platform_compatible(const std::string &host,
+                                const std::string &target);
+} // misc
 
-#endif /* !ICECREAM_SAFEGUARD_H */
+#include <misc/platform_compatibility.hxx>
+
+#endif /* !ICECREAM_PLATFORM_COMPATIBILITY_H */

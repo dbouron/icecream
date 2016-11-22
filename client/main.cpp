@@ -50,7 +50,6 @@
 #include <signal.h>
 #include <limits.h>
 #include <sys/time.h>
-#include <comm.h>
 #include <vector>
 #include <sys/types.h>
 #ifdef HAVE_SYS_STAT_H
@@ -58,13 +57,14 @@
 #endif
 #include <sys/wait.h>
 
-#include "client.h"
-#include "local.h"
-#include "arg.h"
-#include "safeguard.h"
-#include "remote.h"
-#include "platform.h"
-#include "all.h"
+#include "client/client.h"
+#include "client/local.h"
+#include "client/arg.h"
+#include "client/safeguard.h"
+#include "client/remote.h"
+#include <services/comm.h>
+#include "services/platform.h"
+#include "services/all.h"
 
 using namespace icecream::services;
 using namespace icecream::client;

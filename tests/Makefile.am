@@ -32,17 +32,37 @@ clean: clean-clangplugin
 clean-clangplugin:
 	rm -f ${builddir}/clangplugin.so
 
-TESTS = ${check_PROGRAMS}
+include $(top_srcdir)/local.am
 
-check_PROGRAMS = test-args test-services test-network
+TESTS = $(check_PROGRAMS)
 
-AM_CPPFLAGS = -I$(top_srcdir)/client -I$(top_srcdir)/services
+check_PROGRAMS = \
+	test-args \
+	test-services \
+	test-network \
+	test-platform-compatibility
 
-test_args_LDADD = ../client/libclient.a ../services/libicecc.la $(LIBRSYNC) $(GTEST_LDADD) $(PTHREAD_LDADD)
 test_args_SOURCES = test-args.cpp
+test_args_LDADD = \
+	$(top_builddir)/client/libclient.a \
+	$(top_builddir)/services/libicecc.la \
+	$(LIBRSYNC) \
+	$(GTEST_LDADD) \
+	$(PTHREAD_LDADD)
 
-test_services_LDADD = ../services/libicecc.la $(GTEST_LDADD) $(PTHREAD_LDADD)
 test_services_SOURCES = test-services.cpp
+test_services_LDADD = \
+	$(top_builddir)/services/libicecc.la \
+	$(GTEST_LDADD) \
+	$(PTHREAD_LDADD)
 
-test_network_LDADD = ../services/libicecc.la $(GTEST_LDADD) $(PTHREAD_LDADD)
 test_network_SOURCES = test-network.cpp
+test_network_LDADD = \
+	$(top_builddir)/services/libicecc.la \
+	$(GTEST_LDADD) \
+	$(PTHREAD_LDADD)
+
+test_platform_compatibility_SOURCES = test-platform-compatibility.cpp
+test_platform_compatibility_LDADD = \
+	$(GTEST_LDADD) \
+	$(PTHREAD_LDADD)

@@ -18,7 +18,7 @@ m4_ifval([icecream_version_micro],
 AC_INIT([icecc], [icecream_version])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE([1.11 foreign dist-bzip2])
+AM_INIT_AUTOMAKE([1.11 foreign dist-bzip2 subdir-objects])
 AM_SILENT_RULES([yes])
 AC_LANG([C++])
 
@@ -342,6 +342,8 @@ AC_CONFIG_FILES([ compilerwrapper/Makefile ])
 AC_CONFIG_FILES([ scheduler/Makefile ])
 AC_CONFIG_FILES([ tests/Makefile ])
 AC_CONFIG_FILES([ client/icecc-create-env ])
+AC_CONFIG_FILES([ lib/Makefile ])
+AC_CONFIG_FILES([ lib/misc/Makefile ])
 AC_OUTPUT([ suse/icecream.spec ])
 if test "$prefix" = NONE; then
   prefix=$ac_default_prefix

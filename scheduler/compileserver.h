@@ -22,16 +22,17 @@
 */
 
 #ifndef COMPILESERVER_H
-#define COMPILESERVER_H
+# define COMPILESERVER_H
 
-#include <string>
-#include <list>
-#include <map>
+# include <string>
+# include <list>
+# include <map>
 
-#include "../services/channel.h"
-#include "../services/all.h"
-#include "../services/comm.h"
-#include "jobstat.h"
+# include <misc/platform_compatibility.h>
+# include <services/channel.h>
+# include <services/all.h>
+# include <services/comm.h>
+# include <scheduler/jobstat.h>
 
 namespace icecream
 {

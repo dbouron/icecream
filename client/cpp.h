@@ -32,10 +32,10 @@
 # include <assert.h>
 
 # include "config.h"
-# include "local.h"
-# include "safeguard.h"
-# include "util.h"
-# include "job.h"
+# include "client/local.h"
+# include "client/safeguard.h"
+# include "client/util.h"
+# include "services/job.h"
 
 namespace icecream
 {

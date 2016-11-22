@@ -78,44 +78,7 @@ namespace icecream
 
         bool CompileServer::platforms_compatible(const std::string &target) const
         {
-            if (target == hostPlatform()) {
-                return true;
-            }
-
-            // the below doesn't work as the unmapped platform is transferred back to the
-            // client and that asks the daemon for a platform he can't install (see TODO)
-
-            static const std::multimap<std::string, std::string> platform_map
-            {
-                {"i386", "i486"},
-                {"i386", "i586"},
-                {"i386", "i686"},
-                {"i386", "x86_64"},
-
-                {"i486", "i586"},
-                {"i486", "i686"},
-                {"i486", "x86_64"},
-
-                {"i586", "i686"},
-                {"i586", "x86_64"},
-
-                {"i686", "x86_64"},
-
-                {"ppc", "ppc64"},
-                {"s390", "s390x"},
-            };
-
-            std::multimap<std::string, std::string>::const_iterator end = platform_map.upper_bound(target);
-
-            for (std::multimap<std::string, std::string>::const_iterator it = platform_map.lower_bound(target);
-                 it != end;
-                 ++it) {
-                if (it->second == hostPlatform()) {
-                    return true;
-                }
-            }
-
-            return false;
+            return misc::is_platform_compatible(m_hostPlatform, target);
         }
 
         /* Given a candidate CS and a JOB, check if any of the requested

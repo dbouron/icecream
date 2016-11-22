@@ -1,3 +1,5 @@
+include $(top_srcdir)/local.am
+
 bin_PROGRAMS = icecc
 bin_SCRIPTS = icecc-create-env
 
@@ -27,10 +29,8 @@ noinst_HEADERS = \
 	cpp.h \
 	local.h \
 	safeguard.h
-AM_CPPFLAGS = \
-	-DPLIBDIR=\"$(pkglibexecdir)\" \
-	-I$(top_srcdir)/services \
-	-I$(top_srcdir)/
+
+AM_CPPFLAGS += -DPLIBDIR=\"$(pkglibexecdir)\"
 
 EXTRA_DIST = icecc-create-env
 

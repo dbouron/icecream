@@ -2,6 +2,8 @@ EXTRA_DIST = README.md
 
 ACLOCAL_AMFLAGS = -I m4
 
+AM_CPPFLAGS = -I$(top_srcdir)/ -I$(top_srcdir)/lib/ -I$(top_builddir)
+
 SUBDIRS = \
 	services \
 	daemon \
@@ -10,6 +12,7 @@ SUBDIRS = \
 	suse \
 	compilerwrapper \
 	scheduler \
+	lib \
 	tests
 
 dist-hook:

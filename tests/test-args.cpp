@@ -32,7 +32,7 @@
 
 #include <gtest/gtest.h>
 
-#include "arg.h"
+#include <client/arg.h>
 
 using namespace icecream::services;
 using namespace icecream::client;

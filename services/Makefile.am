@@ -97,6 +97,7 @@ noinst_HEADERS = \
 	verify-env.h \
 	verify-env-result.h \
 	blacklist-host-env.h \
+	blacklist-host-env.hxx \
 	network.h \
 	protocol.h \
 	protocol.hxx \

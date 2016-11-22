@@ -28,7 +28,7 @@
 #include <string>
 #include <gtest/gtest.h>
 
-#include "../services/network.h"
+#include <services/network.h>
 
 using namespace icecream::services;
 

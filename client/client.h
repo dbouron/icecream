@@ -24,20 +24,20 @@
 #ifndef _CLIENT_H_
 #define _CLIENT_H_
 
-#include <job.h>
-#include <comm.h>
+#include <services/job.h>
+#include <services/comm.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 
 #include <stdexcept>
 
-#include "exitcode.h"
-#include "logging.h"
-#include "util.h"
-#include "service.h"
-#include "channel.h"
-#include "protocol.h"
+#include "services/exitcode.h"
+#include "services/logging.h"
+#include "services/util.h"
+#include "services/service.h"
+#include "services/channel.h"
+#include "services/protocol.h"
 
 using namespace icecream::services;
 
