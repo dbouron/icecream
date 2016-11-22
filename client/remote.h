@@ -50,14 +50,14 @@
 # include <arpa/inet.h>
 
 # include <services/comm.h>
-# include "client/client.h"
-# include "services/tempfile.h"
-# include "client/md5.h"
-# include "services/util.h"
-# include "services/all.h"
-# include "client/cpp.h"
-# include "services/job.h"
-# include "services/channel.h"
+# include <client/client.h>
+# include <services/tempfile.h>
+# include <client/md5.h>
+# include <services/util.h>
+# include <services/all.h>
+# include <client/cpp.h>
+# include <services/job.h>
+# include <services/channel.h>
 
 # ifndef O_LARGEFILE
 #  define O_LARGEFILE 0

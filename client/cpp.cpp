@@ -26,7 +26,7 @@
  * Run the preprocessor.  Client-side only.
  **/
 
-#include "cpp.h"
+#include <client/cpp.h>
 
 using namespace icecream::services;
 

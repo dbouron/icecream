@@ -41,13 +41,13 @@
 # endif
 
 # include <config.h>
-# include <comm.h>
-# include <logging.h>
-# include "exitcode.h"
-# include "util.h"
-# include "channel.h"
-# include "all.h"
-# include "protocol.h"
+# include <services/comm.h>
+# include <services/logging.h>
+# include <services/exitcode.h>
+# include <services/util.h>
+# include <services/channel.h>
+# include <services/all.h>
+# include <services/protocol.h>
 
 namespace icecream
 {

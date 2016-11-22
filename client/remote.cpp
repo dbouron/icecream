@@ -21,7 +21,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "remote.h"
+#include <client/remote.h>
 
 using namespace icecream::services;
 

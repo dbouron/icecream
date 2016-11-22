@@ -39,7 +39,7 @@
   1999-05-03 lpd Original version.
  */
 
-#include "md5.h"
+#include <client/md5.h>
 #include <string.h>
 
 #ifdef TEST

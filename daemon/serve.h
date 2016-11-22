@@ -60,19 +60,18 @@
 #  define _PATH_TMP "/tmp"
 # endif
 
-# include <job.h>
-# include <comm.h>
-
 # include <config.h>
-# include "environment.h"
-# include "exitcode.h"
-# include "tempfile.h"
-# include "workit.h"
-# include "logging.h"
-# include "util.h"
-# include "file_util.h"
-# include "channel.h"
-# include "all.h"
+# include <services/job.h>
+# include <services/comm.h>
+# include <daemon/environment.h>
+# include <services/exitcode.h>
+# include <services/tempfile.h>
+# include <daemon/workit.h>
+# include <services/logging.h>
+# include <services/util.h>
+# include <daemon/file_util.h>
+# include <services/channel.h>
+# include <services/all.h>
 
 namespace icecream
 {

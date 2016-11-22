@@ -42,12 +42,12 @@
 
 # define CLIENT_DEBUG 0
 
-# include "client/client.h"
-# include "client/util.h"
-# include "client/safeguard.h"
+# include <client/client.h>
+# include <client/util.h>
+# include <client/safeguard.h>
 
-# include "services/channel.h"
-# include "services/job.h"
+# include <services/channel.h>
+# include <services/job.h>
 
 namespace icecream
 {

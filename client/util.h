@@ -39,11 +39,11 @@
 #include <sys/file.h>
 
 #include <config.h>
-#include "client/client.h"
-#include "client/local.h"
-#include "services/exitcode.h"
-#include "services/job.h"
-#include "services/logging.h"
+#include <client/client.h>
+#include <client/local.h>
+#include <services/exitcode.h>
+#include <services/job.h>
+#include <services/logging.h>
 
 using namespace icecream::services;
 

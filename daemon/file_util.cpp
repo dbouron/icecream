@@ -9,7 +9,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-#include "file_util.h"
+#include <daemon/file_util.h>
 
 namespace icecream
 {

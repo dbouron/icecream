@@ -87,15 +87,15 @@
 #  include <cap-ng.h>
 # endif
 
-# include "native-environment.h"
-# include "all.h"
-# include "discover-sched.h"
-# include "job.h"
-# include "client.h"
-# include "workit.h"
-# include "environment.h"
-# include "serve.h"
-# include "load.h"
+# include <daemon/native-environment.h>
+# include <services/all.h>
+# include <services/discover-sched.h>
+# include <services/job.h>
+# include <daemon/client.h>
+# include <daemon/workit.h>
+# include <daemon/environment.h>
+# include <daemon/serve.h>
+# include <daemon/load.h>
 
 #ifndef __attribute_warn_unused_result__
 # define __attribute_warn_unused_result__

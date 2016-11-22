@@ -21,15 +21,15 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "compileserver.h"
+#include <scheduler/compileserver.h>
 
 #include <algorithm>
 #include <time.h>
 
-#include "../services/logging.h"
-#include "../services/job.h"
+#include <scheduler/../services/logging.h>
+#include <scheduler/../services/job.h>
 
-#include "job.h"
+#include <scheduler/job.h>
 
 using namespace icecream::services;
 

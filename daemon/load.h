@@ -56,9 +56,9 @@
 # endif
 
 # include <config.h>
-# include "stats.h"
-# include <comm.h>
-# include <logging.h>
+# include <services/stats.h>
+# include <services/comm.h>
+# include <services/logging.h>
 
 namespace icecream
 {

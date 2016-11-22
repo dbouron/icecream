@@ -44,6 +44,7 @@
 # include <sys/fcntl.h>
 # include <sys/wait.h>
 # include <signal.h>
+# include <assert.h>
 # include <sys/resource.h>
 # if HAVE_SYS_USER_H && !defined(__DragonFly__)
 #  include <sys/user.h>
@@ -59,18 +60,16 @@
 #  endif
 # endif
 
-# include "comm.h"
-# include "platform.h"
-# include "util.h"
-# include "channel.h"
-# include "compile-result.h"
-# include "tempfile.h"
-# include "assert.h"
-# include "exitcode.h"
-# include "logging.h"
-# include <job.h>
-# include <all.h>
-# include <protocol.h>
+# include <services/comm.h>
+# include <services/platform.h>
+# include <services/util.h>
+# include <services/channel.h>
+# include <services/tempfile.h>
+# include <services/exitcode.h>
+# include <services/logging.h>
+# include <services/job.h>
+# include <services/all.h>
+# include <services/protocol.h>
 
 namespace icecream
 {

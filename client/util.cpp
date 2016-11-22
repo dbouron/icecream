@@ -20,7 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "util.h"
+#include <client/util.h>
 
 using namespace icecream::services;
 

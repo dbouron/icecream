@@ -28,9 +28,9 @@
 # include <string>
 # include <time.h>
 
-# include "../services/comm.h"
-# include "../services/channel.h"
-# include "compileserver.h"
+# include <scheduler/../services/comm.h>
+# include <scheduler/../services/channel.h>
+# include <scheduler/compileserver.h>
 
 namespace icecream
 {

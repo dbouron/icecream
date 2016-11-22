@@ -24,7 +24,7 @@
 #ifndef ICECREAM_SAFEGUARD_H
 # define ICECREAM_SAFEGUARD_H
 
-# include "services/logging.h"
+# include <services/logging.h>
 
 namespace icecream
 {

@@ -32,8 +32,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "ncpus.h"
-#include "exitcode.h"
+#include <daemon/ncpus.h>
+#include <services/exitcode.h>
 
 /**
  * Determine number of processors online.

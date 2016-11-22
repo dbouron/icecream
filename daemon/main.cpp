@@ -35,22 +35,22 @@
 #include <fstream>
 #include <string>
 
-#include "ncpus.h"
-#include "exitcode.h"
-#include "serve.h"
-#include "workit.h"
-#include "logging.h"
-#include <comm.h>
-#include "load.h"
-#include "environment.h"
-#include "platform.h"
-#include "util.h"
-#include <discover-sched.h>
-#include <job.h>
-#include <channel.h>
-#include <protocol.h>
-#include <all.h>
-#include "daemon.h"
+#include <daemon/ncpus.h>
+#include <services/exitcode.h>
+#include <daemon/serve.h>
+#include <daemon/workit.h>
+#include <services/logging.h>
+#include <services/comm.h>
+#include <daemon/load.h>
+#include <daemon/environment.h>
+#include <services/platform.h>
+#include <services/util.h>
+#include <services/discover-sched.h>
+#include <services/job.h>
+#include <services/channel.h>
+#include <services/protocol.h>
+#include <services/all.h>
+#include <daemon/daemon.h>
 
 
 using namespace icecream::services;

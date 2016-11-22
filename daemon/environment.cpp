@@ -20,8 +20,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "environment.h"
-
+#include <daemon/environment.h>
 
 using namespace icecream::services;
 

@@ -27,8 +27,8 @@
 # include <string>
 # include <map>
 
-# include "channel.h"
-# include "all.h"
+# include <services/channel.h>
+# include <services/all.h>
 
 using namespace icecream::services;
 

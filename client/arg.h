@@ -38,10 +38,10 @@
 
 # include <config.h>
 
-# include "client/local.h"
-# include "client/remote.h"
-# include "services/job.h"
-# include "services/channel.h"
+# include <client/local.h>
+# include <client/remote.h>
+# include <services/job.h>
+# include <services/channel.h>
 
 namespace icecream
 {

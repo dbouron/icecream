@@ -21,7 +21,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "job.h"
+#include <scheduler/job.h>
 
 namespace icecream
 {

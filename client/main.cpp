@@ -57,14 +57,14 @@
 #endif
 #include <sys/wait.h>
 
-#include "client/client.h"
-#include "client/local.h"
-#include "client/arg.h"
-#include "client/safeguard.h"
-#include "client/remote.h"
+#include <client/client.h>
+#include <client/local.h>
+#include <client/arg.h>
+#include <client/safeguard.h>
+#include <client/remote.h>
 #include <services/comm.h>
-#include "services/platform.h"
-#include "services/all.h"
+#include <services/platform.h>
+#include <services/all.h>
 
 using namespace icecream::services;
 using namespace icecream::client;
