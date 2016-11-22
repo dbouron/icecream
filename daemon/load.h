@@ -55,7 +55,7 @@
 #  include <devstat.h>
 # endif
 
-# include "config.h"
+# include <config.h>
 # include "stats.h"
 # include <comm.h>
 # include <logging.h>

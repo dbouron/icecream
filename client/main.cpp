@@ -31,7 +31,7 @@
  * mustereth the host of the battle.
  *      -- Isaiah 13 */
 
-#include "config.h"
+#include <config.h>
 
 // Required by strsignal() on some systems.
 

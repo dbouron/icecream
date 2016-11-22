@@ -24,7 +24,7 @@
 #ifndef ICECREAM_REMOTE_H
 # define ICECREAM_REMOTE_H
 
-# include "config.h"
+# include <config.h>
 
 # include <string>
 # include <map>

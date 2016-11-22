@@ -56,7 +56,7 @@
 #include "../services/all.h"
 #include "../services/discover-sched.h"
 #include "../services/protocol.h"
-#include "config.h"
+#include <config.h>
 
 #include "compileserver.h"
 #include "job.h"

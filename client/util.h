@@ -38,7 +38,7 @@
 #include <sys/stat.h>
 #include <sys/file.h>
 
-#include "config.h"
+#include <config.h>
 #include "client/client.h"
 #include "client/local.h"
 #include "services/exitcode.h"

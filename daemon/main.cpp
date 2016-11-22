@@ -26,7 +26,7 @@
 // getopt_long
 #define _GNU_SOURCE 1
 #endif
-#include "config.h"
+#include <config.h>
 
 #include <deque>
 #include <map>

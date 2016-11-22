@@ -24,7 +24,7 @@
 #ifndef ICECREAM_WORKIT_H
 # define ICECREAM_WORKIT_H
 
-# include "config.h"
+# include <config.h>
 
 # include <algorithm>
 # include <string>

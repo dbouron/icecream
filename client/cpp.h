@@ -31,7 +31,7 @@
 # include <errno.h>
 # include <assert.h>
 
-# include "config.h"
+# include <config.h>
 # include "client/local.h"
 # include "client/safeguard.h"
 # include "client/util.h"

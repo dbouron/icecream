@@ -25,7 +25,7 @@
  *                           removed glibc dependencies
  */
 
-#include "config.h"
+#include <config.h>
 
 #ifndef HAVE_IFADDRS_H
 

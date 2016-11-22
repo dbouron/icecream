@@ -1,3 +1,5 @@
+include $(top_srcdir)/local.am
+
 lib_LTLIBRARIES = libicecc.la
 libicecc_la_SOURCES = \
 	job.cpp \

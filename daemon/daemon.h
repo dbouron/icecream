@@ -24,7 +24,7 @@
 #ifndef ICECREAM_DAEMON_H
 # define ICECREAM_DAEMON_H
 
-# include "config.h"
+# include <config.h>
 
 # include <memory>
 # include <string>

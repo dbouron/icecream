@@ -63,7 +63,7 @@
 # include <job.h>
 # include <comm.h>
 
-# include "config.h"
+# include <config.h>
 # include "environment.h"
 # include "exitcode.h"
 # include "tempfile.h"

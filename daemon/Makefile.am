@@ -1,3 +1,5 @@
+include $(top_srcdir)/local.am
+
 sbin_PROGRAMS = iceccd
 
 iceccd_SOURCES = \
@@ -15,9 +17,6 @@ iceccd_LDADD = \
 	../services/libicecc.la \
 	$(LIB_KINFO) \
 	$(CAPNG_LDADD)
-
-AM_CPPFLAGS = \
-	-I$(top_srcdir)/services
 
 noinst_HEADERS = \
 	environment.h \
