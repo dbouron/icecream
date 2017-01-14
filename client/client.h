@@ -22,22 +22,22 @@
 */
 
 #ifndef _CLIENT_H_
-#define _CLIENT_H_
+# define _CLIENT_H_
 
-#include <services/job.h>
-#include <services/comm.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
+# include <services/job.h>
+# include <services/comm.h>
+# include <sys/types.h>
+# include <sys/time.h>
+# include <sys/resource.h>
 
-#include <stdexcept>
+# include <stdexcept>
 
-#include <services/exitcode.h>
-#include <services/logging.h>
-#include <services/util.h>
-#include <services/service.h>
-#include <services/channel.h>
-#include <services/protocol.h>
+# include <misc/exitcode.h>
+# include <misc/logging.h>
+# include <misc/ignore-result.h>
+# include <services/service.h>
+# include <services/channel.h>
+# include <services/protocol.h>
 
 using namespace icecream::services;
 

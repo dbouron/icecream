@@ -1,10 +1,8 @@
 /* -*- mode: C++; indent-tabs-mode: nil; c-basic-offset: 4; fill-column: 99; -*- */
-/* vim: set ts=4 sw=4 et tw=99:  */
 /*
-    This file is part of icecc.
+    This file is part of Icecream.
 
-    Copyright (C) 2002, 2003 by Martin Pool <mbp@samba.org>
-                  2004 Stephan Kulow <coolo@suse.de>
+    Copyright (c) 2016 Dimitri Bouron <bouron.d@gmail.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,18 +19,31 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef ICECREAM_SAFEGUARD_H
-# define ICECREAM_SAFEGUARD_H
+/**
+ ** \file tests/test-gcc.cpp
+ ** \brief Checking gcc heuristic in libmisc.
+ */
 
-# include <misc/logging.h>
+#include <gtest/gtest.h>
 
-namespace icecream
+#include <misc/gcc.h>
+
+/// \test Smoke test for min expand heuristic.
+TEST(GCC, MIN_EXPAND)
 {
-    namespace client
-    {
-        void dcc_increment_safeguard(void);
-        int dcc_recursion_safeguard(void);
-    } // client
-} // icecream
+    EXPECT_GE(ggc_min_expand_heuristic(256), 30);
+    EXPECT_LE(ggc_min_expand_heuristic(8192), 100);
+}
 
-#endif /* !ICECREAM_SAFEGUARD_H */
+/// \test Smoke test for min heapsize heuristic.
+TEST(GCC, MIN_HEAPSIZE)
+{
+    EXPECT_GE(ggc_min_heapsize_heuristic(256), 4 * 1024);
+    EXPECT_LE(ggc_min_heapsize_heuristic(8192), 128 * 1024);
+}
+
+int main(int argc, char **argv)
+{
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}

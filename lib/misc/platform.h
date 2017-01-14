@@ -1,10 +1,9 @@
 /* -*- mode: C++; indent-tabs-mode: nil; c-basic-offset: 4; fill-column: 99; -*- */
 /* vim: set ts=4 sw=4 et tw=99:  */
 /*
-    This file is part of icecc.
+    This file is part of Icecream.
 
-    Copyright (C) 2002, 2003 by Martin Pool <mbp@samba.org>
-                  2004 Stephan Kulow <coolo@suse.de>
+    Copyright (c) 2006 Mirko Boehm <mirko@kde.org>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,18 +20,11 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef ICECREAM_SAFEGUARD_H
-# define ICECREAM_SAFEGUARD_H
+#ifndef PLATFORM_H
+# define PLATFORM_H
 
-# include <misc/logging.h>
+# include <string>
 
-namespace icecream
-{
-    namespace client
-    {
-        void dcc_increment_safeguard(void);
-        int dcc_recursion_safeguard(void);
-    } // client
-} // icecream
+const std::string &determine_platform();
 
-#endif /* !ICECREAM_SAFEGUARD_H */
+#endif

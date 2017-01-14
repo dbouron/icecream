@@ -256,7 +256,7 @@ namespace icecream
 
                 /* wake up parent and tell him that compile finished */
                 /* if the write failed, well, doesn't matter */
-                ignore_result(write(out_fd, job_stat, sizeof(job_stat)));
+                misc::ignore_result(write(out_fd, job_stat, sizeof(job_stat)));
                 close(out_fd);
 
                 if (rmsg.status == 0) {

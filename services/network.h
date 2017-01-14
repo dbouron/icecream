@@ -59,7 +59,7 @@
 # include <sys/ioctl.h>
 
 # include "getifaddrs.h"
-# include "logging.h"
+# include <misc/logging.h>
 # include "protocol.h"
 
 namespace icecream

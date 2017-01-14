@@ -30,7 +30,7 @@
 # include <list>
 # include <algorithm>
 
-# include "logging.h"
+# include <misc/logging.h>
 # include "job.h"
 # include "channel.h"
 # include "service.h"

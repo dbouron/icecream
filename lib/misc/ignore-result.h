@@ -1,10 +1,7 @@
 /* -*- mode: C++; indent-tabs-mode: nil; c-basic-offset: 4; fill-column: 99; -*- */
 /* vim: set ts=4 sw=4 et tw=99:  */
 /*
-    This file is part of icecc.
-
-    Copyright (C) 2002, 2003 by Martin Pool <mbp@samba.org>
-                  2004 Stephan Kulow <coolo@suse.de>
+    This file is part of Icecream.
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,18 +18,15 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef ICECREAM_SAFEGUARD_H
-# define ICECREAM_SAFEGUARD_H
+#ifndef ICECREAM_IGNORE_RESULT_H
+# define ICECREAM_IGNORE_RESULT_H
 
-# include <misc/logging.h>
-
-namespace icecream
+namespace misc
 {
-    namespace client
-    {
-        void dcc_increment_safeguard(void);
-        int dcc_recursion_safeguard(void);
-    } // client
-} // icecream
+    template <typename T>
+    T ignore_result(T x);
+}
 
-#endif /* !ICECREAM_SAFEGUARD_H */
+# include <misc/ignore-result.hxx>
+
+#endif /* !ICECREAM_IGNORE_RESULT_H */

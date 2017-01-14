@@ -3,8 +3,6 @@
 /*
     This file is part of Icecream.
 
-    Copyright (c) 2006 Mirko Boehm <mirko@kde.org>
-
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
@@ -20,14 +18,20 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef PLATFORM_H
-#define PLATFORM_H
+#ifndef ICECREAM_IGNORE_RESULT_HXX
+# define ICECREAM_IGNORE_RESULT_HXX
 
-#include <string>
+# include <misc/ignore-result.h>
 
-extern const std::string &determine_platform();
+namespace misc
+{
+    template<typename T>
+    inline T ignore_result(T x __attribute__((unused)))
+    {
+        return x;
+    }
+}
 
-extern int ggc_min_expand_heuristic(unsigned int mem_limit);
-extern unsigned int ggc_min_heapsize_heuristic(unsigned int mem_limit);
+# include <misc/ignore-result.hxx>
 
-#endif
+#endif /* !ICECREAM_IGNORE_RESULT_HXX */

@@ -28,7 +28,7 @@
 # include <list>
 # include <map>
 
-# include <misc/platform_compatibility.h>
+# include <misc/platform-compatibility.h>
 # include <services/channel.h>
 # include <services/all.h>
 # include <services/comm.h>

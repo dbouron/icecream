@@ -44,11 +44,11 @@
 #include <errno.h>
 #include <limits.h>
 
-#include "tempfile.h"
-#include "exitcode.h"
+#include <misc/tempfile.h>
+#include <misc/exitcode.h>
 
 #ifndef _PATH_TMP
-#define _PATH_TMP "/tmp"
+# define _PATH_TMP "/tmp"
 #endif
 
 

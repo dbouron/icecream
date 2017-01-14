@@ -40,6 +40,6 @@ namespace misc
                                 const std::string &target);
 } // misc
 
-#include <misc/platform_compatibility.hxx>
+#include <misc/platform-compatibility.hxx>
 
 #endif /* !ICECREAM_PLATFORM_COMPATIBILITY_H */

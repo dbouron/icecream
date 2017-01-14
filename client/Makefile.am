@@ -10,19 +10,18 @@ libclient_a_SOURCES = \
         local.cpp \
         remote.cpp \
         util.cpp \
-        md5.c \
         safeguard.cpp
 
 icecc_SOURCES = \
 	main.cpp
 icecc_LDADD = \
 	libclient.a \
-	../services/libicecc.la \
+	$(top_builddir)/services/libicecc.la \
+	$(top_builddir)/lib/misc/libmisc.la \
 	$(LIBRSYNC)
 
 noinst_HEADERS = \
 	client.h \
-	md5.h \
 	util.h \
 	remote.h \
 	arg.h \

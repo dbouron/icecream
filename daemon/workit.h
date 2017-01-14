@@ -61,12 +61,13 @@
 # endif
 
 # include <services/comm.h>
-# include <services/platform.h>
-# include <services/util.h>
+# include <misc/platform.h>
+# include <misc/gcc.h>
+# include <misc/ignore-result.h>
 # include <services/channel.h>
-# include <services/tempfile.h>
-# include <services/exitcode.h>
-# include <services/logging.h>
+# include <misc/tempfile.h>
+# include <misc/exitcode.h>
+# include <misc/logging.h>
 # include <services/job.h>
 # include <services/all.h>
 # include <services/protocol.h>

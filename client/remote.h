@@ -49,13 +49,13 @@
 # include <netinet/in.h>
 # include <arpa/inet.h>
 
-# include <services/comm.h>
 # include <client/client.h>
-# include <services/tempfile.h>
-# include <client/md5.h>
-# include <services/util.h>
-# include <services/all.h>
 # include <client/cpp.h>
+# include <misc/md5.h>
+# include <services/comm.h>
+# include <misc/tempfile.h>
+# include <misc/ignore-result.h>
+# include <services/all.h>
 # include <services/job.h>
 # include <services/channel.h>
 

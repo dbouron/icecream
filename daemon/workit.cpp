@@ -42,7 +42,7 @@ namespace icecream
             void theSigCHLDHandler(int)
             {
                 char foo = 0;
-                ignore_result(write(death_pipe[1], &foo, 1));
+                misc::ignore_result(write(death_pipe[1], &foo, 1));
             }
 
             void error_client(Channel *client, std::string error)
@@ -289,7 +289,7 @@ namespace icecream
                 perror("ICECC: execv");
 
                 char resultByte = 1;
-                ignore_result(write(main_sock[1], &resultByte, 1));
+                misc::ignore_result(write(main_sock[1], &resultByte, 1));
                 _exit(-1);
             }
 

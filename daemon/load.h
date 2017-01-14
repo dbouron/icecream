@@ -58,7 +58,7 @@
 # include <config.h>
 # include <services/stats.h>
 # include <services/comm.h>
-# include <services/logging.h>
+# include <misc/logging.h>
 
 namespace icecream
 {

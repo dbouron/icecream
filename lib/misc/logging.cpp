@@ -22,12 +22,13 @@
 
 #include <config.h>
 #include <iostream>
-#include "logging.h"
 #include <fstream>
 #include <signal.h>
 #ifdef __linux__
 #include <dlfcn.h>
 #endif
+
+#include <misc/logging.h>
 
 using namespace std;
 

@@ -20,31 +20,56 @@
 */
 
 /**
- ** \file tests/test-platform-comaptibility.cpp
- ** \brief Checking misc::is_platform_compatible function.
+ ** \file tests/test-exitcode.cpp
+ ** \brief Checking exit code in libmisc.
  */
+
+#include <stdio.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 #include <gtest/gtest.h>
 
-#include <misc/platform-compatibility.h>
+#include <misc/exitcode.h>
 
-/// \test Check with compatible platform.
-TEST(PlatformsCompatibility, ValidCompatibility)
+/// \test Basic test for WIFEXITED and WEXITSTATUS macros.
+TEST(EXITCODE, EXITSTATUS)
 {
-    EXPECT_TRUE(misc::is_platform_compatible("x86_64", "x86_64"));
-    EXPECT_TRUE(misc::is_platform_compatible("x86_64", "i386"));
-    EXPECT_TRUE(misc::is_platform_compatible("i586", "i486"));
-    EXPECT_TRUE(misc::is_platform_compatible("ppc64", "ppc"));
-    EXPECT_TRUE(misc::is_platform_compatible("s390x", "s390"));
+  pid_t pid;
+  int status;
+
+  pid = fork();
+  if (pid > 0)
+    {
+      wait(&status);
+      EXPECT_EQ(42, shell_exit_status(status));
+    }
+  else if (pid == 0)
+    exit(42);
+  else
+    FAIL() << "fork() failed";
 }
 
-/// \test Check with no compatible platform.
-TEST(PlatformsCompatibility, NoCompatibility)
+/// \test Basic test for WIFSIGNALED and WTERMSIG macros.
+TEST(EXITCODE, TERMSIG)
 {
-    EXPECT_FALSE(misc::is_platform_compatible("s390", "s390x"));
-    EXPECT_FALSE(misc::is_platform_compatible("i486", "i586"));
-    EXPECT_FALSE(misc::is_platform_compatible("x86_64", "ppc64"));
-    EXPECT_FALSE(misc::is_platform_compatible("x86_64", "noarch"));
+  pid_t pid;
+  int status;
+
+  pid = fork();
+  if (pid > 0)
+    {
+      wait(&status);
+      EXPECT_EQ(SIGTERM, shell_exit_status(status) - 128);
+    }
+  else if (pid == 0)
+    {
+      kill(getpid(), SIGTERM);
+    }
+  else
+    FAIL() << "fork() failed";
 }
 
 int main(int argc, char **argv)

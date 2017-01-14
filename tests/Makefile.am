@@ -40,12 +40,18 @@ check_PROGRAMS = \
 	test-args \
 	test-services \
 	test-network \
-	test-platform-compatibility
+	test-platform-compatibility \
+	test-md5 \
+	test-ignore-result \
+	test-exitcode \
+	test-gcc \
+	test-platform
 
 test_args_SOURCES = test-args.cpp
 test_args_LDADD = \
 	$(top_builddir)/client/libclient.a \
 	$(top_builddir)/services/libicecc.la \
+	$(top_builddir)/lib/misc/libmisc.la \
 	$(LIBRSYNC) \
 	$(GTEST_LDADD) \
 	$(PTHREAD_LDADD)
@@ -53,16 +59,49 @@ test_args_LDADD = \
 test_services_SOURCES = test-services.cpp
 test_services_LDADD = \
 	$(top_builddir)/services/libicecc.la \
+	$(top_builddir)/lib/misc/libmisc.la \
 	$(GTEST_LDADD) \
 	$(PTHREAD_LDADD)
 
 test_network_SOURCES = test-network.cpp
 test_network_LDADD = \
 	$(top_builddir)/services/libicecc.la \
+	$(top_builddir)/lib/misc/libmisc.la \
 	$(GTEST_LDADD) \
 	$(PTHREAD_LDADD)
 
 test_platform_compatibility_SOURCES = test-platform-compatibility.cpp
 test_platform_compatibility_LDADD = \
+	$(top_builddir)/lib/misc/libmisc.la \
+	$(GTEST_LDADD) \
+	$(PTHREAD_LDADD)
+
+test_md5_SOURCES = test-md5.cpp
+test_md5_LDADD = \
+	$(top_builddir)/lib/misc/libmisc.la \
+	$(GTEST_LDADD) \
+	$(PTHREAD_LDADD)
+
+test_ignore_result_SOURCES = test-ignore-result.cpp
+test_ignore_result_LDADD = \
+	$(top_builddir)/lib/misc/libmisc.la \
+	$(GTEST_LDADD) \
+	$(PTHREAD_LDADD)
+
+test_exitcode_SOURCES = test-exitcode.cpp
+test_exitcode_LDADD = \
+	$(top_builddir)/lib/misc/libmisc.la \
+	$(GTEST_LDADD) \
+	$(PTHREAD_LDADD)
+
+test_gcc_SOURCES = test-gcc.cpp
+test_gcc_LDADD = \
+	$(top_builddir)/lib/misc/libmisc.la \
+	$(GTEST_LDADD) \
+	$(PTHREAD_LDADD)
+
+test_platform_SOURCES = test-platform.cpp
+test_platform_LDADD = \
+	$(top_builddir)/lib/misc/libmisc.la \
 	$(GTEST_LDADD) \
 	$(PTHREAD_LDADD)

@@ -33,7 +33,7 @@
 #include <sys/stat.h>
 
 #include <daemon/ncpus.h>
-#include <services/exitcode.h>
+#include <misc/exitcode.h>
 
 /**
  * Determine number of processors online.

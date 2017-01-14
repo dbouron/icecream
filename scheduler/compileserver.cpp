@@ -26,9 +26,8 @@
 #include <algorithm>
 #include <time.h>
 
-#include <scheduler/../services/logging.h>
-#include <scheduler/../services/job.h>
-
+#include <misc/logging.h>
+#include <services/job.h>
 #include <scheduler/job.h>
 
 using namespace icecream::services;

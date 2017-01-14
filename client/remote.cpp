@@ -537,12 +537,12 @@ namespace icecream
                         throw remote_error(102, "Error 102 - command needs stdout/stderr workaround, recompiling locally");
                     }
 
-                    ignore_result(write(STDOUT_FILENO, crmsg->out.c_str(), crmsg->out.size()));
+                    misc::ignore_result(write(STDOUT_FILENO, crmsg->out.c_str(), crmsg->out.size()));
 
                     if (colorify_wanted(job)) {
                         colorify_output(crmsg->err);
                     } else {
-                        ignore_result(write(STDERR_FILENO, crmsg->err.c_str(), crmsg->err.size()));
+                        misc::ignore_result(write(STDERR_FILENO, crmsg->err.c_str(), crmsg->err.size()));
                     }
 
                     if (status && (crmsg->err.length() || crmsg->out.length())) {

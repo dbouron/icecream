@@ -36,15 +36,15 @@
 #include <string>
 
 #include <daemon/ncpus.h>
-#include <services/exitcode.h>
+#include <misc/exitcode.h>
 #include <daemon/serve.h>
 #include <daemon/workit.h>
-#include <services/logging.h>
+#include <misc/logging.h>
 #include <services/comm.h>
 #include <daemon/load.h>
 #include <daemon/environment.h>
-#include <services/platform.h>
-#include <services/util.h>
+#include <misc/platform.h>
+#include <misc/ignore-result.h>
 #include <services/discover-sched.h>
 #include <services/job.h>
 #include <services/channel.h>
@@ -116,7 +116,7 @@ namespace
             // The > 1 is because we get one more signal from the kill(0,...) below.
             // hmm, we got killed already twice. try better
             static const char msg[] = "forced exit.\n";
-            ignore_result(write(STDERR_FILENO, msg, strlen( msg )));
+            misc::ignore_result(write(STDERR_FILENO, msg, strlen( msg )));
             _exit(1);
         }
 
@@ -351,13 +351,13 @@ int main(int argc, char **argv)
         if (!logfile.length() && detach) {
             mkdir("/var/log/icecc", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
             chmod("/var/log/icecc", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
-            ignore_result(chown("/var/log/icecc", d.user_uid, d.user_gid));
+            misc::ignore_result(chown("/var/log/icecc", d.user_uid, d.user_gid));
             logfile = "/var/log/icecc/iceccd.log";
         }
 
         mkdir("/var/run/icecc", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
         chmod("/var/run/icecc", S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
-        ignore_result(chown("/var/run/icecc", d.user_uid, d.user_gid));
+        misc::ignore_result(chown("/var/run/icecc", d.user_uid, d.user_gid));
 
 #ifdef HAVE_LIBCAP_NG
         capng_clear(CAPNG_SELECT_BOTH);

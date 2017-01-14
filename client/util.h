@@ -41,9 +41,9 @@
 #include <config.h>
 #include <client/client.h>
 #include <client/local.h>
-#include <services/exitcode.h>
+#include <misc/exitcode.h>
 #include <services/job.h>
-#include <services/logging.h>
+#include <misc/logging.h>
 
 using namespace icecream::services;
 

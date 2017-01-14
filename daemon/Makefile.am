@@ -14,7 +14,8 @@ iceccd_SOURCES = \
 	client.cpp
 
 iceccd_LDADD = \
-	../services/libicecc.la \
+	$(top_builddir)/services/libicecc.la \
+	$(top_builddir)/lib/misc/libmisc.la \
 	$(LIB_KINFO) \
 	$(CAPNG_LDADD)
 

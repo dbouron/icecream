@@ -79,7 +79,7 @@ namespace
 } // anonymous
 
 /// \test Check with empty hostname.
-TEST(EmptyHostname, NetworkTest)
+TEST(NetworkTest, EmptyHostname)
 {
     struct sockaddr_in remote_addr;
 
@@ -87,7 +87,7 @@ TEST(EmptyHostname, NetworkTest)
 }
 
 /// \test Check connection with localhost.
-TEST(LocalHostname, NetworkTest)
+TEST(NetworkTest, LocalHostname)
 {
     struct sockaddr_in remote_addr;
     auto fd1 = prepare_connect("localhost", 8765, remote_addr);
@@ -101,7 +101,7 @@ TEST(LocalHostname, NetworkTest)
 }
 
 /// \test Check asynchronous connection with localhost.
-TEST(AsyncConnection, NetworkTest)
+TEST(NetworkTest, AsyncConnection)
 {
     struct sockaddr_in remote_addr;
     auto lfd = open_tcp_listener(8765);

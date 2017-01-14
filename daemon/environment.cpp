@@ -586,7 +586,7 @@ namespace icecream
 
             errno = 0;
             mkdir((dirname + "/tmp").c_str(), 01775);
-            ignore_result(chown((dirname + "/tmp").c_str(), user_uid, user_gid));
+            misc::ignore_result(chown((dirname + "/tmp").c_str(), user_uid, user_gid));
             chmod((dirname + "/tmp").c_str(), 01775);
             if (errno == -1) {
                 log_error() << "failed to setup " << dirname << "/tmp :"

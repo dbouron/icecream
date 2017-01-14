@@ -49,13 +49,13 @@
 #include <string>
 #include <stdio.h>
 #include <pwd.h>
-#include <scheduler/../services/comm.h>
-#include <scheduler/../services/logging.h>
-#include <scheduler/../services/job.h>
-#include <scheduler/../services/channel.h>
-#include <scheduler/../services/all.h>
-#include <scheduler/../services/discover-sched.h>
-#include <scheduler/../services/protocol.h>
+#include <services/comm.h>
+#include <misc/logging.h>
+#include <services/job.h>
+#include <services/channel.h>
+#include <services/all.h>
+#include <services/discover-sched.h>
+#include <services/protocol.h>
 #include <config.h>
 
 #include <scheduler/compileserver.h>

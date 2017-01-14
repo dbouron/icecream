@@ -64,11 +64,11 @@
 # include <services/job.h>
 # include <services/comm.h>
 # include <daemon/environment.h>
-# include <services/exitcode.h>
-# include <services/tempfile.h>
+# include <misc/exitcode.h>
+# include <misc/tempfile.h>
 # include <daemon/workit.h>
-# include <services/logging.h>
-# include <services/util.h>
+# include <misc/logging.h>
+# include <misc/ignore-result.h>
 # include <daemon/file_util.h>
 # include <services/channel.h>
 # include <services/all.h>

@@ -29,9 +29,9 @@
 # include <sstream>
 # include <stdio.h>
 
-# include "logging.h"
-# include "exitcode.h"
-# include "platform.h"
+# include <misc/exitcode.h>
+# include <misc/logging.h>
+# include <misc/platform.h>
 
 namespace icecream
 {

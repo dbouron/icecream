@@ -6,12 +6,7 @@ libicecc_la_SOURCES = \
 	msg.cpp \
 	channel.cpp \
 	service.cpp \
-	exitcode.cpp \
 	getifaddrs.cpp \
-	logging.cpp \
-	tempfile.c \
-	platform.cpp \
-	gcc.cpp \
 	discover-sched.cpp \
 	ping.cpp \
 	end.cpp \
@@ -56,16 +51,11 @@ icedir = $(includedir)/icecc
 ice_HEADERS = \
 	job.h \
 	job.hxx \
-	comm.h \
-	logging.h
+	comm.h
 
 noinst_HEADERS = \
-	exitcode.h \
 	service.h \
 	getifaddrs.h \
-	logging.h \
-	tempfile.h \
-	platform.h \
 	msg.h \
 	channel.h \
 	service.h \

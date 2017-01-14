@@ -24,8 +24,8 @@ extern "C" {
 #include <sys/utsname.h>
 }
 
-#include "logging.h"
-#include "platform.h"
+#include <misc/logging.h>
+#include <misc/platform.h>
 
 std::string determine_platform_once()
 {

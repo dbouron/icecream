@@ -42,9 +42,9 @@
 
 # include <config.h>
 # include <services/comm.h>
-# include <services/logging.h>
-# include <services/exitcode.h>
-# include <services/util.h>
+# include <misc/logging.h>
+# include <misc/exitcode.h>
+# include <misc/ignore-result.h>
 # include <services/channel.h>
 # include <services/all.h>
 # include <services/protocol.h>

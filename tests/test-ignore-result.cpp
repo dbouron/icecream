@@ -1,10 +1,8 @@
 /* -*- mode: C++; indent-tabs-mode: nil; c-basic-offset: 4; fill-column: 99; -*- */
-/* vim: set ts=4 sw=4 et tw=99:  */
 /*
-    This file is part of icecc.
+    This file is part of Icecream.
 
-    Copyright (C) 2002, 2003 by Martin Pool <mbp@samba.org>
-                  2004 Stephan Kulow <coolo@suse.de>
+    Copyright (c) 2016 Dimitri Bouron <bouron.d@gmail.com>
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,18 +19,32 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef ICECREAM_SAFEGUARD_H
-# define ICECREAM_SAFEGUARD_H
+/**
+ ** \file tests/test-ignore-result.cpp
+ ** \brief Checking ignore_result util function in libmisc.
+ */
 
-# include <misc/logging.h>
+#include <functional>
 
-namespace icecream
+#include <gtest/gtest.h>
+
+#include <misc/ignore-result.h>
+
+/**
+ ** \test Just check that ignore_result() returns correct result.
+ ** No side effects on returned value expected.
+ */
+TEST(CorrectResult, IgnoreResult)
 {
-    namespace client
-    {
-        void dcc_increment_safeguard(void);
-        int dcc_recursion_safeguard(void);
-    } // client
-} // icecream
+    auto f = [] (auto e) { return e; };
 
-#endif /* !ICECREAM_SAFEGUARD_H */
+    EXPECT_EQ(f(42), misc::ignore_result(f(42)));
+    EXPECT_EQ(f(51.0f), misc::ignore_result(f(51.0f)));
+    EXPECT_EQ(f("test"), misc::ignore_result(f("test")));
+}
+
+int main(int argc, char **argv)
+{
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}

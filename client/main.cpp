@@ -63,7 +63,7 @@
 #include <client/safeguard.h>
 #include <client/remote.h>
 #include <services/comm.h>
-#include <services/platform.h>
+#include <misc/platform.h>
 #include <services/all.h>
 
 using namespace icecream::services;

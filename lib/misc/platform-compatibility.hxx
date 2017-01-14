@@ -29,7 +29,7 @@
 #ifndef ICECREAM_PLATFORM_COMPATIBILITY_HXX
 # define ICECREAM_PLATFORM_COMPATIBILITY_HXX
 
-# include <misc/platform_compatibility.h>
+# include <misc/platform-compatibility.h>
 
 namespace misc
 {
